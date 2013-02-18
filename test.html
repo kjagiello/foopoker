@@ -1,14 +1,26 @@
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
 <script type="text/javascript">
+  var name = prompt("What's your name?");
+
+  function chatLine (msg) {
+    $("#chat").append("<p style='border-bottom: solid 1px grey; margin: 3px;'>" + msg + "</p>")
+  }
+
+  function chatMsg (msg) {
+    chatLine(name + ": " + msg)
+  }
+
   console.log("connecting");
   	var host = "ws://localhost:9001/";
       var socket = new WebSocket(host);
           socket.onopen = function(){
              console.log(socket.readyState + ': open')
-             socket.send("YOLOOOOOOO");
           }
 
           socket.onmessage = function(msg){
          		 console.log('data: ' + msg.data);
+             chatLine(msg.data);
           }
           socket.onerror = function(e){
            console.log(e); 
@@ -19,4 +31,20 @@
           }
 
 
+          $(document).ready(function(){
+            $("#chatform").submit(function(){
+              if ($("#chattext").val()) {
+                socket.send(name + ": " + $("#chattext").val());
+                chatLine(name + ": " + $("#chattext").val());
+                $("#chattext").val("");
+              }
+              return false;
+            });
+          });
+
 </script>
+
+<div style="width: 500px; height: 200px; overflow: auto; border: solid 1px grey;" id="chat">
+
+</div>
+<form method="POST" id="chatform"><input type="text" id="chattext" placeholder="Chat about something" /><input type="submit" /></form>
