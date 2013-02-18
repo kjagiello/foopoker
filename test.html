@@ -1,0 +1,22 @@
+<script type="text/javascript">
+  console.log("connecting");
+  	var host = "ws://localhost:9001/";
+      var socket = new WebSocket(host);
+          socket.onopen = function(){
+             console.log(socket.readyState + ': open')
+             socket.send("YOLOOOOOOO");
+          }
+
+          socket.onmessage = function(msg){
+         		 console.log('data: ' + msg.data);
+          }
+          socket.onerror = function(e){
+           console.log(e); 
+          }
+
+          socket.onclose = function(){
+         		 console.log(socket.readyState + ': closed')
+          }
+
+
+</script>
