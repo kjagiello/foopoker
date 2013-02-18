@@ -254,12 +254,14 @@ sig
     type server
     type connectionState
     type connection
+    type event
     
-    val create              : int -> server
+    val create              : int * (connection -> unit) * (connection -> unit) * (connection * int * Word8Vector.vector -> unit) -> server
     val run                 : server -> unit
     val shutdown            : server -> unit
     val readSockets         : server * Socket.sock_desc list -> unit
     val readData            : server * connection -> unit
+    val sameConnection      : connection * connection -> bool
     val acceptConnection    : server -> unit
     val parseData           : server * connection -> unit
     val parseHandshake      : server * connection -> unit
@@ -269,6 +271,8 @@ sig
     val handleContinuation  : server * connection * WebsocketPacket.packet -> unit
     val handlePacket        : server * connection * WebsocketPacket.packet -> unit
     val closeConnection     : server * connection * int * string -> unit
+    val send                : connection * int * Word8Vector.vector -> unit
+    val sendEx              : server * (connection -> bool) * int * Word8Vector.vector -> unit
 end
 
 structure WebsocketServer :> WEBSOCKET_SERVER = 
@@ -289,10 +293,15 @@ struct
 
     type server = {
         listenSocket: (INetSock.inet, Socket.passive Socket.stream) Socket.sock,
-        connections: connection list ref
+        connections: connection list ref,
+        connectHandler: (connection -> unit),
+        disconnectHandler: (connection -> unit),
+        messageHandler: (connection * int * Word8Vector.vector -> unit)
     }
 
-    fun create port =
+    datatype event = Connect of connection
+
+    fun create (port, ch, dh, mh) =
         let
             val s = INetSock.TCP.socket ()
             val a = INetSock.any port
@@ -301,7 +310,25 @@ struct
             Socket.bind (s, a);
             Socket.listen (s, 128);
 
-            {listenSocket=s, connections=ref []}
+            {listenSocket=s, connections=ref [], connectHandler=ch, disconnectHandler=dh, messageHandler=mh}
+        end
+
+    fun sameConnection ({socket=s1, ...}, {socket=s2, ...}) =
+        Socket.sameDesc (Socket.sockDesc s1, Socket.sockDesc s2)
+
+    fun send ({socket=socket, ...}, opcode, v) =
+        let
+            val packet = WebsocketPacket.toVector (true, false, false, false, opcode, false, Word8Vector.length v, Word8Vector.fromList [], v)
+        in
+            Socket.sendVec (socket, Word8VectorSlice.full packet);
+            ()
+        end
+
+    fun sendEx (s as {connections=ref connections, ...}, f, opcode, v) = 
+        let
+            val connections = List.filter f connections
+        in
+            map (fn c => send (c, opcode, v)) connections; ()
         end
 
     fun acceptConnection {listenSocket=ls, connections=cs, ...} = 
@@ -310,32 +337,34 @@ struct
             val c = {socket=sock, address=addr, buffer=ref [], fbuffer=ref [], state=ref Handshake, fragmentOpcode=ref 0}
         in
             print "[server]\tNew connection has been estabilished.\n";
-            cs := c::(!cs)
+            cs := c::(!cs);
+            ()
         end
 
-    fun closeConnection ({connections=connections, ...}, {socket=socket, state=state, ...}, code, reason) =
+    fun closeConnection ({connections=connections, disconnectHandler=dh, ...}, c as {socket=socket, state=state, ...}, code, reason) =
         let
             val codea = Word8Array.tabulate (2, fn _ => Word8.fromInt 0)
             val _ = PackWord16Big.update (codea, 0, LargeWord.fromInt code)
             val codev = Word8Array.vector codea
-
             val reason = Byte.stringToBytes reason
-
             val payload = Word8VectorSlice.concat [Word8VectorSlice.full codev, Word8VectorSlice.full reason]
-
             val payloadlen = Word8Vector.length payload
         in
             Socket.sendVec (socket, Word8VectorSlice.full (WebsocketPacket.toVector (true, false, false, false, 8, false, payloadlen, Word8Vector.fromList [], payload)));
             state := Closed;
             connections := List.filter (fn {socket=x, ...} => not (Socket.sameDesc (Socket.sockDesc x, Socket.sockDesc socket))) (!connections);
-            Socket.close socket
+            Socket.close socket;
+
+            print "[server]\tClosing connection.\n";
+
+            (* call the disconnect handler *)
+            dh c
         end
 
-    fun parseHandshake (s, {buffer=buffer, socket=socket, state=state, ...}) = 
+    fun parseHandshake (s as {connectHandler=ch, ...}, c as {buffer=buffer, socket=socket, state=state, ...}) = 
         let
             val v = Word8Vector.fromList (!buffer)
-            val s = Byte.bytesToString v
-            val h = parseHeaders s
+            val h = parseHeaders (Byte.bytesToString v)
             val k = HashArray.sub(h, "Sec-WebSocket-Key")
         in
             if isSome k then
@@ -357,7 +386,10 @@ struct
                     Socket.sendVec (socket, Word8VectorSlice.full (Byte.stringToBytes r));
                     buffer := [];
                     state := Estabilished;
-                    print "[client]\tDone! Connection estabilished.\n"
+                    print "[client]\tDone! Connection estabilished.\n";
+
+                    (* call the connect handler *)
+                    ch (c)
                 end
             else
                 ()
@@ -403,6 +435,7 @@ struct
                         orelse code = 1014 orelse code = 1016
                         orelse code = 1100 
                     then
+                        (* Reserved codes *)
                         closeConnection (s, c, 1002, "1002/Protocol Error")
                     else
                         closeConnection (s, c, 1000, "Goodbye")
@@ -411,15 +444,14 @@ struct
                 closeConnection (s, c, 1000, "Goodbye")
         end
 
-    fun handlePacket (s as {connections=connections, ...}, c as {buffer=buffer, fbuffer=fbuffer, socket=socket, fragmentOpcode=fragmentOpcode, ...}, p) = 
+    fun handlePacket (s as {connections=connections, messageHandler=mh, ...}, c as {buffer=buffer, fbuffer=fbuffer, socket=socket, fragmentOpcode=fragmentOpcode, ...}, p) = 
         let
             val pl = WebsocketPacket.getPayload p
             val opcode = WebsocketPacket.getOpcode p
         in
             if WebsocketPacket.isFinal p then
                 if null (!fbuffer) then
-                    (Socket.sendVec (socket, Word8VectorSlice.full (WebsocketPacket.toVector (true, false, false, false, opcode, false, Word8Vector.length pl, Word8Vector.fromList [], pl)));
-                    ())
+                    mh (c, opcode, pl)
                 else
                     closeConnection (s, c, 1002, "1002/Protocol Error")
             else
@@ -428,7 +460,7 @@ struct
         end
 
 
-    fun handleContinuation (s as {connections=connections, ...}, c as {buffer=buffer, fbuffer=fbuffer, socket=socket, fragmentOpcode=ref fragmentOpcode, ...}, p) = 
+    fun handleContinuation (s as {connections=connections, messageHandler=mh, ...}, c as {buffer=buffer, fbuffer=fbuffer, socket=socket, fragmentOpcode=ref fragmentOpcode, ...}, p) = 
         let
             val pl = WebsocketPacket.getPayload p
         in
@@ -439,7 +471,7 @@ struct
                     val _ = fbuffer := (Word8VectorSlice.full pl)::(!fbuffer)
                     val pl = Word8VectorSlice.concat (rev (!fbuffer))
                 in
-                    Socket.sendVec (socket, Word8VectorSlice.full (WebsocketPacket.toVector (true, false, false, false, fragmentOpcode, false, Word8Vector.length pl, Word8Vector.fromList [], pl)));
+                    mh (c, fragmentOpcode, pl);
                     fbuffer := []
                 end
             else
@@ -474,17 +506,21 @@ struct
                     (* we need at least 2 bytes *)
                     ()) handle Subscript => ()
 
-    fun readData (s, c as {state=ref state, socket=sock, buffer=buffer, ...}) =
+    fun readData (s as {connections=connections, disconnectHandler=dh, ...}, c as {state=state, socket=socket, buffer=buffer, ...}) =
         let
-            val data = Socket.recvVec (sock, 102400)
+            val data = Socket.recvVec (socket, 1024)
         in
             if Word8Vector.length data = 0 then
                 (* disconnect *)
-                ()
+                let in
+                    state := Closed;
+                    connections := List.filter (fn {socket=x, ...} => not (Socket.sameDesc (Socket.sockDesc x, Socket.sockDesc socket))) (!connections);
+                    dh c
+                end
             else
                 let in
                     buffer := (!buffer) @ (vectorToList data);
-                    case state of
+                    case !state of
                         Handshake => parseHandshake (s, c)
                       | Estabilished => parseData (s, c)
                       | _ => ()
@@ -517,6 +553,36 @@ struct
         Socket.close ls
 end
 
-val s = WebsocketServer.create 9001;
-PolyML.exception_trace(fn () => WebsocketServer.run s);
+signature WebsocketHandler = 
+sig
+    val handleConnect       : WebsocketServer.connection -> unit
+    val handleDisconnect    : WebsocketServer.connection -> unit
+    val handleMessage       : WebsocketServer.connection *  int * Word8Vector.vector -> unit
+end
+
+structure MLHoldemServer :> WebsocketHandler = 
+struct
+    val clients = ref [];
+
+    fun handleConnect (c) =
+        let in
+            clients := c::(!clients)
+        end
+
+    fun handleDisconnect (c) =
+        let in
+            clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
+        end
+
+    fun handleMessage (c, opcode, m) =
+        let
+            val others = List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients) 
+        in
+            map (fn x => WebsocketServer.send (x, opcode, m)) others;
+            ()
+        end
+end
+
+val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage);
+(*PolyML.exception_trace(fn () => WebsocketServer.run s);*)
 WebsocketServer.run s handle Interrupt => WebsocketServer.shutdown s;
