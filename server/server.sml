@@ -1,8 +1,8 @@
-use "base64-sig.sml";
-use "base64.sml";
+use "../utils/base64-sig.sml";
+use "../utils/base64.sml";
 
-use "sha1-sig.sml";
-use "sha1.sml";
+use "../utils/sha1-sig.sml";
+use "../utils/sha1.sml";
 
 fun vectorToList v =
     Word8Vector.foldr (fn (a, l) => a::l) [] v
@@ -555,6 +555,12 @@ end
 
 signature WebsocketHandler = 
 sig
+    type game
+
+    val boards              : game ref list ref
+
+    val createBoard         : string -> unit
+    val printBoards         : unit -> unit
     val handleConnect       : WebsocketServer.connection -> unit
     val handleDisconnect    : WebsocketServer.connection -> unit
     val handleMessage       : WebsocketServer.connection *  int * Word8Vector.vector -> unit
@@ -562,7 +568,17 @@ end
 
 structure MLHoldemServer :> WebsocketHandler = 
 struct
+    datatype game = Board of string * game ref list ref
+                  | Player of string * game ref
+
     val clients = ref [];
+    val boards = ref [];
+
+    fun createBoard name =
+        boards := (ref (Board (name, ref [])))::(!boards)
+
+    fun printBoards () =
+        List.app (fn (ref (Board (name, _))) => (print name; print "\n")) (!boards)
 
     fun handleConnect (c) =
         let in
@@ -581,8 +597,11 @@ struct
             map (fn x => WebsocketServer.send (x, opcode, m)) others;
             ()
         end
-end
+end;
 
+MLHoldemServer.createBoard "test1";
+MLHoldemServer.createBoard "test2";
+MLHoldemServer.printBoards ();
 val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage);
 (*PolyML.exception_trace(fn () => WebsocketServer.run s);*)
 WebsocketServer.run s handle Interrupt => WebsocketServer.shutdown s;
