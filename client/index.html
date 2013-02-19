@@ -11,7 +11,28 @@
     <![endif]-->
     <script type="text/javascript">
     $(function() {
-        $(".dial").knob({bgColor: "#2d4825", fgColor: "#6dab5e", readOnly: true, displayInput: false, width: "120", height: "120"});
+        $(".timer").knob({
+            bgColor: "#6dab5e", 
+            fgColor: "#2d4825", 
+            readOnly: true, 
+            displayInput: false, 
+            width: "120", 
+            height: "120",
+            thickness: ".2",
+            draw: function () {
+                this.$.parent().addClass('timer_wrapper');
+            }
+        });
+
+        $('.timer').hide();
+
+        window.setInterval(function () {
+            $('.timer').each(function(){
+                var x = parseInt($(this).val()) + 1;
+                $(this).val(x % 100).trigger('change');
+            });
+            
+        }, 300);
     });
     </script>
     <style type="text/css">
@@ -28,22 +49,89 @@
 
     #board {
         background: url(static/images/board.png) no-repeat 50% 50%;
-        width: 760px;
-        height: 557px;
+        width: 703px;
+        height: 365px;
+        position: relative;
+        top: 50%;
+        left: 50%;
+        margin-left: -351px;
+        margin-top: -182px;
+    }
+
+    .seat {
+        position: absolute;
+        width: 150px;
+        height: 150px;
+    }
+
+    .spot {
+        width: 60px;
+        height: 60px;
+        background-color: #000;
+        -moz-border-radius: 75px;
+        -webkit-border-radius: 75px;
+        opacity: 0.5;
         position: absolute;
         top: 50%;
         left: 50%;
-        margin-left: -380px;
-        margin-top: -278px;
+        margin-left: -30px;
+        margin-top: -30px;
+        -webkit-box-shadow:  2px 0px 10px 5px rgba(0, 0, 0, 0.4);
+        box-shadow:  0px 0px 10px 5px rgba(0, 0, 0, 0.4);
     }
+
+    .timer_wrapper {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -60px;
+        margin-top: -60px;
+    }
+
+    .seat1 { left: 110px; top: -50px; }
+    .seat2 { left: -40px; top: 28px; }
+    .seat3 { left: -40px; top: 194px; }
+    .seat4 { left: 110px; top: 272px; }
+    .seat5 { left: 437px; top: 272px; }
+    .seat6 { left: 0px; top: 0px; }
+    .seat7 { left: 0px; top: 0px; }
+    .seat8 { left: 0px; top: 0px; }
     </style>
 </head>
 <body>
     <div id="board">
-        <div class="seat">
-            <input type="text" value="75" class="dial">
+        <div class="seat seat1">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat2">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat3">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat4">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat5">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat6">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat7">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
+        </div>
+        <div class="seat seat8">
+            <div class="spot"></div>
+            <input type="text" value="0" class="timer">
         </div>
     </div>
-    <div style="clear:both;"></div>
 </body>
 </html>

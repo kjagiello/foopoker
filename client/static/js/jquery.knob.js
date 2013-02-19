@@ -617,10 +617,20 @@
                 && (sat = eat - this.cursorExt)
                 && (eat = eat + this.cursorExt);
 
+            c.save();
+
+            // c.fillStyle = '#4433FC'; // Sets the fill color
+            // c.shadowOffsetX = 2; // Sets the shadow offset x, positive number is right
+            // c.shadowOffsetY = 2; // Sets the shadow offset y, positive number is down
+            // c.shadowBlur = 10; // Sets the shadow blur size
+            // c.shadowColor = 'rgba(0, 0, 0, 0.3)'; // Sets the shadow color
+
             c.beginPath();
                 c.strokeStyle = this.o.bgColor;
                 c.arc(this.xy, this.xy, this.radius, this.endAngle, this.startAngle, true);
             c.stroke();
+
+            c.restore();
 
             if (this.o.displayPrevious) {
                 ea = this.startAngle + this.angle(this.v);
