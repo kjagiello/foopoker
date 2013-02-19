@@ -1,39 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset=utf-8 />
-	<title></title>
-	<link rel="stylesheet" type="text/css" media="screen" href="static/css/master.css" />
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
-	<!--[if IE]>
-		<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-	<![endif]-->
-	<style type="text/css">
-	html, body
-{
-    height: 100%;
-}
+    <meta charset=utf-8 />
+    <title></title>
+    <link rel="stylesheet" type="text/css" media="screen" href="static/css/master.css" />
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script type="text/javascript" src="static/js/jquery.knob.js"></script>
+    <!--[if IE]>
+        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+    $(function() {
+        $(".dial").knob({bgColor: "#2d4825", fgColor: "#6dab5e", readOnly: true, displayInput: false, width: "120", height: "120"});
+    });
+    </script>
+    <style type="text/css">
+    html, body
+    {
+        height: 100%;
+    }
 
-	body {
-		background: url(static/images/glow.png) no-repeat scroll center center, url(static/images/bg.png);
-		min-height: 100%;
+    body {
+        background: url(static/images/glow.png) no-repeat scroll center center, url(static/images/bg.png);
+        min-height: 100%;
 
-	}
+    }
 
-	#board {
-		background: url(static/images/board.png) no-repeat 50% 50%;
-		width: 760px;
-		height: 557px;
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		margin-left: -380px;
-		margin-top: -278px;
-	}
-	</style>
+    #board {
+        background: url(static/images/board.png) no-repeat 50% 50%;
+        width: 760px;
+        height: 557px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -380px;
+        margin-top: -278px;
+    }
+    </style>
 </head>
 <body>
-	<div id="board"></div>
-	<div style="clear:both;"></div>
+    <div id="board">
+        <div class="seat">
+            <input type="text" value="75" class="dial">
+        </div>
+    </div>
+    <div style="clear:both;"></div>
 </body>
 </html>
