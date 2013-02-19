@@ -1,40 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="foopoker">
 <head>
     <meta charset=utf-8 />
     <title></title>
+    <link rel="stylesheet" type="text/css" media="screen" href="static/css/reset.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="static/css/master.css" />
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
-    <script type="text/javascript" src="static/js/jquery.knob.js"></script>
-    <!--[if IE]>
-        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <script type="text/javascript">
-    $(function() {
-        $(".timer").knob({
-            bgColor: "#6dab5e", 
-            fgColor: "#2d4825", 
-            readOnly: true, 
-            displayInput: false, 
-            width: "120", 
-            height: "120",
-            thickness: ".2",
-            draw: function () {
-                this.$.parent().addClass('timer_wrapper');
-            }
-        });
-
-        $('.timer').hide();
-
-        window.setInterval(function () {
-            $('.timer').each(function(){
-                var x = parseInt($(this).val()) + 1;
-                $(this).val(x % 100).trigger('change');
-            });
-            
-        }, 300);
-    });
-    </script>
+    
     <style type="text/css">
     html, body
     {
@@ -44,7 +15,14 @@
     body {
         background: url(static/images/glow.png) no-repeat scroll center center, url(static/images/bg.png);
         min-height: 100%;
+        margin: 0;
+        font-family: Arial;
+    }
 
+    #game-interface {
+        height: 100%;
+        display: none;
+        opacity: 0;
     }
 
     #board {
@@ -80,7 +58,7 @@
         box-shadow:  0px 0px 10px 5px rgba(0, 0, 0, 0.4);
     }
 
-    .timer_wrapper {
+    .timer-wrapper {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -93,45 +71,189 @@
     .seat3 { left: -40px; top: 194px; }
     .seat4 { left: 110px; top: 272px; }
     .seat5 { left: 437px; top: 272px; }
-    .seat6 { left: 0px; top: 0px; }
-    .seat7 { left: 0px; top: 0px; }
-    .seat8 { left: 0px; top: 0px; }
+    .seat6 { left: 597px; top: 194px; }
+    .seat7 { left: 597px; top: 28px; }
+    .seat8 { left: 437px; top: -50px; }
+
+    .sit-down {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 3px 0px;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        width: 80px;
+        height: 16px;
+        text-align: center;
+        margin-left: -40px;
+        margin-top: -8px;
+        display: none;
+    }
+
+    #chat {
+        position: fixed;
+        bottom: 20px;
+        left: 10%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+    }
+
+    .chatbox-wrapper {
+        position: relative;
+        width: 416px;
+        height: 200px;
+        vertical-align: bottom;
+        padding: 0;
+        overflow: auto;
+        word-wrap: break-word;
+    }
+
+    .chatbox {
+        position: absolute;
+        bottom: 0;
+        width: 416px;
+    }
+
+    .chat-line {
+        border-top: solid 1px #21321d;
+        padding: 4px 10px;
+        font-size: 13px;
+        color: #b6faa6;
+    }
+
+    .chat-name {
+        color: #76bc65;
+    }
+
+    #chat input {
+        width: 400px;
+        border: 0;
+        border-top: solid 1px #354d2f;
+        background-color: transparent;
+        color: #b7d2af;
+        padding: 5px 8px;
+        outline: none;
+    }
+
+    #chat input::-webkit-input-placeholder {
+        color: #b7d2af;
+    }
+
+    #superbar {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        height: 20px;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    #login-interface {
+        height: 100%;
+    }
+
+    #login-box {
+        border: solid 7px #2a4424;
+        background-color: rgba(19, 34, 16, 0.4);
+        width: 400px;
+        height: 300px;
+        -moz-border-radius: 10px;
+        -webkit-border-radius: 10px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -200px;
+        margin-top: -150px;
+    }
     </style>
 </head>
 <body>
-    <div id="board">
-        <div class="seat seat1">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat2">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat3">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat4">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat5">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat6">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat7">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
-        </div>
-        <div class="seat seat8">
-            <div class="spot"></div>
-            <input type="text" value="0" class="timer">
+    <div id="login-interface">
+        <div id="login-box">
         </div>
     </div>
+    <div id="game-interface">
+        <div id="board">
+            <div class="seat seat1">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat2">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat3">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat4">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat5">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat6">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat7">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+            <div class="seat seat8">
+                <div class="spot"></div>
+                <input type="text" value="0" class="timer">
+                <a href="#" class="sit-down">Sit down</a>
+            </div>
+        </div>
+
+        <div id="chat" ng-controller="ChatController">
+            <div class="chatbox-wrapper">
+                <div class="chatbox">
+                    <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: {{m.text}}</div>
+                </div>
+            </div>
+            <form ng-submit="sendMessage()"><input type="text" placeholder="Type here..." ng-model="message" /></form>
+        </div>
+
+        <div id="superbar"></div>
+    </div>
+    
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script type="text/javascript" src="static/js/jquery.knob.js"></script>
+    <script type="text/javascript" src="static/js/angular.min.js"></script>
+    <script type="text/javascript" src="static/js/app.js"></script>
+    <!--[if IE]>
+        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+    $(function() {
+        $(".timer").knob({
+            bgColor: "#6dab5e", 
+            fgColor: "#2d4825", 
+            readOnly: true, 
+            displayInput: false, 
+            width: "120", 
+            height: "120",
+            thickness: ".2",
+            draw: function () {
+                this.$.parent().addClass('timer-wrapper');
+            }
+        });
+
+        $('.timer-wrapper').hide();
+    });
+    </script>
 </body>
 </html>
