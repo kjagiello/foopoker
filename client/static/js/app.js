@@ -45,10 +45,12 @@ function ChatController($scope, socket, user) {
     $scope.maxLines = 50;
 
     socket.on('a', function (msg) {
-        $scope.addLine('someuser', msg.data);
+        var data = JSON.parse(msg.data);
+        $scope.addLine(data.username, data.message);
+
     });
 
-    $scope.addLine = function(username, text) {
+    $scope.addLine = function (username, text) {
         if (text.length) {
             if ($scope.messages.length == $scope.maxLines) {
                 $scope.messages.shift();
@@ -58,8 +60,8 @@ function ChatController($scope, socket, user) {
         }
     }
 
-    $scope.sendMessage = function() {
-        socket.emit('chat', $scope.message);
+    $scope.sendMessage = function () {
+        socket.emit('chat', JSON.stringify({username: user.username, message: $scope.message}));
         
         $scope.addLine(user.username, $scope.message);
         $scope.message = '';
@@ -67,5 +69,9 @@ function ChatController($scope, socket, user) {
 }
 
 function LoginController($scope, user) {
-
+    $scope.login = function () {
+        user.username = prompt('Choose an username');
+        $('#login-interface').hide();
+        $('#game-interface').show();
+    }
 }

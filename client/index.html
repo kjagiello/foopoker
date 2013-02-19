@@ -22,7 +22,6 @@
     #game-interface {
         height: 100%;
         display: none;
-        opacity: 0;
     }
 
     #board {
@@ -157,21 +156,66 @@
     #login-box {
         border: solid 7px #2a4424;
         background-color: rgba(19, 34, 16, 0.4);
-        width: 400px;
-        height: 300px;
+        width: 490px;
+        height: 380px;
         -moz-border-radius: 10px;
         -webkit-border-radius: 10px;
         position: absolute;
         top: 50%;
         left: 50%;
-        margin-left: -200px;
-        margin-top: -150px;
+        margin-left: -245px;
+        margin-top: -190px;
+        padding: 10px 15px;
+    }
+
+    button.clean {
+        background-color: #7fb075;
+        background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #7fb075), color-stop(100%, #4c833f));
+        background-image: -webkit-linear-gradient(top, #7fb075, #4c833f);
+        background-image: -moz-linear-gradient(top, #7fb075, #4c833f);
+        background-image: -ms-linear-gradient(top, #7fb075, #4c833f);
+        background-image: -o-linear-gradient(top, #7fb075, #4c833f);
+        background-image: linear-gradient(top, #7fb075, #4c833f);
+        border: 1px solid #4c833f;
+        border-bottom: 1px solid #8cc681;
+        border-radius: 3px;
+        color: #2a4424;
+        font: bold 11px/1 "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
+        padding: 25px 0;
+        text-align: center;
+        width: 100%;
+        font-size: 25px;
+        margin-bottom: 10px;
+    }
+    
+    button.clean:hover {
+        background-color: #7fb075;
+        background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #7fb075), color-stop(100%, #4c833f));
+        background-image: -webkit-linear-gradient(top, #7fb075, #4c833f);
+        background-image: -moz-linear-gradient(top, #7fb075, #4c833f);
+        background-image: -ms-linear-gradient(top, #7fb075, #4c833f);
+        background-image: -o-linear-gradient(top, #7fb075, #4c833f);
+        background-image: linear-gradient(top, #7fb075, #4c833f);
+        border: 1px solid #4c833f;
+        border-bottom: 1px solid #8cc681;
+        border-radius: 3px;
+        color: #2a4424;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+    
+    button.clean:active {
+        -webkit-box-shadow: inset 0 0 5px 2px #2a4424, 0 1px 0 0 #2a4424;
+        box-shadow: inset 0 0 5px 2px #2a4424, 0 1px 0 0 #2a4424; 
     }
     </style>
 </head>
 <body>
-    <div id="login-interface">
+    <div id="login-interface" ng-controller="LoginController">
         <div id="login-box">
+            <img src="static/images/logo.png" alt="" />
+            <button class="clean" style="margin-top: 15px;" ng-click="login()">Login</button>
+            <button class="clean">Register now</button>
         </div>
     </div>
     <div id="game-interface">
