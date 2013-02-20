@@ -694,7 +694,13 @@ struct
         end
 
     fun handleDisconnect (c) =
-        let in
+        let 
+            val player = getPlayer c
+        in
+            case player of 
+                SOME (ref player) => players := filterPlayers (filterOthers player)
+              | _ => ();
+
             clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
         end
 
@@ -740,6 +746,7 @@ struct
                 "login" => 
                     let 
                         val username = JSON.toString (JSON.get d "username")
+                        val _ = if size username = 0 then raise InvalidMessage else ()
                         val player = createPlayer (c, username)
                         val response = JSON.empty
                                     |> JSON.add ("status", JSON.String (if isSome player then "OK" else "error"))
@@ -757,6 +764,7 @@ struct
                                     send "server_message" (filterOthers player) d1;
                                     send "server_message" (filterPlayer player) d2
                                 end
+                          | _ => ()
                     end
               | _ => ();
             ()
@@ -767,5 +775,5 @@ MLHoldemServer.createBoard "test1";
 MLHoldemServer.createBoard "test2";
 MLHoldemServer.printBoards ();
 val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage);
-(*PolyML.exception_trace(fn () => WebsocketServer.run s);*)
-WebsocketServer.run s handle Interrupt => WebsocketServer.shutdown s;
+PolyML.exception_trace(fn () => WebsocketServer.run s);
+(*WebsocketServer.run s handle Interrupt => WebsocketServer.shutdown s;*)
