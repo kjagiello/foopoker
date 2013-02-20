@@ -594,11 +594,13 @@ sig
     val handleDisconnect    : WebsocketServer.connection -> unit
     val handleMessage       : WebsocketServer.connection * int * Word8Vector.vector -> unit
     val handleEvent         : game * parsedMessage -> unit
+    val handleCommand       : game * string * string -> unit
 end
 
 structure MLHoldemServer :> WebsocketHandler = 
 struct
     exception InvalidMessage
+    exception InvalidCommand
 
     datatype game = Board of string * game ref list ref
                   | Player of {
@@ -706,8 +708,8 @@ struct
 
     fun parseMessage (m) =
         let
-            val p = JSONEncoder.parse (Byte.bytesToString m) handle _ => raise InvalidMessage;
-            val _ = PolyML.print (JSON.encode p)
+            val _ = PolyML.print (Byte.bytesToString m)
+            val p = JSONEncoder.parse (Byte.bytesToString m) handle _ => raise InvalidMessage
             val e = JSON.lookup p "event"
             val d = JSON.lookup p "data"
             val r = JSON.lookup p "ref"
@@ -721,13 +723,48 @@ struct
                 raise InvalidMessage
         end
 
+    fun serverMessage (player, message) =
+        let
+            val d = JSON.empty
+                 |> JSON.add ("message", JSON.String (message))
+        in
+            send "server_message" (filterPlayer player) d
+        end
+
+    fun handleCommand (player, command, arguments) =
+        let in
+            case command of
+                "help" => serverMessage (player, "tjenare!")
+              | "tables" => serverMessage (player, "Board 1<br />Board 2")
+              | _ => raise InvalidCommand
+        end
+
     fun handleEvent (player as Player {name=ref username, ...}, (e, r, d)) =
         case e of 
             "chat" => 
                 let 
                     val d = JSON.add ("username", JSON.String username) d
                 in
-                    send "chat" filterAll d
+                    if not (JSON.hasKeys (d, ["message"])) then
+                        raise InvalidMessage
+                    else 
+                        let 
+                            val message = JSON.toString (JSON.get d "message")
+                        in
+                            if size message = 0 orelse size message > 128 then
+                                raise InvalidMessage
+                            else
+                                send "chat" filterAll d
+                        end
+                end
+          | "command" =>
+                let in
+                    if JSON.hasKeys (d, ["name", "arguments"]) then
+                        handleCommand (player, JSON.toString (JSON.get d "name"),
+                            JSON.toString (JSON.get d "arguments"))
+                            handle InvalidCommand => ()
+                    else
+                        raise InvalidMessage
                 end
 
 
@@ -735,6 +772,7 @@ struct
         (let
             val others = List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients) 
             val pm as (e, r, d) = parseMessage m
+            val _ = PolyML.print (JSON.encode d)
             val player = getPlayer c
         in
             case player of

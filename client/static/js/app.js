@@ -131,7 +131,15 @@ function ChatController($scope, socket, user) {
     }
 
     $scope.sendMessage = function () {
-        socket.emit('chat', {message: $scope.message});
+        if ($scope.message.lastIndexOf('/', 0) === 0) {
+            var msg = $scope.message;
+            var cmd = msg.substring(1).split(' ');
+
+            socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+        }
+        else {
+            socket.emit('chat', {message: $scope.message});
+        }
         
         $scope.message = '';
     }
