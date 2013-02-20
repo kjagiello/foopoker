@@ -36,7 +36,7 @@ use "ML-Systems/use_context.ML";
 
 val forget_structure = PolyML.Compiler.forgetStructure;
 
-val _ = PolyML.Compiler.forgetValue "print";
+(*val _ = PolyML.Compiler.forgetValue "print";*)
 
 
 (* Compiler options *)
@@ -53,7 +53,11 @@ fun quit () = OS.Process.exit OS.Process.success;
 
 
 (* restore old-style character / string functions *)
-
+(* haxxx *)
+val o_ord = ord;
+val o_chr = chr;
+val o_explode = explode;
+val o_implode = implode;
 val ord = SML90.ord;
 val chr = SML90.chr;
 val explode = SML90.explode;
