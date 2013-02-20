@@ -25,6 +25,7 @@ sig
    val encode : T -> string
 
    val toString : T -> string
+   val hasKeys : T * string list -> bool
 end
 
 structure JSON : JSON
@@ -114,8 +115,16 @@ structure JSON : JSON
         in
             "{" ^ String.substring(e, 0, (String.size e)-1) ^ "}"
         end
-    and toString (String value) =
+    
+    fun toString (String value) =
       value
+
+    fun hasKeys (_, []) = true
+      | hasKeys (tab, key::keys) =
+        if isSome (lookup tab key) then
+          hasKeys (tab, keys)
+        else
+          false
 end;
 
 signature JSON_CALLBACKS =
