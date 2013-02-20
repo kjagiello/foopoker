@@ -7,6 +7,17 @@
     <link rel="stylesheet" type="text/css" media="screen" href="static/css/master.css" />
     
     <style type="text/css">
+    @font-face {
+        font-family: "BebasNeueRegular";
+        src: url(static/fonts/BebasNeue-webfont.woff) format("woff");
+        src: local('âş'),
+            url('static/fonts/BebasNeue-webfont.woff') format('woff'),
+            url('static/fonts/BebasNeue-webfont.ttf') format('truetype'),
+            url('static/fonts/BebasNeue-webfont.svg#webfontE057xtoO') format('svg');
+        font-weight: normal;
+        font-style: normal;
+    }
+
     html, body
     {
         height: 100%;
@@ -149,73 +160,120 @@
         background-color: rgba(0, 0, 0, 0.8);
     }
 
+    .login-interface {
+        background: url(static/images/login_bg.jpg);
+        background-size: cover;
+    }
+
     #login-interface {
         height: 100%;
     }
 
-    #login-box {
-        border: solid 7px #2a4424;
-        background-color: rgba(19, 34, 16, 0.4);
-        width: 490px;
-        height: 380px;
-        -moz-border-radius: 10px;
-        -webkit-border-radius: 10px;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-left: -245px;
-        margin-top: -190px;
-        padding: 10px 15px;
+    #login-box-wrapper {
+        position: relative;
+        margin: 0 auto;
+        width: 960px;
+        height: 100%;
     }
 
-    button.clean {
-        background-color: #7fb075;
-        background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #7fb075), color-stop(100%, #4c833f));
-        background-image: -webkit-linear-gradient(top, #7fb075, #4c833f);
-        background-image: -moz-linear-gradient(top, #7fb075, #4c833f);
-        background-image: -ms-linear-gradient(top, #7fb075, #4c833f);
-        background-image: -o-linear-gradient(top, #7fb075, #4c833f);
-        background-image: linear-gradient(top, #7fb075, #4c833f);
-        border: 1px solid #4c833f;
-        border-bottom: 1px solid #8cc681;
-        border-radius: 3px;
-        color: #2a4424;
-        font: bold 11px/1 "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
-        padding: 25px 0;
+    #login-box {
+        position: absolute;
+        top: 68%;
+        left: 0;
+        width: 490px;
+        margin-top: -245px;
+        -moz-border-radius: 10px;
+        -webkit-border-radius: 10px;
         text-align: center;
-        width: 100%;
-        font-size: 25px;
-        margin-bottom: 10px;
     }
-    
-    button.clean:hover {
-        background-color: #7fb075;
-        background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #7fb075), color-stop(100%, #4c833f));
-        background-image: -webkit-linear-gradient(top, #7fb075, #4c833f);
-        background-image: -moz-linear-gradient(top, #7fb075, #4c833f);
-        background-image: -ms-linear-gradient(top, #7fb075, #4c833f);
-        background-image: -o-linear-gradient(top, #7fb075, #4c833f);
-        background-image: linear-gradient(top, #7fb075, #4c833f);
-        border: 1px solid #4c833f;
-        border-bottom: 1px solid #8cc681;
-        border-radius: 3px;
-        color: #2a4424;
+
+    #login-box .spacer {
+        font-size: 20px;
+        color: #fff;
+        margin: 0px 18px;
+        letter-spacing: 2px;
+    }
+
+    #login-box .logo {
+        height: 145px;
+        margin-bottom: 8px;
+        color: #fff;
+        text-align: center;
+        font-family: BebasNeueRegular;
+        text-shadow: 0px 0px 5px rgba(0, 0, 0, .75);
+        filter: dropshadow(color=#0, offx=0, offy=0);
+        background: url(static/images/login-ornament.png) bottom center no-repeat;
+    }
+
+    .bebas {
+        font-family: BebasNeueRegular;
+    }
+
+    #login-box button {
+        width: 140px;
+        text-align: center;
+    }
+
+    .logo h1, .logo h2 {
+        display: inline-block;
+    }
+
+    .logo h1 {
+        font-size: 85px;
+        letter-spacing: 5px;
+    }
+
+    .logo h2 {
+        font-size: 20px;
+        letter-spacing: 3px;
+    }
+
+    .awesome, .awesome:visited {
+        background: #222 url(static/images/alert-overlay.png) repeat-x; 
+        display: inline-block; 
+        padding: 5px 10px 6px; 
+        color: #fff; 
+        text-decoration: none;
+        -moz-border-radius: 5px; 
+        -webkit-border-radius: 5px;
+        -moz-box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+        border-bottom: 1px solid rgba(0,0,0,0.25);
+        position: relative;
         cursor: pointer;
-        text-decoration: underline;
     }
-    
-    button.clean:active {
-        -webkit-box-shadow: inset 0 0 5px 2px #2a4424, 0 1px 0 0 #2a4424;
-        box-shadow: inset 0 0 5px 2px #2a4424, 0 1px 0 0 #2a4424; 
-    }
+
+    .awesome:hover                          { background-color: #111; color: #fff; }
+    .awesome:active                         { top: 1px; }
+    .small.awesome, .small.awesome:visited          { font-size: 11px; padding: ; }
+    .awesome, .awesome:visited,
+    .medium.awesome, .medium.awesome:visited        { font-size: 13px; font-weight: bold; line-height: 1; }
+    .large.awesome, .large.awesome:visited          { font-size: 14px; padding: 14px 20px 15px;}
+
+    .green.awesome, .green.awesome:visited      { background-color: #91bd09; }
+    .green.awesome:hover                        { background-color: #749a02; }
+    .blue.awesome, .blue.awesome:visited        { background-color: #2daebf; }
+    .blue.awesome:hover                         { background-color: #007d9a; }
+    .red.awesome, .red.awesome:visited          { background-color: #e33100; }
+    .red.awesome:hover                          { background-color: #872300; }
+    .magenta.awesome, .magenta.awesome:visited      { background-color: #a9014b; }
+    .magenta.awesome:hover                          { background-color: #630030; }
+    .orange.awesome, .orange.awesome:visited        { background-color: #ff5c00; }
+    .orange.awesome:hover                           { background-color: #d45500; }
+    .yellow.awesome, .yellow.awesome:visited        { background-color: #ffb515; }
+    .yellow.awesome:hover                           { background-color: #fc9200; }
     </style>
 </head>
-<body>
+<body class="login-interface">
     <div id="login-interface" ng-controller="LoginController">
-        <div id="login-box">
-            <img src="static/images/logo.png" alt="" />
-            <button class="clean" style="margin-top: 15px;" ng-click="login()">Login</button>
-            <button class="clean">Register now</button>
+        <div id="login-box-wrapper">
+            <div id="login-box">
+                <div class="logo"><h1>FOOPOKER</h1><h2>Make money. Get rich. Live the life</div>
+                <button class="large awesome green" style="margin-top: 15px;" ng-click="login()">Login</button>
+                <span class="bebas spacer">or</span>
+                <button class="large awesome orange">Register now</button>
+            </div>
         </div>
     </div>
 
