@@ -568,16 +568,32 @@ end
 signature WebsocketHandler = 
 sig
     type game
+    type parsedMessage
 
     val boards              : game ref list ref
+    val players             : game ref list ref
 
-    val parseMessage        : Word8Vector.vector -> string * JSON.T
+    val parseMessage        : Word8Vector.vector -> parsedMessage
 
+    val filterPlayers       : (game -> bool) -> game ref list
+    val filterAll           : game -> bool
+    val filterPlayer        : game -> game -> bool
+    val filterOthers        : game -> game -> bool
+    val filterConnection    : WebsocketServer.connection -> game -> bool
+
+    val send                : string -> (game -> bool) -> JSON.T -> unit
+    val sendResponse        : string -> (game -> bool) -> JSON.T -> unit
+    val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
+
+    val getPlayer           : WebsocketServer.connection -> game ref option
+
+    val createPlayer        : WebsocketServer.connection * string -> game ref option
     val createBoard         : string -> unit
     val printBoards         : unit -> unit
     val handleConnect       : WebsocketServer.connection -> unit
     val handleDisconnect    : WebsocketServer.connection -> unit
     val handleMessage       : WebsocketServer.connection * int * Word8Vector.vector -> unit
+    val handleEvent         : game * parsedMessage -> unit
 end
 
 structure MLHoldemServer :> WebsocketHandler = 
@@ -585,10 +601,86 @@ struct
     exception InvalidMessage
 
     datatype game = Board of string * game ref list ref
-                  | Player of string * game ref
+                  | Player of {
+                        name: string ref,
+                        board: game ref,
+                        connection: WebsocketServer.connection
+                    }
+                  | Null
+
+    type parsedMessage = string * string * JSON.T
 
     val clients = ref [];
+    val players = ref [];
     val boards = ref [];
+
+    fun filterAll x = 
+        true
+
+    fun filterPlayers f =
+        List.filter (fn (ref x) => f x) (!players)
+
+    fun filterPlayer (Player {connection=c1, ...}) (Player {connection=c2, ...}) =
+        WebsocketServer.sameConnection (c1, c2)
+
+    fun filterConnection c1 (Player {connection=c2, ...}) =
+        WebsocketServer.sameConnection (c1, c2)
+
+    fun filterOthers p x =
+        not (filterPlayer p x)
+
+    fun getPlayer c =
+        let
+            val players = filterPlayers (filterConnection c)
+        in
+            if null players then
+                NONE
+            else
+                SOME (hd players)
+        end
+
+    fun send e f d =
+        let
+            val players = filterPlayers f
+            val d = d
+                 |> JSON.update ("event", JSON.String e)
+                 |> JSON.update ("data", d)
+            val d = Byte.stringToBytes (JSON.encode d)
+        in
+            List.app (fn (ref (Player {connection=connection, ...})) => WebsocketServer.send (connection, 1, d)) players
+        end
+
+    fun sendResponse r f d =
+        let
+            val d = JSON.update ("ref", JSON.String r) d
+        in
+            send "" f d
+        end
+
+    fun sendClientResponse r c d =
+        let
+            val d = JSON.update ("ref", JSON.String r) d
+                 |> JSON.update ("data", d)
+                 |> JSON.encode
+                 |> Byte.stringToBytes
+        in
+            WebsocketServer.send (c, 1, d)
+        end
+    
+    fun createPlayer (connection, name) =
+        let
+            val exists = List.exists (fn (ref (Player {name=ref n, ...})) => n = name) (!players)
+        in
+            if exists then
+                NONE
+            else
+                let 
+                    val player = (ref (Player {name=ref name, board=ref Null, connection=connection}))
+                in
+                    players := player::(!players);
+                    SOME player
+                end
+        end
 
     fun createBoard name =
         boards := (ref (Board (name, ref [])))::(!boards)
@@ -609,23 +701,64 @@ struct
     fun parseMessage (m) =
         let
             val p = JSONEncoder.parse (Byte.bytesToString m) handle _ => raise InvalidMessage;
-            val e = JSON.lookup p "event"
             val _ = PolyML.print (JSON.encode p)
+            val e = JSON.lookup p "event"
+            val d = JSON.lookup p "data"
+            val r = JSON.lookup p "ref"
+            val r = if isSome r then JSON.toString (JSON.get p "ref") else ""
         in
-            if isSome e then
+            if isSome e andalso isSome d then
                 case (valOf e) of
-                    JSON.String e => (e, p)
+                    JSON.String e => (e, r, valOf d)
                   | _ => raise InvalidMessage
             else
                 raise InvalidMessage
-        end  
+        end
+
+    fun handleEvent (player as Player {name=ref username, ...}, (e, r, d)) =
+        case e of 
+            "chat" => 
+                let 
+                    val d = JSON.add ("username", JSON.String username) d
+                in
+                    send "chat" filterAll d
+                end
+
 
     fun handleMessage (c, opcode, m) =
         (let
             val others = List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients) 
-            val (e, b) = parseMessage m
+            val pm as (e, r, d) = parseMessage m
+            val player = getPlayer c
         in
-            map (fn x => WebsocketServer.send (x, opcode, Byte.stringToBytes (JSON.encode b))) others;
+            case player of
+                SOME (ref player) => handleEvent (player, pm)
+              | _ => ();
+
+            (* not logged in *)
+            case e of
+                "login" => 
+                    let 
+                        val username = JSON.toString (JSON.get d "username")
+                        val player = createPlayer (c, username)
+                        val response = JSON.empty
+                                    |> JSON.add ("status", JSON.String (if isSome player then "OK" else "error"))
+                        
+                        val d1 = JSON.empty
+                             |> JSON.add ("message", JSON.String (username ^ " has connected."))
+                        val d2 = JSON.empty
+                             |> JSON.add ("message", JSON.String ("Welcome, " ^ username ^ "!"))
+                    in
+                        sendClientResponse r c response;
+                        
+                        case player of
+                            SOME (ref player) =>
+                                let in
+                                    send "server_message" (filterOthers player) d1;
+                                    send "server_message" (filterPlayer player) d2
+                                end
+                    end
+              | _ => ();
             ()
         end) handle InvalidMessage => (print "invalid message\n");
 end;

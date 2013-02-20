@@ -24,6 +24,7 @@ sig
    val delete : string -> T -> T
    val encode : T -> string
 
+   val toString : T -> string
 end
 
 structure JSON : JSON
@@ -113,6 +114,8 @@ structure JSON : JSON
         in
             "{" ^ String.substring(e, 0, (String.size e)-1) ^ "}"
         end
+    and toString (String value) =
+      value
 end;
 
 signature JSON_CALLBACKS =

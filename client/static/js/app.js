@@ -1,5 +1,9 @@
 var app = angular.module('foopoker', []);
- 
+
+var uniqueId = function () {
+  return '_' + Math.random().toString(36).substr(2, 9);
+};
+
 app.factory('user', function ($rootScope) {
     var userService = {};
 
@@ -28,19 +32,31 @@ app.factory('socket', function ($rootScope) {
     socket.onmessage = function(msg) {
         var d = JSON.parse(msg.data);
 
-        console.log(callbacks[d['event']]);
+        console.log(d);
 
-        if ('event' in d && 'data' in d && d['event'] in callbacks) {
-            var cs = callbacks[d['event']];
+        if ('ref' in d && 'data' in d) {
+            var ref = d['ref'];
 
-            for (var c in cs) {
-                cs[c](d['data'])
+            if (ref in callbacks) {
+                callbacks[ref](d['data']);
+                delete callbacks[ref];
+            }
+            else {
+                console.error('Got back a message we were not expecting.', msg);
+            }
+        }
+        else {
+            if ('event' in d && 'data' in d && d['event'] in callbacks) {
+                var cs = callbacks[d['event']];
+
+                for (var c in cs) {
+                    cs[c](d['data']);
+                }
             }
         }
     }
 
     function registerHandler(e, handler) {
-
         callbacks[e] = callbacks[e] || [];
         callbacks[e].push(handler);
     }
@@ -55,8 +71,16 @@ app.factory('socket', function ($rootScope) {
             })
         },
 
-        emit: function (eventName, data) {
-            socket.send(JSON.stringify({"event": eventName, "data": data}));
+        emit: function (eventName, data, callback) {
+            var d = {"event": eventName, "data": data};
+
+            if (callback) {
+                d['ref'] = uniqueId();
+                callbacks[d['ref']] = callback;
+                console.log("register: ", d['ref']);
+            }
+
+            socket.send(JSON.stringify(d));
         }
     };
 });
@@ -67,6 +91,10 @@ function ChatController($scope, socket, user) {
 
     socket.on('chat', function (data) {
         $scope.addLine(data.username, data.message);
+    });
+
+    socket.on('server_message', function (data) {
+        $scope.addLine('Server', data.message);
     });
 
     $scope.addLine = function (username, text) {
@@ -80,17 +108,25 @@ function ChatController($scope, socket, user) {
     }
 
     $scope.sendMessage = function () {
-        socket.emit('chat', {username: user.username, message: $scope.message});
+        socket.emit('chat', {message: $scope.message});
         
-        $scope.addLine(user.username, $scope.message);
         $scope.message = '';
     }
 }
 
-function LoginController($scope, user) {
+function LoginController($scope, socket, user) {
     $scope.login = function () {
         user.username = prompt('Choose an username');
-        $('#login-interface').hide();
-        $('#game-interface').show();
+
+        socket.emit('login', {username: user.username}, function (message) {
+            console.log(message.status);
+            if (message.status == 'OK') {
+                $('#login-interface').hide();
+                $('#game-interface').show();
+            }
+            else {
+                $scope.login();
+            }
+        });
     }
 }
