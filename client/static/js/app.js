@@ -4,6 +4,29 @@ var uniqueId = function () {
   return '_' + Math.random().toString(36).substr(2, 9);
 };
 
+// http://jsfiddle.net/bYUa3/2/
+app.directive('onKeyup', function() {
+    return function(scope, elm, attrs) {
+        function applyKeyup() {
+          scope.$apply(attrs.onKeyup);
+        };           
+        
+        var allowedKeys = scope.$eval(attrs.keys);
+        elm.bind('keyup', function(evt) {
+            //if no key restriction specified, always fire
+            if (!allowedKeys || allowedKeys.length == 0) {
+                applyKeyup();
+            } else {
+                angular.forEach(allowedKeys, function(key) {
+                    if (key == evt.which) {
+                        applyKeyup();
+                    }
+                });
+            }
+        });
+    };
+});
+
 app.factory('user', function ($rootScope) {
     var userService = {};
 
@@ -123,6 +146,7 @@ function LoginController($scope, socket, user) {
             if (message.status == 'OK') {
                 $('#login-interface').hide();
                 $('#game-interface').show();
+                $('body').removeClass('login-interface');
             }
             else {
                 $scope.login();

@@ -327,7 +327,7 @@
                     <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: {{m.text}}</div>
                 </div>
             </div>
-            <form ng-submit="sendMessage()"><input type="text" placeholder="Type here..." ng-model="message" /></form>
+            <form ng-submit="sendMessage()"><input type="text" placeholder="Type here..." ng-model="message" ng-keyup="sendMessage()" /></form>
         </div>
 
         <div id="superbar"></div>
