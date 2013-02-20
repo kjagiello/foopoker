@@ -1,8 +1,20 @@
+(* just in case cleanup before building the heap *)
+PolyML.fullGC();
+
+PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
+
+val ord = o_ord;
+val chr = o_chr;
+val explode = o_explode;
+val implode = o_implode;
+
 use "../utils/base64-sig.sml";
 use "../utils/base64.sml";
 
 use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
+
+use "../utils/json.sml";
 
 fun vectorToList v =
     Word8Vector.foldr (fn (a, l) => a::l) [] v
@@ -559,15 +571,19 @@ sig
 
     val boards              : game ref list ref
 
+    val parseMessage        : Word8Vector.vector -> string * JSON.T
+
     val createBoard         : string -> unit
     val printBoards         : unit -> unit
     val handleConnect       : WebsocketServer.connection -> unit
     val handleDisconnect    : WebsocketServer.connection -> unit
-    val handleMessage       : WebsocketServer.connection *  int * Word8Vector.vector -> unit
+    val handleMessage       : WebsocketServer.connection * int * Word8Vector.vector -> unit
 end
 
 structure MLHoldemServer :> WebsocketHandler = 
 struct
+    exception InvalidMessage
+
     datatype game = Board of string * game ref list ref
                   | Player of string * game ref
 
@@ -578,7 +594,7 @@ struct
         boards := (ref (Board (name, ref [])))::(!boards)
 
     fun printBoards () =
-        List.app (fn (ref (Board (name, _))) => (print name; print "\n")) (!boards)
+        List.app (fn (ref (Board (name, _))) => (print name; print "\n"; ())) (!boards)
 
     fun handleConnect (c) =
         let in
@@ -590,13 +606,28 @@ struct
             clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
         end
 
-    fun handleMessage (c, opcode, m) =
+    fun parseMessage (m) =
         let
-            val others = List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients) 
+            val p = JSONEncoder.parse (Byte.bytesToString m) handle _ => raise InvalidMessage;
+            val e = JSON.lookup p "event"
+            val _ = PolyML.print (JSON.encode p)
         in
-            map (fn x => WebsocketServer.send (x, opcode, m)) others;
+            if isSome e then
+                case (valOf e) of
+                    JSON.String e => (e, p)
+                  | _ => raise InvalidMessage
+            else
+                raise InvalidMessage
+        end  
+
+    fun handleMessage (c, opcode, m) =
+        (let
+            val others = List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients) 
+            val (e, b) = parseMessage m
+        in
+            map (fn x => WebsocketServer.send (x, opcode, Byte.stringToBytes (JSON.encode b))) others;
             ()
-        end
+        end) handle InvalidMessage => (print "invalid message\n");
 end;
 
 MLHoldemServer.createBoard "test1";

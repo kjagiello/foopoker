@@ -11,31 +11,52 @@ app.factory('user', function ($rootScope) {
 app.factory('socket', function ($rootScope) {
     var host = "ws://localhost:9001/";
     var socket = new WebSocket(host);
+    var callbacks = {};
 
-    socket.onopen = function (){
+    socket.onopen = function () {
         console.log(socket.readyState + ': open')
     }
     
-    socket.onerror = function (e){
+    socket.onerror = function (e) {
         console.log(e); 
     }
 
-    socket.onclose = function(){
+    socket.onclose = function() {
         console.log(socket.readyState + ': closed')
+    }
+
+    socket.onmessage = function(msg) {
+        var d = JSON.parse(msg.data);
+
+        console.log(callbacks[d['event']]);
+
+        if ('event' in d && 'data' in d && d['event'] in callbacks) {
+            var cs = callbacks[d['event']];
+
+            for (var c in cs) {
+                cs[c](d['data'])
+            }
+        }
+    }
+
+    function registerHandler(e, handler) {
+
+        callbacks[e] = callbacks[e] || [];
+        callbacks[e].push(handler);
     }
 
     return {
         on: function (eventName, callback) {
-            socket.onmessage = function(){
+            registerHandler(eventName, function() {
                 var args = arguments;
                 $rootScope.$apply(function() {
                     callback.apply(socket, args);
                 });
-            }
+            })
         },
 
         emit: function (eventName, data) {
-            socket.send(data);
+            socket.send(JSON.stringify({"event": eventName, "data": data}));
         }
     };
 });
@@ -44,10 +65,8 @@ function ChatController($scope, socket, user) {
     $scope.messages = [];
     $scope.maxLines = 50;
 
-    socket.on('a', function (msg) {
-        var data = JSON.parse(msg.data);
+    socket.on('chat', function (data) {
         $scope.addLine(data.username, data.message);
-
     });
 
     $scope.addLine = function (username, text) {
@@ -61,7 +80,7 @@ function ChatController($scope, socket, user) {
     }
 
     $scope.sendMessage = function () {
-        socket.emit('chat', JSON.stringify({username: user.username, message: $scope.message}));
+        socket.emit('chat', {username: user.username, message: $scope.message});
         
         $scope.addLine(user.username, $scope.message);
         $scope.message = '';

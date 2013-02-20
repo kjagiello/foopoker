@@ -1,9 +1,3 @@
-(* just in case cleanup before building the heap *)
-PolyML.fullGC();
-
-(* load needed libs  *)
-PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
-
 signature JSON =
 sig
 
@@ -20,6 +14,7 @@ sig
      | Object of T Tab.T
      | Real of real
      | String of string
+     | Pair of (string * T)
 
    val empty : T
    val update : string * T -> T -> T
@@ -44,6 +39,7 @@ structure JSON : JSON
               | Int of int
               | Bool of bool
               | Real of real
+              | Pair of (string * T)
               | Null;
 
     val empty = Object Tab.empty;
@@ -288,25 +284,33 @@ struct
          Callbacks.error_handle (m,p,!inputData)
 end
 
-structure JSONPrettyPrintCallbacks =
+structure JSONEncoderCallbacks =
 struct
    type json_data = JSON.T
 
-   fun json_object l = JSON.Object (l)
-   fun json_pair (k,v) = k ^": "^v
-   fun json_array l = "[" ^ String.concatWith ", " l ^ "]"
+   fun json_object l = 
+      let
+         val x = ref JSON.empty
+      in
+         map (fn JSON.Pair(k, v) => x := JSON.update(k, v) (!x)) l;
+         !x
+      end
+
+   fun json_pair (k,v) = JSON.Pair(k, v)
+   fun json_array l = JSON.List(l)
    fun json_value x = x
-   fun json_string s = "\"" ^ s ^ "\""
-   val json_int = Int.toString
-   val json_real = Real.toString
-   val json_bool = Bool.toString
-   fun json_null () = "null"
+   fun json_string s = JSON.String(s)
+   fun json_int x = JSON.Int(x)
+   fun json_real x = JSON.Real(x)
+   fun json_bool x = JSON.Bool(x)
+   fun json_null () = JSON.Null;
 
    fun error_handle (msg,pos,data) =
       raise Fail ("Error: " ^ msg ^ " near " ^ Int.toString pos)
 end
 
 
+structure JSONEncoder = JSONParser (JSONEncoderCallbacks);
 (*
 val x = JSON.empty
 |> JSON.add ("type", JSON.Int 2)
