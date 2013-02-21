@@ -15,9 +15,7 @@ use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
 
 use "../utils/json.sml";
-
-fun vectorToList v =
-    Word8Vector.foldr (fn (a, l) => a::l) [] v
+use "../utils/utils.sml";
 
 fun mapi f l =
     let fun mm _ nil = nil
@@ -568,14 +566,24 @@ end
 signature WebsocketHandler = 
 sig
     type game
+    type tableEvent
+    type playerState
     type parsedMessage
 
-    val boards              : game ref list ref
     val players             : game ref list ref
+    val boards              : game ref list ref
+    val playerIndex         : game ref vector ref
+    val boardIndex          : game ref vector ref
+
+    val getFreeId           : game ref vector -> int option
+    val getFreePlayerId     : unit -> int option
+    val getFreeBoardId      : unit -> int option
 
     val parseMessage        : Word8Vector.vector -> parsedMessage
 
     val filterPlayers       : (game -> bool) -> game ref list
+    val filterINull         : int * game -> bool
+    val filterNull          : game -> bool
     val filterAll           : game -> bool
     val filterPlayer        : game -> game -> bool
     val filterOthers        : game -> game -> bool
@@ -586,15 +594,21 @@ sig
     val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
 
     val getPlayer           : WebsocketServer.connection -> game ref option
+    val getPlayerName       : game ref -> string
+
+    val createBoard         : string * int * (int * int) * (int * int) -> unit
+    val spectateTable       : game ref * int -> game ref
+    val joinTable           : game ref * game ref * int -> int option
+    val printBoards         : unit -> unit
+    val getChair            : game ref * int -> game ref option
 
     val createPlayer        : WebsocketServer.connection * string -> game ref option
-    val createBoard         : string -> unit
-    val printBoards         : unit -> unit
     val handleConnect       : WebsocketServer.connection -> unit
     val handleDisconnect    : WebsocketServer.connection -> unit
     val handleMessage       : WebsocketServer.connection * int * Word8Vector.vector -> unit
-    val handleEvent         : game * parsedMessage -> unit
-    val handleCommand       : game * string * string -> unit
+    val handleTableEvent    : game ref * tableEvent -> unit
+    val handleEvent         : game ref * parsedMessage -> unit
+    val handleCommand       : game ref * string * string -> unit
 end
 
 structure MLHoldemServer :> WebsocketHandler = 
@@ -602,25 +616,57 @@ struct
     exception InvalidMessage
     exception InvalidCommand
 
-    datatype game = Board of string * game ref list ref
+    datatype playerState = 
+        Normal
+      | Turn of int (* time when the turn started *)
+      | Folded
+
+    datatype game = Board of {
+                        id: int,
+                        name: string,
+                        smallBlind: int,
+                        bigBlind: int,
+                        minBuyIn: int,
+                        maxBuyIn: int,
+                        chairs: game ref vector ref
+                    }
                   | Player of {
+                        id: int,
                         name: string ref,
                         board: game ref,
                         connection: WebsocketServer.connection
                     }
                   | Null
 
+    datatype tableEvent = 
+        PlayerJoined of game ref
+      | PlayerLeaving of game ref
+      | PlayerFold of game ref
+      | PlayerRaise of game ref * int
+      | PlayerCall of game
+
     type parsedMessage = string * string * JSON.T
 
     val clients = ref [];
     val players = ref [];
     val boards = ref [];
+    val playerIndex = ref (Vector.tabulate(1024, fn _ => ref Null));
+    val boardIndex = ref (Vector.tabulate(128, fn _ => ref Null));
+
+    fun filterNull Null = true
+      | filterNull _ = false
+
+    fun filterINull (_, x) = 
+        filterNull x
 
     fun filterAll x = 
         true
 
+    fun filterRefList l f =
+        List.filter (fn (ref x) => f x) l
+
     fun filterPlayers f =
-        List.filter (fn (ref x) => f x) (!players)
+        filterRefList (!players) f 
 
     fun filterPlayer (Player {connection=c1, ...}) (Player {connection=c2, ...}) =
         WebsocketServer.sameConnection (c1, c2)
@@ -631,6 +677,21 @@ struct
     fun filterOthers p x =
         not (filterPlayer p x)
 
+    fun getFreeId v =
+        let
+            val id = Vector.findi (fn (_, ref x) => filterNull x) v
+        in
+            case id of
+                SOME (i, _) => SOME i
+              | NONE => NONE
+        end
+
+    fun getFreePlayerId () =
+        getFreeId (!playerIndex)
+
+    fun getFreeBoardId () =
+        getFreeId (!boardIndex)
+
     fun getPlayer c =
         let
             val players = filterPlayers (filterConnection c)
@@ -640,6 +701,9 @@ struct
             else
                 SOME (hd players)
         end
+
+    fun getPlayerName (ref (Player {name=ref name, ...})) =
+        name
 
     fun send e f d =
         let
@@ -672,23 +736,39 @@ struct
     fun createPlayer (connection, name) =
         let
             val exists = List.exists (fn (ref (Player {name=ref n, ...})) => n = name) (!players)
+            val id = getFreePlayerId ()
         in
-            if exists then
+            if exists orelse id = NONE then
                 NONE
             else
                 let 
-                    val player = (ref (Player {name=ref name, board=ref Null, connection=connection}))
+                    val player = (ref (Player {id=valOf id, name=ref name, board=ref Null, connection=connection}))
                 in
                     players := player::(!players);
+                    playerIndex := Vector.update (!playerIndex, valOf id, player);
                     SOME player
                 end
         end
 
-    fun createBoard name =
-        boards := (ref (Board (name, ref [])))::(!boards)
+    fun createBoard (name, s, (sb, bb), (minb, maxb)) =
+        let
+            val id = getFreeBoardId ()
+            val board = ref (Board {
+                id=valOf id,
+                name=name,
+                smallBlind=sb,
+                bigBlind=bb,
+                minBuyIn=minb,
+                maxBuyIn=maxb,
+                chairs=ref (Vector.tabulate(s, fn _ => ref Null))
+            })
+        in
+            boards := board::(!boards);
+            boardIndex := Vector.update (!boardIndex, valOf id, board)
+        end
 
     fun printBoards () =
-        List.app (fn (ref (Board (name, _))) => (print name; print "\n"; ())) (!boards)
+        ()
 
     fun handleConnect (c) =
         let in
@@ -700,7 +780,11 @@ struct
             val player = getPlayer c
         in
             case player of 
-                SOME (ref player) => players := filterPlayers (filterOthers player)
+                SOME (ref (player as (Player {id=id, ...}))) => 
+                    let in
+                        playerIndex := Vector.update (!playerIndex, id, ref Null);
+                        players := filterPlayers (filterOthers player)
+                    end
               | _ => ();
 
             clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
@@ -728,18 +812,101 @@ struct
             val d = JSON.empty
                  |> JSON.add ("message", JSON.String (message))
         in
-            send "server_message" (filterPlayer player) d
+            send "server_message" (filterPlayer (!player)) d
+        end
+
+    fun spectateTable (player as (ref (Player {board=board, ...})), id) =
+        let
+            val b = Vector.sub (!boardIndex, id)
+        in
+            board := (!b);
+            board
+        end
+
+    fun handleTableEvent (board as (ref (Board {chairs=ref chairs, ...})), PlayerJoined (player)) =
+        let
+            val chairs = nvectorToList chairs
+            val freeChairs = filterRefList chairs filterNull
+            val playersCount = (length chairs) - (length freeChairs)
+        in
+            if playersCount >= 2 then
+                serverMessage (player, "TIME TO PLAAAAY!!")
+            else
+                serverMessage (player, "We need more people!!")
+        end
+      | handleTableEvent (_, _) =
+        print "Not implemented"
+
+    fun getChair (ref (Board {chairs=chairs, ...}), id) =
+        (SOME (Vector.sub (!chairs, id))) handle Subscript => NONE
+
+    fun joinTable (player, board as (ref (Board {chairs=chairs, ...})), id) =
+        let
+            val (ref s) = Vector.sub (!chairs, id)
+        in
+            case s of
+                Null => 
+                    let in
+                        chairs := Vector.update (!chairs, id, player);
+                        handleTableEvent (board, PlayerJoined player);
+                        SOME id
+                    end
+              | _ => NONE
         end
 
     fun handleCommand (player, command, arguments) =
         let in
             case command of
                 "help" => serverMessage (player, "tjenare!")
-              | "tables" => serverMessage (player, "Board 1<br />Board 2")
+              | "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
+              | "rooms" => 
+                let 
+                    val boards = map (fn (ref (Board {name=name, id=id, ...})) => "+ " ^ name ^ " (ID: " ^ Int.toString (id) ^ ")") (!boards);
+                    val message = implodeStrings "\n" boards
+                in
+                    serverMessage (player, "Rooms:\n" ^ message)
+                end
+              | "join" => 
+                let
+                    val id = Int.fromString arguments
+                in
+                    case id of
+                        SOME (id) => 
+                            let 
+                                val (ref board) = spectateTable (player, id)
+                            in
+                                case board of
+                                    Board {name=name, ...} => serverMessage (player, "You have joined \"" ^ name ^ "\" table.")
+                                  | _ => serverMessage (player, "Wrong ID.")
+                            end
+                      | NONE => ()
+                end
+              | "sit" =>
+                if validateArguments "d" arguments then
+                    let
+                        val id = Int.fromString arguments
+                        val ref (Player {board=board, ...}) = player
+                        val chair = getChair (board, valOf id)
+                    in
+                        case board of
+                            ref Null => serverMessage (player, "Join a room first!")
+                          | _ => 
+                            let in
+                                case (valOf chair) of
+                                    ref Null =>
+                                        let in
+                                            joinTable (player, board, valOf id);
+                                            serverMessage (player, "Time to play!")
+                                        end
+                                  | _ => serverMessage (player, "That chair is taken. Sorry brah!") 
+                            end
+                    end
+                else
+                    serverMessage (player, "/sit [sit id]")
               | _ => raise InvalidCommand
         end
 
-    fun handleEvent (player as Player {name=ref username, ...}, (e, r, d)) =
+    fun handleEvent (player as (ref (Player {name=ref username, ...})), (e, r, d)) =
         case e of 
             "chat" => 
                 let 
@@ -776,7 +943,7 @@ struct
             val player = getPlayer c
         in
             case player of
-                SOME (ref player) => handleEvent (player, pm)
+                SOME player => handleEvent (player, pm)
               | _ => ();
 
             (* not logged in *)
@@ -809,8 +976,10 @@ struct
         end) handle InvalidMessage => (print "invalid message\n");
 end;
 
-MLHoldemServer.createBoard "test1";
-MLHoldemServer.createBoard "test2";
+MLHoldemServer.createBoard ("Test Bord 1", 8, (5, 10), (100, 1000));
+MLHoldemServer.createBoard ("Test Bord 2", 8, (5, 10), (100, 1000));
+MLHoldemServer.createBoard ("Test Bord 3", 8, (5, 10), (100, 1000));
+MLHoldemServer.createBoard ("Test Bord 4", 8, (5, 10), (100, 1000));
 MLHoldemServer.printBoards ();
 val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage);
 PolyML.exception_trace(fn () => WebsocketServer.run s);
