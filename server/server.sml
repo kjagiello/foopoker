@@ -1,7 +1,16 @@
 (* just in case cleanup before building the heap *)
 PolyML.fullGC();
 
-PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
+(*PolyML.SaveState.loadState "foo.polyml-heap" handle _ => (
+    let in*)
+        PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
+
+        use "poker.sml";
+(*
+        PolyML.SaveState.saveState "foo.polyml-heap";
+        print "state created"
+    end
+);*)
 
 val ord = o_ord;
 val chr = o_chr;
@@ -16,8 +25,6 @@ use "../utils/sha1.sml";
 
 use "../utils/json.sml";
 use "../utils/utils.sml";
-
-use "poker.sml";
 
 fun mapi f l =
     let fun mm _ nil = nil
@@ -568,6 +575,8 @@ end
 signature WebsocketHandler = 
 sig
     type game
+    type betType
+    type tableState
     type tableEvent
     type playerState
     type parsedMessage
@@ -583,7 +592,8 @@ sig
 
     val parseMessage        : Word8Vector.vector -> parsedMessage
 
-    val filterPlayers       : (game -> bool) -> game ref list
+    val filterServerPlayers : (game -> bool) -> game ref list
+    val filterBoardPlayers  : game ref -> (game -> bool) -> game ref list
     val filterINull         : int * game -> bool
     val filterNull          : game -> bool
     val filterNotNull       : game -> bool
@@ -592,7 +602,9 @@ sig
     val filterOthers        : game -> game -> bool
     val filterConnection    : WebsocketServer.connection -> game -> bool
 
-    val send                : string -> (game -> bool) -> JSON.T -> unit
+    val send                : game ref list -> string -> (game -> bool) -> JSON.T -> unit
+    val sendToAll           : string -> (game -> bool) -> JSON.T -> unit
+    val sendToBoard         : game ref -> string -> (game -> bool) -> JSON.T -> unit
     val sendResponse        : string -> (game -> bool) -> JSON.T -> unit
     val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
 
@@ -603,7 +615,8 @@ sig
     val spectateTable       : game ref * int -> game ref
     val joinTable           : game ref * game ref * int -> int option
     val printBoards         : unit -> unit
-    val getChair            : game ref * int -> game ref option
+    val setTableState       : game ref * tableState -> unit
+    val getChair            : game ref * int -> game ref
     val getTakenChairsCount : game ref -> int
     val takeCard            : game ref -> Word32.word
     val cardOnTable         : game ref * Word32.word -> unit
@@ -622,13 +635,19 @@ struct
     exception InvalidMessage
     exception InvalidCommand
 
-    datatype boardState =
+    datatype betType =
+        BetSmallBlind
+      | BetBigBlind
+      | BetNormal
+
+    datatype tableState =
         TableIdle
       | TablePreFlop
       | TableFlop
       | TableTurn
       | TableRiver
       | TableShowdown
+      | TableBet of tableState * betType * int * int (* next state after bet, betType, starting position, current position *)
 
     datatype playerState =
         PlayerIdle 
@@ -636,27 +655,32 @@ struct
       | PlayerTurn of int (* time when the turn started *)
       | PlayerFolded
 
-    datatype game = Board of {
-                        id: int,
-                        name: string,
-                        smallBlind: int,
-                        bigBlind: int,
-                        minBuyIn: int,
-                        maxBuyIn: int,
-                        chairs: game ref vector ref,
-                        state: boardState ref,
-                        deck: Word32.word queue ref,
-                        cards: Word32.word list ref
-                    }
-                  | Player of {
-                        id: int,
-                        name: string ref,
-                        board: game ref,
-                        connection: WebsocketServer.connection,
-                        state: playerState ref,
-                        cards: Word32.word list ref
-                    }
-                  | Null
+    datatype game = 
+        Board of {
+            id: int,
+            name: string,
+            smallBlind: int,
+            bigBlind: int,
+            minBuyIn: int,
+            maxBuyIn: int,
+            chairs: game ref vector ref,
+            state: tableState ref,
+            deck: Word32.word queue ref,
+            cards: Word32.word list ref,
+            lastBet: int ref,
+            spectators: game ref list ref
+        }
+      | Player of {
+            id: int,
+            name: string ref,
+            board: game ref,
+            connection: WebsocketServer.connection,
+            state: playerState ref,
+            cards: Word32.word list ref,
+            money: int ref,
+            stake: int ref
+        }
+      | Null
 
     datatype tableEvent = 
         PlayerJoined of game ref
@@ -664,6 +688,7 @@ struct
       | PlayerFold of game ref
       | PlayerRaise of game ref * int
       | PlayerCall of game ref
+      | StateChanged of tableState
 
     type parsedMessage = string * string * JSON.T
 
@@ -687,8 +712,11 @@ struct
     fun filterRefList l f =
         List.filter (fn (ref x) => f x) l
 
-    fun filterPlayers f =
+    fun filterServerPlayers f =
         filterRefList (!players) f 
+
+    fun filterBoardPlayers (ref (Board {spectators=spectators, ...})) f =
+        filterRefList (!spectators) f
 
     fun filterPlayer (Player {connection=c1, ...}) (Player {connection=c2, ...}) =
         WebsocketServer.sameConnection (c1, c2)
@@ -716,7 +744,7 @@ struct
 
     fun getPlayer c =
         let
-            val players = filterPlayers (filterConnection c)
+            val players = filterServerPlayers (filterConnection c)
         in
             if null players then
                 NONE
@@ -727,9 +755,9 @@ struct
     fun getPlayerName (ref (Player {name=ref name, ...})) =
         name
 
-    fun send e f d =
+    fun send p e f d =
         let
-            val players = filterPlayers f
+            val players = p
             val d = d
                  |> JSON.update ("event", JSON.String e)
                  |> JSON.update ("data", d)
@@ -738,11 +766,17 @@ struct
             List.app (fn (ref (Player {connection=connection, ...})) => WebsocketServer.send (connection, 1, d)) players
         end
 
+    fun sendToAll e f d =
+        send (filterServerPlayers f) e f d
+
+    fun sendToBoard b e f d =
+        send (filterBoardPlayers b f) e f d
+
     fun sendResponse r f d =
         let
             val d = JSON.update ("ref", JSON.String r) d
         in
-            send "" f d
+            sendToAll "" f d
         end
 
     fun sendClientResponse r c d =
@@ -770,7 +804,9 @@ struct
                         board=ref Null, 
                         connection=connection, 
                         state=ref PlayerIdle,
-                        cards=ref []
+                        cards=ref [],
+                        money=ref 0,
+                        stake=ref 0
                     }))
                 in
                     players := player::(!players);
@@ -792,7 +828,9 @@ struct
                 chairs=ref (Vector.tabulate(s, fn _ => ref Null)),
                 state=ref TableIdle,
                 deck=ref empty,
-                cards=ref []
+                cards=ref [],
+                lastBet=ref 0,
+                spectators=ref []
             })
         in
             boards := board::(!boards);
@@ -815,7 +853,7 @@ struct
                 SOME (ref (player as (Player {id=id, ...}))) => 
                     let in
                         playerIndex := Vector.update (!playerIndex, id, ref Null);
-                        players := filterPlayers (filterOthers player)
+                        players := filterServerPlayers (filterOthers player)
                     end
               | _ => ();
 
@@ -844,14 +882,24 @@ struct
             val d = JSON.empty
                  |> JSON.add ("message", JSON.String (message))
         in
-            send "server_message" (filterPlayer (!player)) d
+            sendToAll "server_message" (filterPlayer (!player)) d
+        end
+
+    fun tableMessage (board, message) =
+        let
+            val d = JSON.empty
+                 |> JSON.add ("message", JSON.String (message))
+        in
+            sendToBoard board "server_message" filterAll d
         end
 
     fun spectateTable (player as (ref (Player {board=board, ...})), id) =
         let
-            val b = Vector.sub (!boardIndex, id)
+            val b as (ref (Board {spectators=spectators, ...})) = Vector.sub (!boardIndex, id)
         in
             board := (!b);
+            spectators := player::(!spectators);
+
             board
         end
 
@@ -880,61 +928,113 @@ struct
             serverMessage (player, printCard card)
         end
 
-    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=state as (ref TableIdle), deck=deck, cards=cards, ...})), PlayerJoined (player)) =
+    fun getChair (ref (Board {chairs=chairs, ...}), id) =
+        Vector.sub (!chairs, id) handle Subscript => ref Null
+
+    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableIdle, deck=deck, cards=cards, lastBet=lastBet, ...})), PlayerJoined (player)) =
         let
             val playersCount = getTakenChairsCount board
         in
+            (* Enough players at the table? *)
             if playersCount >= 2 then
                 let 
                     val newDeck = bitDeck 52;
                     val newDeck = shuffle newDeck;
                     val newDeck = shuffleDeck newDeck;
-
-                    val chairs = nvectorToList (!chairs)
-                    val players = filterRefList chairs filterNotNull (* TODO: STATE *)
                 in
-                    serverMessage (player, "TIME TO PLAAAAY!!");
+                    tableMessage (board, "Shuffling cards, drinking beer. Pre-flop comming.");
 
-                    state := TablePreFlop;
                     deck := newDeck;
+                    lastBet := 0;
 
-                    List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
-
-                    state := TableFlop;
-
-                    cardOnTable (board, takeCard (board));
-                    cardOnTable (board, takeCard (board));
-                    cardOnTable (board, takeCard (board));
-
-                    state := TableTurn;
-
-                    cardOnTable (board, takeCard (board));
-
-                    state := TableRiver;
-
-                    cardOnTable (board, takeCard (board));
-
-                    state := TableShowdown;
-
-                    let
-                        fun prepareForShowdown (ref (Board {cards=bcards, ...}), ref (Player {cards=pcards, id=id, ...})) =
-                            let
-                                val ref [c1, c2] = pcards
-                                val ref [c3, c4, c5, c6, c7] = bcards
-                                val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
-                            in
-                                (id, rank, 100)
-                            end
-
-                        val playerList = map (fn p => prepareForShowdown (board, p)) players
-                    in
-                        PolyML.print (showDown playerList);
-                        ()
-                    end
+                    setTableState (board, TablePreFlop)
                 end
             else
-                serverMessage (player, "We need more people!!")
+                (* nope :( you are forever alone *)
+                ()
         end
+      
+      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TablePreFlop)) = 
+            let 
+                val chairs = nvectorToList (!chairs)
+                val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+            in
+                (* distribute two cards to each player at the table *)
+                List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
+
+                setTableState (board, TableBet (TableFlop, BetBigBlind, 0, 1))
+            end                
+
+      | handleTableEvent (board, StateChanged (TableFlop)) = 
+            let in
+                cardOnTable (board, takeCard (board));
+                cardOnTable (board, takeCard (board));
+                cardOnTable (board, takeCard (board));
+
+                setTableState (board, TableBet (TableTurn, BetNormal, 0, 1))
+            end
+
+      | handleTableEvent (board, StateChanged (TableTurn)) = 
+            let in
+                cardOnTable (board, takeCard (board));
+
+                setTableState (board, TableBet (TableRiver, BetNormal, 0, 1))
+            end
+
+      | handleTableEvent (board, StateChanged (TableRiver)) = 
+            let in
+                cardOnTable (board, takeCard (board));
+
+                setTableState (board, TableBet (TableShowdown, BetNormal, 0, 1))
+            end
+
+      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
+            let 
+                fun prepareForShowdown (ref (Board {cards=bcards, ...}), ref (Player {cards=pcards, id=id, ...})) =
+                    let
+                        val ref [c1, c2] = pcards
+                        val ref [c3, c4, c5, c6, c7] = bcards
+                        val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+                    in
+                        (id, rank, 100)
+                    end
+
+                val chairs = nvectorToList (!chairs)
+                val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+
+                val playerList = map (fn p => prepareForShowdown (board, p)) players
+            in
+                PolyML.print (showDown playerList);
+                ()
+                
+                (* TODO: we need delay preflop here *)
+                (*setTableState (board, TablePreFlop)*)
+            end
+
+      | handleTableEvent (board as (ref (Board {
+            chairs=chairs, 
+            lastBet=lastBet, 
+            bigBlind=bigBlind, 
+            smallBlind=smallBlind, 
+            ...
+        })), StateChanged (TableBet (nextState, betType, startPosition, position))) = 
+            let 
+                val realPosition = position mod (Vector.length (!chairs))
+                val chair = getChair (board, realPosition)
+                val (amount, blind, nextBet) = case betType of
+                    BetNormal => (!lastBet, false, BetNormal)
+                  | BetSmallBlind => (smallBlind, true, BetNormal)
+                  | BetBigBlind => (bigBlind, true, BetSmallBlind)
+            in
+                if startPosition = realPosition then
+                    setTableState (board, nextState)
+                else
+                    (* TODO: check player state (could have folded before) *)
+                    case chair of
+                        ref Null => setTableState (board, TableBet (nextState, betType, startPosition, position + 1))
+                      | player => serverMessage (player, "your turn to bet! /raise /call /fold")
+            end
+
       | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableIdle, ...})), PlayerLeaving (player)) = 
         (* We don't care about players leaving a table where nothing happens (state: Idle ) *)
         ()
@@ -949,17 +1049,58 @@ struct
             else
                 ()
         end
-      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableTurn, ...})), PlayerFold (player)) = 
-        ()
-      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableTurn, ...})), PlayerCall (player)) =
-        () 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableTurn, ...})), PlayerRaise (player, amount)) = 
-        ()
-      | handleTableEvent (_, _) =
-        print "Not implemented"
 
-    fun getChair (ref (Board {chairs=chairs, ...}), id) =
-        (SOME (Vector.sub (!chairs, id))) handle Subscript => NONE
+        (* fold *)
+      | handleTableEvent (board as (ref (Board {
+            chairs=chairs, 
+            lastBet=lastBet, 
+            bigBlind=bigBlind, 
+            smallBlind=smallBlind, 
+            state=ref (TableBet (nextState, betType, startPosition, position)),
+            ...
+        })), PlayerFold (player)) = 
+            ()
+
+        (* call *)
+      | handleTableEvent (board as (ref (Board {
+            chairs=chairs, 
+            lastBet=lastBet, 
+            bigBlind=bigBlind, 
+            smallBlind=smallBlind, 
+            state=ref (TableBet (nextState, betType, startPosition, position)),
+            ...
+        })), PlayerCall (player)) =
+        let
+            val (amount, blind, nextBet) = case betType of
+                BetNormal => (!lastBet, false, BetNormal)
+              | BetSmallBlind => (smallBlind, true, BetNormal)
+              | BetBigBlind => (bigBlind, true, BetSmallBlind)
+        in
+            setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1))
+        end      
+
+        (* raise *)   
+      | handleTableEvent (board as (ref (Board {
+            chairs=chairs, 
+            lastBet=lastBet, 
+            bigBlind=bigBlind, 
+            smallBlind=smallBlind, 
+            state=ref (TableBet (nextState, betType, startPosition, position)),
+            ...
+        })), PlayerRaise (player, amount)) = 
+            ()
+      | handleTableEvent (_, _) =
+        let in
+            print "Not implemented"
+        end
+    
+    and setTableState (board as (ref (Board {state=state, ...})), newState) =
+        let in
+            state := newState;
+            print "new state incomming: ";
+            PolyML.print (StateChanged (newState));
+            handleTableEvent (board, StateChanged (newState))
+        end
 
     fun joinTable (player, board as (ref (Board {chairs=chairs, ...})), id) =
         let
@@ -1013,7 +1154,7 @@ struct
                             ref Null => serverMessage (player, "Join a room first!")
                           | _ => 
                             let in
-                                case (valOf chair) of
+                                case chair of
                                     ref Null =>
                                         let in
                                             joinTable (player, board, valOf id);
@@ -1066,7 +1207,7 @@ struct
                             if size message = 0 orelse size message > 128 then
                                 raise InvalidMessage
                             else
-                                send "chat" filterAll d
+                                sendToAll "chat" filterAll d
                         end
                 end
           | "command" =>
@@ -1111,8 +1252,8 @@ struct
                         case player of
                             SOME (ref player) =>
                                 let in
-                                    send "server_message" (filterOthers player) d1;
-                                    send "server_message" (filterPlayer player) d2
+                                    sendToAll "server_message" (filterOthers player) d1;
+                                    sendToAll "server_message" (filterPlayer player) d2
                                 end
                           | _ => ()
                     end
