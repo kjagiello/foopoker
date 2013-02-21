@@ -60,7 +60,7 @@
         background-color: #000;
         -moz-border-radius: 75px;
         -webkit-border-radius: 75px;
-        opacity: 0.5;
+        background: rgba(0, 0, 0, 0.5);
         position: absolute;
         top: 50%;
         left: 50%;
@@ -74,8 +74,8 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        margin-left: -60px;
-        margin-top: -60px;
+        margin-left: -34px;
+        margin-top: -34px;
     }
 
     .seat1 { left: 110px; top: -50px; }
@@ -88,20 +88,35 @@
     .seat8 { left: 437px; top: -50px; }
 
     .sit-down {
+        display: none;
         position: absolute;
         top: 50%;
         left: 50%;
-        background-color: rgba(0, 0, 0, 0.7);
         color: #fff;
         padding: 3px 0px;
         -moz-border-radius: 5px;
         -webkit-border-radius: 5px;
+        text-align: center;
+        font-size: 11px;
+        font-family: Arial;
         width: 80px;
         height: 16px;
-        text-align: center;
         margin-left: -40px;
         margin-top: -8px;
-        display: none;
+        cursor: pointer;
+    }
+
+    .seat.free {
+
+    }
+
+    .seat.free .sit-down {
+        display: block;
+    }
+
+    .seat.free.hover .spot {
+        cursor: pointer;
+        background: rgba(0, 0, 0, 0.6);
     }
 
     #chat {
@@ -133,6 +148,14 @@
         padding: 4px 10px;
         font-size: 13px;
         color: #b6faa6;
+    }
+
+    .text-line {
+        display: block;
+    }
+
+    .chat-line .text-line:nth-child(2) {
+        display: inline;
     }
 
     .chat-name {
@@ -282,51 +305,43 @@
     <div id="game-interface">
         <div id="board">
             <div class="seat seat1">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat2">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat3">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat4">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat5">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat6">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat7">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
             <div class="seat seat8">
-                <div class="spot"></div>
                 <input type="text" value="0" class="timer">
-                <a href="#" class="sit-down">Sit down</a>
+                <div class="spot"><div class="sit-down">Sit down</div></div>
             </div>
         </div>
 
         <div id="chat" ng-controller="ChatController">
             <div class="chatbox-wrapper">
                 <div class="chatbox">
-                    <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: {{m.text}}</div>
+                    <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: <span class="text-line" ng-repeat="l in m.text">{{l}}</div>
                 </div>
             </div>
             <form ng-submit="sendMessage()"><input type="text" placeholder="Type here..." ng-model="message" ng-keyup="sendMessage()" /></form>
@@ -349,15 +364,21 @@
             fgColor: "#2d4825", 
             readOnly: true, 
             displayInput: false, 
-            width: "120", 
-            height: "120",
-            thickness: ".2",
+            width: "67", 
+            height: "67",
+            thickness: ".12",
             draw: function () {
                 this.$.parent().addClass('timer-wrapper');
             }
         });
 
-        $('.timer-wrapper').hide();
+
+        $('.seat').addClass('free');
+        $('.seat.free .spot').hover(function () {
+            $(this).parent().addClass('hover');
+        }, function () {
+            $(this).parent().removeClass('hover');
+        });
     });
     </script>
 </body>
