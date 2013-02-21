@@ -13,7 +13,7 @@ datatype color = CLUB | DIAMOND | HEART | SPADE;
 datatype value = Deuce | Trey | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace;
 
 use "vectors.sml";
-use "queue.sml";
+use "shuffledeck.sml";
 use "showdown.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
