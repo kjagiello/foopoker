@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>documents</key>
+	<array>
+		<dict>
+			<key>filename</key>
+			<string>cardToWord.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>evaluatecards.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>poker.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>printtypehand.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>queue.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>server.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>showdown.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>shuffle.sml</string>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>vectors.sml</string>
+		</dict>
+	</array>
+	<key>fileHierarchyDrawerWidth</key>
+	<integer>231</integer>
+	<key>metaData</key>
+	<dict/>
+	<key>showFileHierarchyDrawer</key>
+	<true/>
+	<key>windowFrame</key>
+	<string>{{296, 20}, {847, 1134}}</string>
+</dict>
+</plist>
