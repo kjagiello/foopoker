@@ -886,9 +886,7 @@ struct
         in
             if playersCount >= 2 then
                 let 
-                    val newDeck = bitDeck 52;
-                    val newDeck = shuffle newDeck;
-                    val newDeck = shuffleDeck newDeck;
+                    val newDeck = shuffleDeck 52;
 
                     val chairs = nvectorToList (!chairs)
                     val players = filterRefList chairs filterNotNull (* TODO: STATE *)

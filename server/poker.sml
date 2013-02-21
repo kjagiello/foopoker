@@ -14,7 +14,6 @@ datatype value = Deuce | Trey | Four | Five | Six | Seven | Eight | Nine | Ten |
 
 use "vectors.sml";
 use "queue.sml";
-use "shuffle.sml";
 use "showdown.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
@@ -174,52 +173,7 @@ fun Call (call, playerMoney) =
 			call
     end;
 
-(*	
-	bitDeck n 
-	TYPE: 		int -> Word32.word list
-	PRE: 		n = 52
-	POST: 		A Word32.word list. 
-	EXAMPLE: 	bitDeck(52) = [0wx2, 0wx3, 0wx5, 0wx7, 0wxB, 0wxD, 0wx11, 0wx13, 0wx17, 0wx1D, ...]:
-	   			Word32.word list
-*)
-(*
-	INFO: 		Returns a list of 52 cards which are represented by words. 
-	
- 				+--------+--------+--------+--------+
-				|xxxbbbbb|bbbbbbbb|cdhsrrrr|xxpppppp|
-				+--------+--------+--------+--------+
 
-				p = prime number of rank (deuce=2,trey=3,four=5,...,ace=41)
-				r = rank of card (deuce=0,trey=1,four=2,five=3,...,ace=12)
-				cdhs = suit of card (bit turned on based on suit of card)
-				b = bit turned on depending on rank of card
-
-				Using such a scheme, here are some bit pattern examples:
-
-				xxxAKQJT 98765432 CDHSrrrr xxPPPPPP
-				00001000 00000000 01001011 00100101    King of Diamonds
-				00000000 00001000 00010011 00000111    Five of Spades
-				00000010 00000000 10001001 00011101    Jack of Clubs
-*)
-fun bitDeck 0 = []
-| bitDeck n = 
-	let 
-		val orb = Word32.orb
-		val w32Int = Word32.fromInt
-		val wInt = Word.fromInt
-		val wLeft = Word32.<<
-		val wRight = Word32.>>
-		val suit = 0wx8000
-		
-		fun bitDeck' (0, _, _) = []
-		 | bitDeck' (n', j, suit) = 	
-			if j < 12 then				(*Populate a card[0-12] with the form above*)
-				orb(orb(orb(w32Int(getPrime(j)), wLeft(w32Int(j), wInt(8))), suit), wLeft(w32Int(1), wInt(16+j)))::bitDeck'(n'-1, j+1, suit)
-			else						(*Change suit*)
-				orb(orb(orb(w32Int(getPrime(j)), wLeft(w32Int(j), wInt(8))), suit), wLeft(w32Int(1), wInt(16+j)))::bitDeck'(n'-1, 0, wRight(suit, Word.fromInt(1)))	
-	in
-		bitDeck' (n, 0, suit)
-	end;
 
 val test = [(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)];
 val b = showDown(test);

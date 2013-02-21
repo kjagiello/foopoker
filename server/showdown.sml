@@ -170,6 +170,3 @@ let
 	in
 		mkSidepot::showDown(rmMinPotWinner)						(*Cons Sidepot and repeat process.*)
 	end;
-	
-val test = [(0, 1, 500), (1, 1, 1500), (2, 1, 5000), (3, 1600, 2500), (7, 5068, 2000)];
-val b = showDown(test);
