@@ -1453,24 +1453,6 @@ fun values(c) =
 	in
 		Vector.sub(valueList, c)
 	end;
-	
-(*
-	getPrime c
-	TYPE:		int -> int
-	PRE:		0 <= c <= 12
-	POST:		A primenumber[i] depending on c[i].
-	EXAMPLE:	getPrime(5) = 7: int
-*)
-(*
-	INFO: 		Every value of a card gets a prime number. 
-*)
-fun getPrime(c) = 
- 	let
-		val primes = [2,3,5,7,11,13,17,19,23,29,31,37,41]
-		val cardList = Vector.fromList(primes)
-	in
-		Vector.sub(cardList, c)
-	end;
 
 (*
 	perm6(c1, c2, c3, c4, c5, c6, c7)

@@ -63,6 +63,24 @@ abstype 'a queue = Queue of 'a list * 'a list
 	(* TIME COMPLEXITY: Theta(1) on average *)
 	fun dequeue (Queue(h::xs,ys)) = normalise (Queue(xs,ys))
 	
+	(*
+		getPrime c
+		TYPE:		int -> int
+		PRE:		0 <= c <= 12
+		POST:		A primenumber[i] depending on c[i].
+		EXAMPLE:	getPrime(5) = 7: int
+	*)
+	(*
+		INFO: 		Every value of a card gets a prime number. 
+	*)
+	fun getPrime(c) = 
+	 	let
+			val primes = [2,3,5,7,11,13,17,19,23,29,31,37,41]
+			val cardList = Vector.fromList(primes)
+		in
+			Vector.sub(cardList, c)
+		end;
+	
 	(*	
 		bitDeck n 
 		TYPE: 		int -> Word32.word list
@@ -90,13 +108,6 @@ abstype 'a queue = Queue of 'a list * 'a list
 					00000000 00001000 00010011 00000111    Five of Spades
 					00000010 00000000 10001001 00011101    Jack of Clubs
 	*)
-	fun getPrime(c) = 
-	 	let
-			val primes = [2,3,5,7,11,13,17,19,23,29,31,37,41]
-			val cardList = Vector.fromList(primes)
-		in
-			Vector.sub(cardList, c)
-		end;
 	fun bitDeck 0 = []
 	| bitDeck n = 
 		let 
@@ -136,6 +147,9 @@ abstype 'a queue = Queue of 'a list * 'a list
 		POST:		A Word32.word queue. 
 		EXAMPLE:	shuffleDeck(52) = Queue([0wx18002], [0wx28103, 0wx48205, 0wx88307, 
 					0wx10840B, 0wx20850D, 0wx408611, 0wx808713, 0wx1008817, ...]): Word32.word queue
+	*)
+	(*
+		INFO: 		
 	*)
 	fun shuffleDeck n = 
 		let

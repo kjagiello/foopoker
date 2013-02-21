@@ -173,11 +173,6 @@ fun Call (call, playerMoney) =
 			call
     end;
 
-
-
-val test = [(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)];
-val b = showDown(test);
-
 (*
 	printShowDown l
 	TYPE:		sidepot list -> string
@@ -210,13 +205,13 @@ fun printShowDown([]) = ""
 	end;
 
 
-val a = cardToWord(Card("A", "h"));
-val b = cardToWord(Card("T", "h"));
-val c = cardToWord(Card("Q", "h"));
-val d = cardToWord(Card("J", "h"));
-val e = cardToWord(Card("8", "c"));
-val f = cardToWord(Card("T", "s"));
-val g = cardToWord(Card("K", "h"));
+val a = cardToWord("Ah");
+val b = cardToWord("Kh");
+val c = cardToWord("Qh");
+val d = cardToWord("Jh");
+val e = cardToWord("Th");
+val f = cardToWord("Ac");
+val g = cardToWord("As");
 
 print("\nBest 5-hand:\n");
 print(printHand(handRank(eval5Cards(a,b,c,d,e)))^", "^printTypeHand(a, b, c, d, e)^"\n");

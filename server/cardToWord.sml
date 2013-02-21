@@ -48,8 +48,13 @@ fun whichScore v =
 		| "A" => "110000101001"
 		| _   => "000000000000";
 		
-fun c2bin(Card(v,c)) = 
-	whichCard(v)^whichSuit(c)^whichScore(v);
+fun c2bin(c) = 
+	let 
+		val v = String.substring(c, 0, 1)
+		val s = String.substring(c, 1, 1)
+	in
+		whichCard(v)^whichSuit(s)^whichScore(v)
+	end;
 	
 
 fun orbList l =
@@ -79,5 +84,5 @@ fun bin2word x =
 	POST: 		c as Word32.word.
 	EXAMPLE: 	cardToWord(Card("A", "h")) = 0wx10002C29: Word32.word
 *)
-fun cardToWord(Card(v,c)) = 
-	bin2word(c2bin(Card(v,c)));
+fun cardToWord(c) = 
+	bin2word(c2bin(c));
