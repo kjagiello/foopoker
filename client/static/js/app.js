@@ -126,7 +126,7 @@ function ChatController($scope, socket, user) {
                 $scope.messages.shift();
             }
 
-            $scope.messages.push({username: username, text: text});
+            $scope.messages.push({username: username, text: text.split("\n")});
         }
     }
 
