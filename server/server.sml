@@ -17,6 +17,8 @@ use "../utils/sha1.sml";
 use "../utils/json.sml";
 use "../utils/utils.sml";
 
+use "poker.sml";
+
 fun mapi f l =
     let fun mm _ nil = nil
           | mm n (h :: t) = f (h, n) :: mm (n + 1) t
@@ -584,6 +586,7 @@ sig
     val filterPlayers       : (game -> bool) -> game ref list
     val filterINull         : int * game -> bool
     val filterNull          : game -> bool
+    val filterNotNull       : game -> bool
     val filterAll           : game -> bool
     val filterPlayer        : game -> game -> bool
     val filterOthers        : game -> game -> bool
@@ -601,7 +604,10 @@ sig
     val joinTable           : game ref * game ref * int -> int option
     val printBoards         : unit -> unit
     val getChair            : game ref * int -> game ref option
-
+    val getTakenChairsCount : game ref -> int
+    val takeCard            : game ref -> Word32.word
+    val cardOnTable         : game ref * Word32.word -> unit
+    val cardToPlayer        : game ref * Word32.word -> unit
     val createPlayer        : WebsocketServer.connection * string -> game ref option
     val handleConnect       : WebsocketServer.connection -> unit
     val handleDisconnect    : WebsocketServer.connection -> unit
@@ -616,10 +622,19 @@ struct
     exception InvalidMessage
     exception InvalidCommand
 
-    datatype playerState = 
-        Normal
-      | Turn of int (* time when the turn started *)
-      | Folded
+    datatype boardState =
+        TableIdle
+      | TablePreFlop
+      | TableFlop
+      | TableTurn
+      | TableRiver
+      | TableShowdown
+
+    datatype playerState =
+        PlayerIdle 
+      | PlayerInGame
+      | PlayerTurn of int (* time when the turn started *)
+      | PlayerFolded
 
     datatype game = Board of {
                         id: int,
@@ -628,13 +643,18 @@ struct
                         bigBlind: int,
                         minBuyIn: int,
                         maxBuyIn: int,
-                        chairs: game ref vector ref
+                        chairs: game ref vector ref,
+                        state: boardState ref,
+                        deck: Word32.word queue ref,
+                        cards: Word32.word list ref
                     }
                   | Player of {
                         id: int,
                         name: string ref,
                         board: game ref,
-                        connection: WebsocketServer.connection
+                        connection: WebsocketServer.connection,
+                        state: playerState ref,
+                        cards: Word32.word list ref
                     }
                   | Null
 
@@ -643,7 +663,7 @@ struct
       | PlayerLeaving of game ref
       | PlayerFold of game ref
       | PlayerRaise of game ref * int
-      | PlayerCall of game
+      | PlayerCall of game ref
 
     type parsedMessage = string * string * JSON.T
 
@@ -655,6 +675,8 @@ struct
 
     fun filterNull Null = true
       | filterNull _ = false
+
+    fun filterNotNull x = not (filterNull x)
 
     fun filterINull (_, x) = 
         filterNull x
@@ -742,7 +764,14 @@ struct
                 NONE
             else
                 let 
-                    val player = (ref (Player {id=valOf id, name=ref name, board=ref Null, connection=connection}))
+                    val player = (ref (Player {
+                        id=valOf id, 
+                        name=ref name, 
+                        board=ref Null, 
+                        connection=connection, 
+                        state=ref PlayerIdle,
+                        cards=ref []
+                    }))
                 in
                     players := player::(!players);
                     playerIndex := Vector.update (!playerIndex, valOf id, player);
@@ -760,7 +789,10 @@ struct
                 bigBlind=bb,
                 minBuyIn=minb,
                 maxBuyIn=maxb,
-                chairs=ref (Vector.tabulate(s, fn _ => ref Null))
+                chairs=ref (Vector.tabulate(s, fn _ => ref Null)),
+                state=ref TableIdle,
+                deck=ref empty,
+                cards=ref []
             })
         in
             boards := board::(!boards);
@@ -823,17 +855,106 @@ struct
             board
         end
 
-    fun handleTableEvent (board as (ref (Board {chairs=ref chairs, ...})), PlayerJoined (player)) =
+    fun getTakenChairsCount (ref (Board {chairs=ref chairs, ...})) =
         let
             val chairs = nvectorToList chairs
             val freeChairs = filterRefList chairs filterNull
-            val playersCount = (length chairs) - (length freeChairs)
+        in
+            (length chairs) - (length freeChairs)
+        end
+
+    fun takeCard (ref (Board {cards=cards, deck=deck, ...})) =
+        let 
+            val card = (head (!deck))
+        in
+            deck := dequeue (!deck);
+            card
+        end
+
+    fun cardOnTable (ref (Board {cards=cards, ...}), card) =
+        cards := card::(!cards)
+
+    fun cardToPlayer (player as ref (Player {cards=cards, ...}), card) =
+        let in
+            cards := card::(!cards);
+            serverMessage (player, printCard card)
+        end
+
+    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=state as (ref TableIdle), deck=deck, cards=cards, ...})), PlayerJoined (player)) =
+        let
+            val playersCount = getTakenChairsCount board
         in
             if playersCount >= 2 then
-                serverMessage (player, "TIME TO PLAAAAY!!")
+                let 
+                    val newDeck = bitDeck 52;
+                    val newDeck = shuffle newDeck;
+                    val newDeck = shuffleDeck newDeck;
+
+                    val chairs = nvectorToList (!chairs)
+                    val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+                in
+                    serverMessage (player, "TIME TO PLAAAAY!!");
+
+                    state := TablePreFlop;
+                    deck := newDeck;
+
+                    List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
+
+                    state := TableFlop;
+
+                    cardOnTable (board, takeCard (board));
+                    cardOnTable (board, takeCard (board));
+                    cardOnTable (board, takeCard (board));
+
+                    state := TableTurn;
+
+                    cardOnTable (board, takeCard (board));
+
+                    state := TableRiver;
+
+                    cardOnTable (board, takeCard (board));
+
+                    state := TableShowdown;
+
+                    let
+                        fun prepareForShowdown (ref (Board {cards=bcards, ...}), ref (Player {cards=pcards, id=id, ...})) =
+                            let
+                                val ref [c1, c2] = pcards
+                                val ref [c3, c4, c5, c6, c7] = bcards
+                                val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+                            in
+                                (id, rank, 100)
+                            end
+
+                        val playerList = map (fn p => prepareForShowdown (board, p)) players
+                    in
+                        PolyML.print (showDown playerList);
+                        ()
+                    end
+                end
             else
                 serverMessage (player, "We need more people!!")
         end
+      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableIdle, ...})), PlayerLeaving (player)) = 
+        (* We don't care about players leaving a table where nothing happens (state: Idle ) *)
+        ()
+      | handleTableEvent (board as (ref (Board {chairs=chairs, state=_, ...})), PlayerLeaving (player)) = 
+        (* this gets called when someone leaves a table with an ongoing game *)
+        let
+            val playersCount = getTakenChairsCount board
+        in
+            if playersCount < 2 then
+                (* game is going on, but there are not enough players in the chairs *)
+                ()
+            else
+                ()
+        end
+      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableTurn, ...})), PlayerFold (player)) = 
+        ()
+      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableTurn, ...})), PlayerCall (player)) =
+        () 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableTurn, ...})), PlayerRaise (player, amount)) = 
+        ()
       | handleTableEvent (_, _) =
         print "Not implemented"
 
@@ -903,6 +1024,30 @@ struct
                     end
                 else
                     serverMessage (player, "/sit [sit id]")
+              | "fold" =>
+                    let
+                        val ref (Player {board=board, ...}) = player
+                    in
+                        handleTableEvent (board, PlayerFold player)
+                    end
+              | "raise" =>
+                let in
+                    if validateArguments "d" arguments then
+                        let
+                            val amount = Int.fromString arguments
+                            val ref (Player {board=board, ...}) = player
+                        in
+                            handleTableEvent (board, PlayerRaise (player, valOf amount))
+                        end
+                    else
+                        serverMessage (player, "/raise [amount]")
+                end
+              | "call" =>
+                    let
+                        val ref (Player {board=board, ...}) = player
+                    in
+                        handleTableEvent (board, PlayerCall player)
+                    end
               | _ => raise InvalidCommand
         end
 
