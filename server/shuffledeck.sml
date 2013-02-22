@@ -90,7 +90,8 @@ abstype 'a queue = Queue of 'a list * 'a list
 		   			Word32.word list
 	*)
 	(*
-		INFO: 		Returns a list of 52 cards which are represented by words. 
+		INFO: 		***Cactus Kev's Poker Hand Evaluator***
+					Returns a list of 52 cards which are represented by words. 
 
 	 				+--------+--------+--------+--------+
 					|xxxbbbbb|bbbbbbbb|cdhsrrrr|xxpppppp|
@@ -112,18 +113,18 @@ abstype 'a queue = Queue of 'a list * 'a list
 	| bitDeck n = 
 		let 
 			val orb = Word32.orb
-			val w32Int = Word32.fromInt
+			val frInt32 = Word32.fromInt
 			val wInt = Word.fromInt
-			val wLeft = Word32.<<
-			val wRight = Word32.>>
+			val op << = Word32.<<
+			val op >> = Word32.>>
 			val suit = 0wx8000
 
 			fun bitDeck' (0, _, _) = []
 			 | bitDeck' (n', j, suit) = 	
 				if j < 12 then				(*Populate a card[0-12] with the form above*)
-					orb(orb(orb(w32Int(getPrime(j)), wLeft(w32Int(j), wInt(8))), suit), wLeft(w32Int(1), wInt(16+j)))::bitDeck'(n'-1, j+1, suit)
+					orb(orb(orb(frInt32(getPrime(j)), <<(w32Int(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, j+1, suit)
 				else						(*Change suit*)
-					orb(orb(orb(w32Int(getPrime(j)), wLeft(w32Int(j), wInt(8))), suit), wLeft(w32Int(1), wInt(16+j)))::bitDeck'(n'-1, 0, wRight(suit, Word.fromInt(1)))	
+					orb(orb(orb(frInt32(getPrime(j)), <<(w32Int(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, 0, >>(suit, Word.fromInt(1)))	
 		in
 			bitDeck' (n, 0, suit)
 		end;
@@ -149,7 +150,7 @@ abstype 'a queue = Queue of 'a list * 'a list
 					0wx10840B, 0wx20850D, 0wx408611, 0wx808713, 0wx1008817, ...]): Word32.word queue
 	*)
 	(*
-		INFO: 		
+		INFO: 		Makes a shuffled queue deck. 
 	*)
 	fun shuffleDeck n = 
 		let

@@ -27,7 +27,8 @@ use "cardToWord.sml";
 	EXAMPLE: 	handValue(STRAIGHT_FLUSH) = 1; 
 *)
 (*
-	INFO: 		Returns a value for every type of hand. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Returns a value for every type of hand. 
 	USED BY: 	handRank
 *)
 fun handValue 	ROYAL = 1
@@ -49,7 +50,8 @@ fun handValue 	ROYAL = 1
 	EXAMPLE: 	printHand(1) = "Straight Flush"
 *)	
 (*
-	INFO: 		Prints what type of hand n is. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Prints what type of hand n is. 
 *)
 fun printHand n = 
 	let
@@ -67,7 +69,8 @@ fun printHand n =
 	EXAMPLE: 	colorValue(CLUB) = 0wx8000: Word32.word
 *)
 (*
-	INFO: 		Returns a binary for every suit for a card.
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Returns a binary for every suit for a card.
 *)
 fun colorValue 		CLUB = 0wx8000		(*10000000 00000000*)
 	| colorValue 	DIAMOND = 0wx4000	(*01000000 00000000*)
@@ -78,10 +81,11 @@ fun colorValue 		CLUB = 0wx8000		(*10000000 00000000*)
 	TYPE:		value -> int
 	PRE:		(none)
 	POST:		An integer from 0-12.
-	EXAMPLE: 	cardValue(5) = 4:int
+	EXAMPLE: 	cardValue(5) = 4: int
 *)
 (*
-	INFO: 		Returns a value for every value of a card. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Returns a value for every value of a card. 
 *)
 fun cardValue 	Deuce = 0
 	| cardValue	Trey = 1
@@ -105,7 +109,8 @@ fun cardValue 	Deuce = 0
 	EXAMPLE: 	handRank(6186) = 9: int
 *)
 (*
-	INFO: 		Returns a value for every value of a card. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Returns a value for every value of a card. 
 *)
 fun handRank n = 
 	if n > 6185 then
@@ -173,37 +178,6 @@ fun Call (call, playerMoney) =
 			call
     end;
 
-(*
-	printShowDown l
-	TYPE:		sidepot list -> string
-	PRE:		(none)
-	POST:		l in text as a string. 
-	EXAMPLE:	showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
-	 			"1 and 0 split a pot of 1000. \n1 won a pot of $2400.\n3 won a pot of $300.\n": string
-*)
-(*
-	INFO: 		Returns information of all the players involved in the sidepot. 
-*)
-
-fun printShowDown([]) = ""
-| printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
-	let 
-		val antPlayers = length players
-		val intStr = Int.toString
-		
-		fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".<br>"^printShowDown(rest)
-		| printShowDown'(player as (p, h, m)::xs, t, rest) =
-			if xs = [] then
-				intStr(p)^" "^printShowDown'(xs, t, rest)
-			else
-				intStr(p)^" and "^printShowDown'(xs, t, rest)
-	in
-		if antPlayers = 1 then
-			intStr(p)^" won a pot of $"^intStr(t)^".<br>"^printShowDown(rest)
-		else
-			printShowDown'(players, t, rest)
-	end;
-
 
 val a = cardToWord("Ah");
 val b = cardToWord("Kh");
@@ -221,3 +195,9 @@ print("\nBest 7-hand:\n");
 printHand(handRank(eval_7hand(a,b,c,d,e,f,g)));
 print_eval_7hand(a,b,c,d,e,f,g);
 print(Int.toString(eval_7hand(a,b,c,d,e,f,g))); 
+
+print("\n\n");
+
+
+val a = [1,2,3,4,5];
+List.foldr 0 a; 

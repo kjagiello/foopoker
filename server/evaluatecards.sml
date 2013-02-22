@@ -6,19 +6,21 @@
 	EXAMPLE:	printCard(0wx8001B25) = Card ("K", "s"): card
 *)
 (*
-	INFO: 		Converts a binary card into a card. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Converts a binary card into a card. 
 *)
 fun printCard n =
 	let
-		val wAnd = Word32.andb
+		val op andb = Word32.andb
 		val r = Word32.>>(n, Word.fromInt(8))
-		val r = Word32.toInt(wAnd(r, 0wxF))
+		val r = Word32.toInt(andb(r, 0wxF))
+		val w = Word32.fromInt(0)
 	in
-		if wAnd(n, 0wx8000) > Word32.fromInt(0) then
+		if andb(n, 0wx8000) > w then
 			rank(r) ^ "c"
-		else if wAnd(n, 0wx4000) > Word32.fromInt(0) then
+		else if andb(n, 0wx4000) > w then
 			rank(r) ^ "d"
-		else if wAnd(n, 0wx2000) > Word32.fromInt(0) then
+		else if andb(n, 0wx2000) > w then
 			rank(r) ^ "h"
 		else
 			rank(r) ^ "s"
@@ -32,25 +34,28 @@ fun printCard n =
 	EXAMPLE: 	findCard(0wxFF) = 0wxCCC: Word32.word
 *)
 (*
-	INFO: 		Finds a binary card in the vector tables. 
+	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
+				for Cactus Kev's Poker Hand Evaluator***
+				
+				Finds a binary card in the vector tables. 
 *)
 fun findCard n =
 	let
-		val wInt = Word.fromInt
-		val wPl = Word32.+
-		val wXo = Word32.xorb
-		val wLeft = Word32.<<
-		val wRight = Word32.>>
-		val wAnd = Word32.andb
+		val frInt = Word.fromInt
+		val op ++ = Word32.+
+		val op xorb = Word32.xorb
+		val op << = Word32.<<
+		val op >> = Word32.>>
+		val op andb = Word32.andb
 		
-		val u = wPl(n, 0wxe91aaa35)
-		val u = wXo(u, wRight(u, wInt(16)))
-		val u = wPl(u, wLeft(u, wInt(8)))
-		val u = wXo(u, wRight(u, wInt(4)))
+		val u = ++(n, 0wxe91aaa35)
+		val u = xorb(u, >>(u, frInt(16)))
+		val u = ++(u, <<(u, frInt(8)))
+		val u = xorb(u, >>(u, frInt(4)))
 		
-		val b = Word32.toInt(wAnd(wRight(u, wInt(8)), 0wx1ff))
-		val a = wRight( wPl (u, wLeft(u, wInt(2)) ), wInt(19))
-		val r = wXo(a, Word32.fromInt(adjust(b)))
+		val b = Word32.toInt(andb(>>(u, frInt(8)), 0wx1ff))
+		val a = >>( ++(u, <<(u, frInt(2)) ), frInt(19))
+		val r = xorb(a, Word32.fromInt(adjust(b)))
 	in
 		r
 	end;
@@ -63,29 +68,34 @@ fun findCard n =
 	EXAMPLE: 	eval5Cards()	
 *)
 (*
-	INFO: 		Evaluates a hand and returns its hand value. 
+	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
+				for Cactus Kev's Poker Hand Evaluator***
+				
+				Evaluates a hand and returns its hand value. 
 *)
 fun eval5Cards (c1, c2, c3, c4, c5) =
 	let
 		val orb = Word32.orb
-		val wInt = Word.fromInt
-		val w32Int = Word32.fromInt
+		val frInt = Word.fromInt
+		val frInt32 = Word32.fromInt
+		val toInt32 = Word32.toInt
+		val w = Word32.fromInt(0)
 		val andb = Word32.andb
-		val wRight = Word32.>>
+		val op >> = Word32.>>
 		
-		val q = Word32.toInt(wRight(orb(orb(orb(orb(c1, c2), c3), c4), c5), wInt(16)))
+		val q = Word32.toInt(>>(orb(orb(orb(orb(c1, c2), c3), c4), c5), frInt(16)))
 		val s = unique5(q)
 		val p = andb(c1, 0wxFF) * andb(c2, 0wxFF) * andb(c3, 0wxFF) * andb(c4, 0wxFF) * andb(c5, 0wxFF)
 	in	
 		(*check for Flushes and StraightFlushes*)
-		if andb(andb(andb(andb(andb(c1, c2), c3), c4), c5), 0wxF000) > w32Int(0) then 
+		if andb(andb(andb(andb(andb(c1, c2), c3), c4), c5), 0wxF000) > w then 
 			flushes(q)
 		(*check for Straights and HighCard hands*)
-		else if w32Int(s) > w32Int(0) then 
+		else if frInt32(s) > w then 
 		 	s
 		(*check for every other card*)
 		else
-			values(Word32.toInt(findCard(p)))
+			values(toInt32(findCard(p)))
 	end;
 
 (*
@@ -122,7 +132,8 @@ fun eval_6hand(c1, c2, c3, c4, c5, c6) =
 	EXAMPLE: 	eval_7hand(0wx10002C29, 0wx1002817, 0wx4002A1F, 0wx200291D, 0wx408611, 0wx1001817, 0wx8002B25) = 1
 *)
 (*
-	INFO: 		Evaluates which 5-card hand is the best hand out of 7 cards. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Evaluates which 5-card hand is the best hand out of 7 cards. 
 *)
 fun eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 	let

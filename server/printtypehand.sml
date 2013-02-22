@@ -1,4 +1,37 @@
-
+(*
+	dealerRank n
+	TYPE:		int -> string
+	PRE:		0 <= n <= 12
+	POST:		n as a string. 
+	EXAMPLE: 	dealerRank(12) = "Ace"
+*)
+(*
+	INFO: 		Returns the value of a card in singular. 
+*)
+fun dealerRank n =
+	let	
+		val cards = ["Two", "Three", "Four", "Five", "Sixe", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"]
+		val cardList = Vector.fromList(cards)
+	in
+		Vector.sub(cardList, n)
+	end;
+(*
+	dealerRanks n
+	TYPE:		int -> string
+	PRE:		0 <= n <= 12
+	POST:		n as a string. 
+	EXAMPLE: 	dealerRank(12) = "Aces"
+*)
+(*
+	INFO: 		Returns the value of a card in plural. 
+*)	
+fun dealerRanks n =
+	let	
+		val cards = ["Twos", "Threes", "Fours", "Fives", "Sixes", "Sevens", "Eights", "Nines", "Tens", "Jacks", "Queens", "Kings", "Aces"]
+		val cardList = Vector.fromList(cards)
+	in
+		Vector.sub(cardList, n)
+	end;
 (*
 	checkHighCard l
 	TYPE: 		int list -> string
@@ -109,14 +142,14 @@ fun checkStraight([]) = ""
 *)		
 fun checkFlush(flush) =		
 	let
-		val wAnd = Word32.andb
-		val wInt = Word32.fromInt
+		val op andb = Word32.andb
+		val w = Word32.fromInt(0)
 	in
-		if wAnd(flush, 0wx8000) > wInt(0) then
+		if andb(flush, 0wx8000) > w then
 			"Clubs"
-		else if wAnd(flush, 0wx4000) > wInt(0) then
+		else if andb(flush, 0wx4000) > w then
 			"Diamonds"
-		else if wAnd(flush, 0wx2000) > wInt(0) then
+		else if andb(flush, 0wx2000) > w then
 			"Hearts"
 		else
 			"Spades"
@@ -135,10 +168,10 @@ fun checkFull([]) = ""
 | checkFull(x::rest) =
 		let 
 			fun checkFull'([], cards1, cards2) = 
-			if length cards1 = 3 then
-				dealerRanks(hd(cards1))^ " over " ^dealerRanks(hd(cards2))
-			else
-				dealerRanks(hd(cards2))^ " over " ^dealerRanks(hd(cards1))
+				if length cards1 = 3 then
+					dealerRanks(hd(cards1))^ " over " ^dealerRanks(hd(cards2))
+				else
+					dealerRanks(hd(cards2))^ " over " ^dealerRanks(hd(cards1))
 			| checkFull'(x::rest, cards1, cards2) =
 				if x = hd(cards1) then
 					checkFull'(rest, x::cards1, cards2)
@@ -162,16 +195,17 @@ fun printTypeHand(c1, c2, c3, c4, c5) =
 		val n = eval5Cards(c1, c2, c3, c4, c5)
 		val flush = c1
 		
-		val wAnd = Word32.andb
-		val wInt = Word.fromInt
-		val w32Int = Word32.toInt
-		val wRight = Word32.>>
+		val op andb = Word32.andb
+		val w = Word.fromInt(8)
+		val z = 0wxF
+		val toInt32 = Word32.toInt
+		val op >> = Word32.>>
 		
-		val c1 = w32Int(wAnd(wRight(c1, wInt(8)), 0wxF))
-		val c2 = w32Int(wAnd(wRight(c2, wInt(8)), 0wxF))
-		val c3 = w32Int(wAnd(wRight(c3, wInt(8)), 0wxF))
-		val c4 = w32Int(wAnd(wRight(c4, wInt(8)), 0wxF))
-		val c5 = w32Int(wAnd(wRight(c5, wInt(8)), 0wxF))
+		val c1 = toInt32(andb(>>(c1, w), z))
+		val c2 = toInt32(andb(>>(c2, w), z))
+		val c3 = toInt32(andb(>>(c3, w), z))
+		val c4 = toInt32(andb(>>(c4, w), z))
+		val c5 = toInt32(andb(>>(c5, w), z))
 		val hand = [c1, c2, c3, c4, c5]
 	in
 		if n > 6185 then				(*HIGH_CARD*)

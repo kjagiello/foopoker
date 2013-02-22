@@ -6,7 +6,9 @@
 	EXAMPLE:	flushes(7936) = 1
 *)
 (*
-	INFO: 		This is a vecor lookup for all "flush" hands (e.g.  both
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+	
+				This is a vecor lookup for all "flush" hands (e.g.  both
 				flushes and straight-flushes. Entries containing a zero
 				mean that combination is not possible with a five-card
 				flush hand.
@@ -440,7 +442,9 @@ fun flushes(c) =
 	EXAMPLE:	unique5(7936) = 1600
 *)
 (*
-	INFO: 		This is a table lookup for all non-flush hands consisting
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+	
+				This is a table lookup for all non-flush hands consisting
 				of five unique ranks (i.e.  either Straights or High Card
 				hands).  It's similar to the above "flushes" vector.
 *)
@@ -881,7 +885,10 @@ fun unique5(c) =
 	EXAMPLE:	adjust(511) = 7006
 *)
 (*
-	INFO: 		This is a vector for all other hands that aren't a flush/straightflush/straight/highcard.
+	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
+				for Cactus Kev's Poker Hand Evaluator***
+				
+				This is a vector for all other hands that aren't a flush/straightflush/straight/highcard.
 *)
 fun adjust(c) =
 	let
@@ -926,12 +933,15 @@ fun adjust(c) =
 (*
 	values c
 	TYPE:		int -> int
-	PRE:		0 < c <= 8191
+	PRE:		0 <= c <= 8191
 	POST:		An int. 
 	EXAMPLE:	adjust(8191) = 166
 *)
 (*
-	INFO: 		This is a vector for all other hands that aren't a flush/straightflush/straight/highcard.
+	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
+				for Cactus Kev's Poker Hand Evaluator***
+				
+				This is a vector for all other hands that aren't a flush/straightflush/straight/highcard.
 *)
 fun values(c) =
 	let
@@ -1485,7 +1495,8 @@ fun perm6(c1', c2', c3', c4', c5', c6', n) =
 	EXAMPLE: 	perm7(0, 1, 2, 3, 4, 5, 6, 1) = (0, 1, 2, 3, 4)
 *)
 (*
-	INFO:		The different combinations of a 5-card hand that 7 cards can make (21). 
+	INFO:		***Cactus Kev's Poker Hand Evaluator***
+				The different combinations of a 5-card hand that 7 cards can make (21). 
 *)	
 fun perm7(c1', c2', c3', c4', c5', c6', c7', n) =
 	let
@@ -1523,45 +1534,12 @@ fun perm7(c1', c2', c3', c4', c5', c6', c7', n) =
 	EXAMPLE: 	rank(12) = "A"
 *)
 (*
-	INFO: 		Returns the value of a card. 
+	INFO: 		***Cactus Kev's Poker Hand Evaluator***
+				Returns the value of a card. 
 *)
 fun rank n =
 	let	
 		val cards = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]
-		val cardList = Vector.fromList(cards)
-	in
-		Vector.sub(cardList, n)
-	end;
-(*
-	dealerRank n
-	TYPE:		int -> string
-	PRE:		0 <= n <= 12
-	POST:		n as a string. 
-	EXAMPLE: 	dealerRank(12) = "Ace"
-*)
-(*
-	INFO: 		Returns the value of a card in singular. 
-*)
-fun dealerRank n =
-	let	
-		val cards = ["Two", "Three", "Four", "Five", "Sixe", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"]
-		val cardList = Vector.fromList(cards)
-	in
-		Vector.sub(cardList, n)
-	end;
-(*
-	dealerRanks n
-	TYPE:		int -> string
-	PRE:		0 <= n <= 12
-	POST:		n as a string. 
-	EXAMPLE: 	dealerRank(12) = "Aces"
-*)
-(*
-	INFO: 		Returns the value of a card in plural. 
-*)	
-fun dealerRanks n =
-	let	
-		val cards = ["Twos", "Threes", "Fours", "Fives", "Sixes", "Sevens", "Eights", "Nines", "Tens", "Jacks", "Queens", "Kings", "Aces"]
 		val cardList = Vector.fromList(cards)
 	in
 		Vector.sub(cardList, n)
