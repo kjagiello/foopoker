@@ -108,6 +108,14 @@ app.factory('socket', function ($rootScope) {
     };
 });
 
+function GameController($scope, socket, user) {
+    $scope.wallet = 0;
+
+    socket.on('update_money', function (data) {
+        $scope.wallet = data.money;
+    });
+}
+
 function ChatController($scope, socket, user) {
     $scope.messages = [];
     $scope.maxLines = 50;

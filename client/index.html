@@ -347,7 +347,7 @@
         </div>
     </div>
 
-    <div id="game-interface">
+    <div id="game-interface" ng-controller="GameController">
         <div id="board" ng-controller="TableController">
             <seat ng-repeat="s in seats" seat-id="{{ s.id }}"></seat>
         </div>
@@ -367,6 +367,11 @@
                     </div>
                     <div class="barbutton">
                         <div class="title">Global chat</div>
+                    </div>
+                </div>
+                <div class="element">
+                    <div class="barbutton">
+                        <div class="title">Money: {{wallet}}$</div>
                     </div>
                 </div>
             </div>
