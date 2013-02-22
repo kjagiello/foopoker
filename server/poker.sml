@@ -200,4 +200,5 @@ print("\n\n");
 
 
 val a = [1,2,3,4,5];
-List.foldr 0 a; 
+val b = ["a", "b", "c", "d", "e"];
+ 

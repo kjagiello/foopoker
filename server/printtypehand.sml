@@ -10,7 +10,7 @@
 *)
 fun dealerRank n =
 	let	
-		val cards = ["Two", "Three", "Four", "Five", "Sixe", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"]
+		val cards = ["Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"]
 		val cardList = Vector.fromList(cards)
 	in
 		Vector.sub(cardList, n)
@@ -40,20 +40,10 @@ fun dealerRanks n =
 	EXAMPLE: 	checkHighCard([0,1,2,3,4]) = "Six"
 *)
 (*
-	INFO:		Check which card in the type HIGH_CARD which is the highest.
+	INFO:		Check which card in the type HIGH_CARD is the highest.
 *)
-fun checkHighCard([]) = ""		
-| checkHighCard(hand) = 
-	let 
-		fun checkHighCard'([], bestCard) = dealerRank(bestCard) 
-		| checkHighCard'(x::rest, bestCard) =
-			if x < bestCard then
-				checkHighCard'(rest, x)
-			else
-				checkHighCard'(rest, bestCard)
-	in
-		checkHighCard'(hand, 9999)
-	end;
+fun checkHighCard([]) = ""
+| checkHighCard(x::rest) = dealerRank(foldr Int.max x rest);
 
 (*
 	checkTwoPair l
@@ -70,13 +60,12 @@ fun checkTwoPair([]) = ""
 	let 
 		fun checkTwoPair'([], pair1, pair2) = dealerRanks(pair1)^" and "^dealerRanks(pair2)
 		| checkTwoPair'(x::rest, pair1, pair2) =
-			(print(Int.toString(pair1) ^" "^ Int.toString(pair2)^"\n");
 			if x = pair1 then
 				checkTwoPair'(rest, x, pair2)
 			else if x = pair2 then
 				checkTwoPair'(rest, pair1, x)
 			else
-				checkTwoPair'(rest, pair1, pair2))
+				checkTwoPair'(rest, pair1, pair2)
 	in
 		if x = y then
 			checkTwoPair'(rest, y, z)
@@ -106,6 +95,7 @@ fun checkPairThreeFour([]) = ""
 		in
 			checkPairThreeFour'(rest, x)
 		end;
+		
 (*
 	checkStraight l
 	TYPE: 		int list -> string

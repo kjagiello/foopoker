@@ -122,9 +122,9 @@ abstype 'a queue = Queue of 'a list * 'a list
 			fun bitDeck' (0, _, _) = []
 			 | bitDeck' (n', j, suit) = 	
 				if j < 12 then				(*Populate a card[0-12] with the form above*)
-					orb(orb(orb(frInt32(getPrime(j)), <<(w32Int(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, j+1, suit)
+					orb(orb(orb(frInt32(getPrime(j)), <<(frInt32(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, j+1, suit)
 				else						(*Change suit*)
-					orb(orb(orb(frInt32(getPrime(j)), <<(w32Int(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, 0, >>(suit, Word.fromInt(1)))	
+					orb(orb(orb(frInt32(getPrime(j)), <<(frInt32(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, 0, >>(suit, Word.fromInt(1)))	
 		in
 			bitDeck' (n, 0, suit)
 		end;
