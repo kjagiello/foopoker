@@ -198,9 +198,10 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 					intStr(p)^" and "^printShowDown'(xs, t, rest)
 		in
 			if antPlayers = 1 then
-				intStr(p)^" won a pot of $"^intStr(m)^".\n"^printShowDown(rest)
+				intStr(p)^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
 			else
 				printShowDown'(players, t, rest)
 		end;
 
 end;
+showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)])

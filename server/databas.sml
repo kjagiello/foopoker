@@ -69,18 +69,15 @@ fun findPlayer(pl) =
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun findPlayer'([], _) = (TextIO.closeIn x;false)
-		| findPlayer'(x'::xs', n) = 
-			let
-				val jName = "Name"^Int.toString(n)
-			in
-				if JSON.toString(JSON.get x' jName) = player then
-					(TextIO.closeIn x;true)
-				else
-					findPlayer'(xs', n+1)
-			end
+		fun findPlayer'([]) = (TextIO.closeIn x;false)
+		| findPlayer'(x'::xs') = 
+			if JSON.toString(JSON.get x' "Name") = player then
+				(TextIO.closeIn x;true)
+			else
+				findPlayer'(xs')
+		
 	in
-		findPlayer'(users, 1)
+		findPlayer'(users)
 	end;
 
 (*
@@ -91,6 +88,7 @@ fun findPlayer(pl) =
 	SIDE-EFFECTS: 	-
 	EXAMPLE: 		addPlayer("Joel", "12345") = ()
 *)
+
 fun addPlayer(pl, pw) = 
 	let 
 		val player = pl
@@ -103,10 +101,9 @@ fun addPlayer(pl, pw) =
 		val JSON.List users = JSON.get db "users"
 		
 		val	y = JSON.empty
-		val y = JSON.add ("Name1", (JSON.String player)) y
-		val y = JSON.add ("Pwd1", (JSON.String password)) y
-		val y = JSON.add ("Cash1", (JSON.Int money)) y
-		
+		val y = JSON.add ("Name", (JSON.String player)) y
+		val y = JSON.add ("Pwd", (JSON.String password)) y
+		val y = JSON.add ("Cash", (JSON.Int money)) y
 		val users = JSON.List (y::users)
 		
 		val db = JSON.update ("users", users) db
@@ -115,7 +112,6 @@ fun addPlayer(pl, pw) =
 	in
 		renderToFile(db, "medlemsdatabas.txt")
 	end;
-
 (*
 	regPlayer pl, pw
 	TYPE: 			string * string -> unit
@@ -133,7 +129,7 @@ fun regPlayer(pl, pw) =
 		else
 			 raise usernameExists
 	end;
-
+	
 (*
 	loginPlayer pl, pw
 	TYPE: 			string * string -> bool
@@ -153,22 +149,18 @@ fun loginPlayer(pl, pw) =
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun loginPlayer'([], _) = (TextIO.closeIn x;raise userNotExists)
-		| loginPlayer'(x'::xs', n) = 
-			let
-				val jName = "Name"^Int.toString(n)
-				val jPwd = "Pwd"^Int.toString(n)
-			in
-				if JSON.toString(JSON.get x' jName) = player then
-					if JSON.toString(JSON.get x' jPwd) = password then
-						(TextIO.closeIn x;true)
-					else
-						(TextIO.closeIn x;raise wrongPwd)
+		fun loginPlayer'([]) = (TextIO.closeIn x;raise userNotExists)
+		| loginPlayer'(x'::xs') = 
+			if JSON.toString(JSON.get x' "Name") = player then
+				if JSON.toString(JSON.get x' "Pwd") = password then
+					(TextIO.closeIn x;true)
 				else
-					loginPlayer'(xs', n+1)
-			end
+					(TextIO.closeIn x;raise wrongPwd)
+			else
+				loginPlayer'(xs')
+			
 	in
-		loginPlayer'(users, 1)
+		loginPlayer'(users)
 	end;
 
 (*
@@ -188,25 +180,21 @@ fun updateMoney(pl, m) =
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun updateMoney'([], _) = ()
-		| updateMoney'(x::xs, n) = 
-			let
-				val jName = "Name"^Int.toString(n)
-				val jCash = "Cash"^Int.toString(n)
-			in
-				if JSON.toString(JSON.get x jName) = player then
-					let
-						val users' = JSON.List ((JSON.update(jCash, (JSON.Int money)) x)::xs)
-						val db = JSON.update ("users", users') db
-						val db = JSON.encode db
-					in
-						renderToFile(db, "medlemsdatabas.txt")
-					end
-				else
-					updateMoney'(xs, n+1)
-			end
+		fun updateMoney'([]) = ()
+		| updateMoney'(x::xs) = 
+			if JSON.toString(JSON.get x "Name") = player then
+				let
+					val users' = JSON.List ((JSON.update("Cash", (JSON.Int money)) x)::xs)
+					val db = JSON.update ("users", users') db
+					val db = JSON.encode db
+				in
+					renderToFile(db, "medlemsdatabas.txt")
+				end
+			else
+				updateMoney'(xs)
+			
 	in
-		updateMoney'(users, 1)
+		updateMoney'(users)
 	end;
 (*
 	chopJsonInt x
@@ -243,12 +231,10 @@ fun jsonToList() =
 		fun jsonToList'([], _) = (TextIO.closeIn x;[])
 		| jsonToList'(x'::xs', n) =
 			let
-				val jName = "Name"^Int.toString(n)
-				val jMoney = "Cash"^Int.toString(n)
-				val jName = chopJsonString(JSON.get x' jName)
-				val jMoney = chopJsonInt(JSON.get x' jMoney)
+				val jName = chopJsonString(JSON.get x' "Name")
+				val jCash = chopJsonInt(JSON.get x' "Cash")
 			in
-				(jName, jMoney)::jsonToList'(xs', n+1)
+				(jName, jCash)::jsonToList'(xs', n+1)
 			end
 	in 
 		jsonToList'(users, 1)
@@ -305,5 +291,7 @@ fun topList(0) = []
 		else
 			List.take(db, n)		
 	end;
+	
+regPlayer("Jocke", "12345");
 
 topList 10; 
