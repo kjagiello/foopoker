@@ -118,7 +118,7 @@ abstype 'a queue = Queue of 'a list * 'a list
 			val op << = Word32.<<
 			val op >> = Word32.>>
 			val suit = 0wx8000
-
+			
 			fun bitDeck' (0, _, _) = []
 			 | bitDeck' (n', j, suit) = 	
 				if j < 12 then				(*Populate a card[0-12] with the form above*)

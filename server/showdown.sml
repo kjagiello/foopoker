@@ -33,7 +33,6 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		in
 			winners'(xs, [x], h)
 		end;
-
 	(*
 		winnersMinPot l
 		TYPE: 		(int * int * int) list -> sidepot
@@ -191,7 +190,7 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 			val antPlayers = length players
 			val intStr = Int.toString
 
-			fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".<br>"^printShowDown(rest)
+			fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
 			| printShowDown'(player as (p, h, m)::xs, t, rest) =
 				if xs = [] then
 					intStr(p)^" "^printShowDown'(xs, t, rest)
@@ -199,7 +198,7 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 					intStr(p)^" and "^printShowDown'(xs, t, rest)
 		in
 			if antPlayers = 1 then
-				intStr(p)^" won a pot of $"^intStr(t)^".<br>"^printShowDown(rest)
+				intStr(p)^" won a pot of $"^intStr(m)^".\n"^printShowDown(rest)
 			else
 				printShowDown'(players, t, rest)
 		end;
