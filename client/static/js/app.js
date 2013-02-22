@@ -145,6 +145,34 @@ function ChatController($scope, socket, user) {
     }
 }
 
+function TableController($scope, socket, user) {
+    $scope.seats = [];
+
+    for (var i = 0; i < 8; i++) {
+        $scope.seats[i] = {id: i}
+    }
+}
+
+function SeatController($scope, $attrs, socket, user) {
+    $scope.seatId = $attrs.seatId;
+
+    $scope.sitDown = function () {
+        $scope.seatId = $attrs.seatId;
+        socket.emit('command', {name: 'sit', arguments: $scope.seatId});
+    }
+}
+
+app.directive('seat', function () {
+    return {
+        templateUrl: 'seat.html',
+        restrict: 'E',
+        scope: {
+            seatId: '@'
+        },
+        controller: SeatController
+    }
+})
+
 function LoginController($scope, socket, user) {
     $scope.login = function () {
         user.username = uniqueId(); // prompt('Choose an username');

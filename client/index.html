@@ -7,6 +7,12 @@
     <link rel="stylesheet" type="text/css" media="screen" href="static/css/master.css" />
     <link rel="icon" href="favicon.ico" />
 
+    <script type="text/ng-template" id='seat.html'>
+    <div class="seat seat{{seatId}}">
+        <input type="text" value="0" class="timer">
+        <div class="spot" ng-click="sitDown()"><div class="sit-down">Sit down</div></div>
+    </div>
+    </script>
 
     <style type="text/css">
     @font-face {
@@ -83,14 +89,14 @@
         margin-top: -34px;
     }
 
-    .seat1 { left: 110px; top: -50px; }
-    .seat2 { left: -40px; top: 28px; }
-    .seat3 { left: -40px; top: 194px; }
-    .seat4 { left: 110px; top: 272px; }
-    .seat5 { left: 437px; top: 272px; }
-    .seat6 { left: 597px; top: 194px; }
-    .seat7 { left: 597px; top: 28px; }
-    .seat8 { left: 437px; top: -50px; }
+    .seat0 { left: 110px; top: -50px; }
+    .seat1 { left: -40px; top: 28px; }
+    .seat2 { left: -40px; top: 194px; }
+    .seat3 { left: 110px; top: 272px; }
+    .seat4 { left: 437px; top: 272px; }
+    .seat5 { left: 597px; top: 194px; }
+    .seat6 { left: 597px; top: 28px; }
+    .seat7 { left: 437px; top: -50px; }
 
     .sit-down {
         display: none;
@@ -133,7 +139,7 @@
 
     .chatbox-wrapper {
         position: relative;
-        width: 416px;
+        width: 216px;
         height: 200px;
         vertical-align: bottom;
         padding: 0;
@@ -144,13 +150,13 @@
     .chatbox {
         position: absolute;
         bottom: 0;
-        width: 416px;
+        width: 216px;
     }
 
     .chat-line {
         border-top: solid 1px #21321d;
         padding: 4px 10px;
-        font-size: 13px;
+        font-size: 12px;
         color: #b6faa6;
     }
 
@@ -167,13 +173,14 @@
     }
 
     #chat input {
-        width: 400px;
+        width: 200px;
         border: 0;
         border-top: solid 1px #354d2f;
         background-color: transparent;
         color: #b7d2af;
         padding: 5px 8px;
         outline: none;
+        font-size: 12px;
     }
 
     #chat input::-webkit-input-placeholder {
@@ -191,10 +198,12 @@
 
     #superbar .element {
         z-index: 10000;
+        float: left;
+        margin-right: 10px;
     }
 
     #superbar .element.chat {
-        width: 416px;
+        width: 216px;
     }
 
     #superbar .element .barcontent {
@@ -205,6 +214,12 @@
         border-top: solid 1px #134211;
         height: 30px;
         background-color: #0b210a;
+        cursor: pointer;
+    }
+
+    #superbar .element .barbutton:hover {
+        background-color: #0d270c;
+        cursor: pointer;
     }
 
     .barbutton .title {
@@ -333,39 +348,8 @@
     </div>
 
     <div id="game-interface">
-        <div id="board">
-            <div class="seat seat1">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat2">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat3">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat4">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat5">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat6">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat7">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
-            <div class="seat seat8">
-                <input type="text" value="0" class="timer">
-                <div class="spot"><div class="sit-down">Sit down</div></div>
-            </div>
+        <div id="board" ng-controller="TableController">
+            <seat ng-repeat="s in seats" seat-id="{{ s.id }}"></seat>
         </div>
 
         <div id="superbar">
@@ -382,7 +366,7 @@
                         </div>
                     </div>
                     <div class="barbutton">
-                        <div class="title">Chat</div>
+                        <div class="title">Global chat</div>
                     </div>
                 </div>
             </div>
@@ -409,6 +393,12 @@
             draw: function () {
                 this.$.parent().addClass('timer-wrapper');
             }
+        });
+
+        $('#superbar .barbutton').toggle(function () {
+            $(this).siblings('.barcontent').hide();
+        }, function () {
+            $(this).siblings('.barcontent').show();
         });
 
 
