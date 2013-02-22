@@ -1149,12 +1149,13 @@ struct
                     let
                         val id = Int.fromString arguments
                         val ref (Player {board=board, ...}) = player
-                        val chair = getChair (board, valOf id)
                     in
                         case board of
                             ref Null => serverMessage (player, "Join a room first!")
                           | _ => 
-                            let in
+                            let 
+                                val chair = getChair (board, valOf id)
+                            in
                                 case chair of
                                     ref Null =>
                                         let in
@@ -1216,7 +1217,7 @@ struct
                     if JSON.hasKeys (d, ["name", "arguments"]) then
                         handleCommand (player, JSON.toString (JSON.get d "name"),
                             JSON.toString (JSON.get d "arguments"))
-                            handle InvalidCommand => ()
+                            handle InvalidCommand => (serverMessage (player, "Command not found."))
                     else
                         raise InvalidMessage
                 end
