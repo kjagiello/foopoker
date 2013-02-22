@@ -59,6 +59,30 @@
         margin-top: -182px;
     }
 
+    div.outer{
+        display: inline-block;
+        position: relative;
+        left: 50%;
+        top: 50%;
+    }
+
+    div.inner{
+        position: relative;
+        left:-50%;
+        top: -50%;
+    }
+
+    .pot {
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        font: Arial;
+        font-size: 11px;
+        padding: 2px 10px;
+        -moz-border-radius: 75px;
+        -webkit-border-radius: 75px;
+        margin-top: 50px;
+    }
+
     .seat {
         position: absolute;
         width: 150px;
@@ -350,6 +374,7 @@
     <div id="game-interface" ng-controller="GameController">
         <div id="board" ng-controller="TableController">
             <seat ng-repeat="s in seats" seat-id="{{ s.id }}"></seat>
+            <div class="outer"><div class="pot inner">{{ pot }}$</div></div>
         </div>
 
         <div id="superbar">
