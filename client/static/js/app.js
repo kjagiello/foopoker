@@ -147,7 +147,7 @@ function ChatController($scope, socket, user) {
 
 function LoginController($scope, socket, user) {
     $scope.login = function () {
-        user.username = prompt('Choose an username');
+        user.username = uniqueId(); // prompt('Choose an username');
 
         socket.emit('login', {username: user.username}, function (message) {
             console.log(message.status);
