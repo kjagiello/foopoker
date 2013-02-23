@@ -180,21 +180,21 @@ fun updateMoney(pl, m) =
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun updateMoney'([]) = ()
-		| updateMoney'(x::xs) = 
+		fun updateMoney'([], db') = ()
+		| updateMoney'(x::xs, db') = 
 			if JSON.toString(JSON.get x "Name") = player then
 				let
-					val users' = JSON.List ((JSON.update("Cash", (JSON.Int money)) x)::xs)
+					val users' = JSON.List ((JSON.update("Cash", (JSON.Int money)) x)::db'@xs)
 					val db = JSON.update ("users", users') db
 					val db = JSON.encode db
 				in
 					renderToFile(db, "medlemsdatabas.txt")
 				end
 			else
-				updateMoney'(xs)
+				updateMoney'(xs, x::db')
 			
 	in
-		updateMoney'(users)
+		updateMoney'(users, [])
 	end;
 (*
 	chopJsonInt x
@@ -292,6 +292,10 @@ fun topList(0) = []
 			List.take(db, n)		
 	end;
 	
+regPlayer("Joel", "12345");
+regPlayer("Krille", "12345");
 regPlayer("Jocke", "12345");
-
+updateMoney("Joel", 1500);
+updateMoney("Jocke", 2000);
+updateMoney("Krille", 2500);
 topList 10; 
