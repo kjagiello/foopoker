@@ -1,16 +1,16 @@
 (* just in case cleanup before building the heap *)
 PolyML.fullGC();
 
-PolyML.SaveState.loadState "foo.polyml-heap" handle _ => (
+(*PolyML.SaveState.loadState "foo.polyml-heap" handle _ => (
     let in
-        PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
+*)        PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
 
         use "poker.sml";
 
-        PolyML.SaveState.saveState "foo.polyml-heap";
+(*        PolyML.SaveState.saveState "foo.polyml-heap";
         print "state created"
     end
-);
+);*)
 
 val ord = o_ord;
 val chr = o_chr;
