@@ -33,7 +33,6 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		in
 			winners'(xs, [x], h)
 		end;
-
 	(*
 		winnersMinPot l
 		TYPE: 		(int * int * int) list -> sidepot
@@ -205,3 +204,4 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		end;
 
 end;
+showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)])
