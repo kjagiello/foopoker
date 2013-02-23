@@ -58,120 +58,63 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		in
 			winnersMinPot'(xs, [x], m)
 		end;
-	(*
-		cashFromLosers 		l, m
-		TYPE:		sidepot * (int * int * int) list -> sidepot
-		PRE:		(none)
-		POST:		A new Sidepot. 
-		EXAMPLE: 	cashFromLosers([(0, 1, 500)], [(0, 1, 500), (3, 1600, 700), (7, 5068, 700)]) =
-					Sidepot ([(7, 5068, 200), (3, 1600, 200)], 1000): sidepot
-	*)
-	(*
-		INFO:		Get all the losers into a sidepot.
-		USED BY: 	cashToWinners(w, l), mkNewList(l, m)
-	*)
-	fun cashFromLosers([], _) = emptyPot
+	
+	fun cashFromLosers([], _) = 0
 	| cashFromLosers((p, h, m)::xs, org) = 
 		let
-			fun cashFromLosers'([], _, _, losers, totMoney) = Sidepot(losers, totMoney) 
-			| cashFromLosers'((p', h', m')::xs', hand, money, losers, totMoney) =
+			fun cashFromLosers'([], _, _, totMoney) = totMoney
+			| cashFromLosers'((p', h', m')::xs', hand, money, totMoney) =
 				if hand <> h' then
 					if m' >= money then
-						cashFromLosers'(xs', hand, money, (p', h', m'-money)::losers, totMoney+money)
+						cashFromLosers'(xs', hand, money, totMoney+money)
 					else 
-						cashFromLosers'(xs', hand, money, (p', h', 0)::losers, totMoney+m')
+						cashFromLosers'(xs', hand, money, totMoney+m')
 				else
-					cashFromLosers'(xs', hand, money, losers, totMoney)
+					cashFromLosers'(xs', hand, money, totMoney)
 		in
-			cashFromLosers'(org, h, m, [], 0)
+			cashFromLosers'(org, h, m,  0)
 		end;
-
-	(*
-		cashToWinners	l, m
-		TYPE:		(int * int * int) list * sidepot -> sidepot
-		PRE:		(none)
-		POST: 		A new sidepot. 
-		EXAMPLE: 	cashToWinners([(0, 1, 500), (1, 1, 1500)], 800) = [(0, 1, 900), (1, 1, 1900)]
-	*)
-	(*
-		INFO: 		Give money to winners into a new sidepot. 
-		USED BY: 	mkNewList(l, w)
-	*)
-	fun cashToWinners([], _) = emptyPot 
-	| cashToWinners(winners, Sidepot(l, tot)) =
+		
+	fun mkSidePot([], _) = emptyPot 
+	| mkSidePot(winners, tot) =
 		let
 			val players = length winners
 			val cashEach = tot div players
 			
-			fun cashToWinners'([], _, winners, tot) = Sidepot(winners, tot)
-			| cashToWinners'((p, h, m)::xs, cashEach, winners, tot) =
-				cashToWinners'(xs, cashEach, (p, h, m+cashEach)::winners, tot)
+			fun mkSidePot'([], _, winners, tot) = Sidepot(winners, tot)
+			| mkSidePot'((p, h, m)::xs, cashEach, winners, tot) =
+				mkSidePot'(xs, cashEach, (p, h, m+cashEach)::winners, tot)
 		in
-			cashToWinners'(winners, cashEach, [], tot)
+			mkSidePot'(winners, cashEach, [], tot)
 		end;
 
-	(*
-		mkNewList l, m
-		TYPE:		sidepot * sidepot -> (int * int * int) list
-		PRE:		(none)
-		POST:		A new list with lists in l and m combined. 
-		EXAMPLE:	mkNewList(Sidepot([(0, 1, 500), (1, 1, 700)], 800))
-	*)
-	(*
-		INFO: 		Append winners' list and cashFromLosers' list into a new list. 
-		USED BY: 	rmMinPotWinner(m, l)
-	*)
-	fun mkNewList (Sidepot(l, t), Sidepot(l', t')) = l@l';
-	
-	(*
-		rmMinPotWinner l, m
-		TYPE: 		(''a * 'b * int) list * (''a * 'c * 'd) list -> (''a * 'b * int) list
-		PRE:		(none)
-		POST: 		A new (''a * 'b * int) list. 
-		EXAMPLE: 	rmMinPotWinner([(0, 1, 900), (1, 1, 1900), (3, 1600, 200), (7, 5068, 200)], [(0, 1, 500)] = [(1, 1, 1900), (3, 1600, 200), (7, 5068, 200)]	 
-	*)
-	(*
-		INFO: 		Remove the winning players with starting minimum pot.
-		USED BY: 	showDown(l)
-	*)
-	fun rmMinPotWinner(org, []) = org
-	| rmMinPotWinner(org, w'::ws') =
+
+	fun mkNewList(org, (p, h, m)::xs) = 
 		let
-			fun rmMinPotWinner'([], _, next, org') = rmMinPotWinner(org', next)
-			| rmMinPotWinner'((x as (p, h, m))::xs, w' as (p', h', m'), next, org') =
-				if p = p' orelse m = 0 then
-					rmMinPotWinner'(xs, w', next, org')
+			fun mkNewList'([], _) = [] 
+			| mkNewList'((p', h', m')::xs', money) =
+				if m' <= money then
+					mkNewList'(xs', money)
 				else
-					rmMinPotWinner'(xs, w', next, x::org')
+					(print("("^Int.toString(p')^", "^Int.toString(h')^", "^Int.toString(m'-money)^") \n"); (p', h', m'-money)::mkNewList'(xs', money))					
 		in
-			rmMinPotWinner'(org, w', ws', [])
+			mkNewList'(org, m)
 		end;
-
-	(*
-		showDown p
-		TYPE:		(int * int * int) list -> sidepot list
-		PRE:		(none)
-		POST:		A sidepot list. 
-		EXAMPLE: 	showDown([(0, 1, 500), (5, 1, 500), (1, 1, 1000), (3, 1600, 2500), (7, 5068, 2000)]) =
-					[Sidepot ([(1, 1, 1333), (5, 1, 833), (0, 1, 833)], 1000),
-					 Sidepot ([(1, 1, 3999)], 2666), Sidepot ([(3, 1600, 834)], 167)]:  sidepot list
-	*)
-	(*
-		INFO: 		Returns a sidepot list with all the sidepots for a specific game. 
-	*)
+	
+	
+	
 	fun showDown([]) = []
 	| showDown p = 
 	let
 			val winners = winners(p)
 			val minPot = winnersMinPot(winners)
 			val loserCash = cashFromLosers(minPot, p)
-			val mkSidepot = cashToWinners(winners, loserCash)
-			val mkNewList = mkNewList(loserCash, mkSidepot)
-			val rmMinPotWinner = rmMinPotWinner(mkNewList, minPot)
+			val mkSidepot = mkSidePot(winners, loserCash)
+			val mkNewList = mkNewList(p, minPot)
 		in
-			mkSidepot::showDown(rmMinPotWinner)						(*Cons Sidepot and repeat process.*)
+			mkSidepot::showDown(mkNewList)						(*Cons Sidepot and repeat process.*)
 		end;
-		
+	
 	(*
 		printShowDown l
 		TYPE:		sidepot list -> string
@@ -204,4 +147,12 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		end;
 
 end;
+<<<<<<< HEAD
 showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)])
+=======
+(*
+val a = [(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)];
+val b = showDown(a);
+val c = printShowDown(b);
+*)
+>>>>>>> showDown fix
