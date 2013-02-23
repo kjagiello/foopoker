@@ -1,1 +1,1 @@
-{"users":[{"Pwd":"å≤#}y à€ddÍ∆©cEQ9d","Name":"Krille","Cash":2500},{"Pwd":"å≤#}y à€ddÍ∆©cEQ9d","Name":"Jocke","Cash":2000},{"Pwd":"å≤#}y à€ddÍ∆©cEQ9d","Name":"Joel","Cash":1500}]}
+{"users":[{"Pwd":"å≤#}y à€ddÍ∆©cEQ9d","Name":"Krille","Cash":2500},{"Pwd":"å≤#}y à€ddÍ∆©cEQ9d","Name":"Joel","Cash":1500},{"Pwd":"å≤#}y à€ddÍ∆©cEQ9d","Name":"Jocke","Cash":2000}]}

@@ -30,28 +30,6 @@ fun renderToFile(qt, name) =
 	        TextIO.flushOut(h)
 	    end;
 
-(* 
-	readToList f
-   	TYPE: 		string -> string list
-   	PRE: 		f är namnet på en fil som kan läsas
-   	POST: 		En lista av raderna i filen f 
-*)
-fun readToList f =
-	let
-    (* 
-		readToListAux is
-       	TYPE: 		inStream -> string list
-       	POST: 		En lista av återstående rader i is 
-	*)
-    	(* 	VARIANT: återstående rader i is *)
-		fun readToListAux is =
-    		if TextIO.endOfStream is then
-        		(TextIO.closeIn is; [])
-     		else
-        		valOf(TextIO.inputLine is) :: readToListAux is
-	in
-    	readToListAux (TextIO.openIn f)
-end;
 
 (*
 	findPlayer p
@@ -291,7 +269,8 @@ fun topList(0) = []
 		else
 			List.take(db, n)		
 	end;
-	
+
+
 regPlayer("Joel", "12345");
 regPlayer("Krille", "12345");
 regPlayer("Jocke", "12345");
