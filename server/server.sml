@@ -730,13 +730,6 @@ struct
     fun filterBoardChairs (ref (Board {chairs=chairs, ...})) f =
         filterRefList (nvectorToList (!chairs)) f
 
-    fun filterBoardChairs (ref (Board {chairs=ref chairs, ...})) f =
-        let 
-            val chairs = nvectorToList chairs
-        in
-            filterRefList chairs f
-        end
-
     fun filterPlayer (Player {connection=c1, ...}) (Player {connection=c2, ...}) =
         WebsocketServer.sameConnection (c1, c2)
 
@@ -799,7 +792,9 @@ struct
         send (filterServerPlayers filterAll) e f d 
 
     fun sendToBoard b e f d =
-        send (filterBoardPlayers b filterAll) e f d 
+        let in
+            send (filterBoardPlayers b filterAll) e f d 
+        end
 
     fun sendResponse r f d =
         let
@@ -958,6 +953,12 @@ struct
             val b = Vector.sub (!boardIndex, id)
         in
             board := (!b);
+
+            case board of
+                (ref (Board {spectators=spectators, ...})) =>
+                    spectators := player::(!spectators)
+              | _ => ();
+
             board
         end
 
@@ -1088,7 +1089,6 @@ struct
                 val ps = showDown playerList
                 val dealerChat = printShowDown ps
             in
-                PolyML.print ps;
                 tableMessage (board, dealerChat);
                 ()
                 
@@ -1232,7 +1232,7 @@ struct
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         (SOME (Vector.sub (!chairs, id))) handle Subscript => NONE
 
-    fun joinTable (player, board as (ref (Board {chairs=chairs, ...})), id) =
+    fun joinTable (player, board as (ref (Board {chairs=chairs, spectators=spectators, ...})), id) =
         let
             val (ref s) = Vector.sub (!chairs, id)
         in
@@ -1249,9 +1249,6 @@ struct
     fun leaveTable (player, board as (ref (Board {chairs=chairs, ...}))) =
         let
             val index = getChairIndexByPlayer board player
-
-            val _ = PolyML.print chairs
-            val _ = PolyML.print index
         in
             case index of
                 SOME index => 

@@ -18,7 +18,7 @@ use "showdown.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
 use "cardToWord.sml";
-use "databas.sml";
+
 
 (*
 	handValue h 

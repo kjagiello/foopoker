@@ -269,12 +269,3 @@ fun topList(0) = []
 		else
 			List.take(db, n)		
 	end;
-
-
-regPlayer("Joel", "12345");
-regPlayer("Krille", "12345");
-regPlayer("Jocke", "12345");
-updateMoney("Joel", 1500);
-updateMoney("Jocke", 2000);
-updateMoney("Krille", 2500);
-topList 10; 

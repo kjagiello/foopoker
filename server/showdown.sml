@@ -147,12 +147,3 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		end;
 
 end;
-<<<<<<< HEAD
-showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)])
-=======
-(*
-val a = [(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)];
-val b = showDown(a);
-val c = printShowDown(b);
-*)
->>>>>>> showDown fix
