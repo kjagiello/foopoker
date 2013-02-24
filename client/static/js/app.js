@@ -125,7 +125,7 @@ function ChatController($scope, socket, user) {
     });
 
     socket.on('server_message', function (data) {
-        $scope.addLine('Server', data.message);
+        $scope.addLine(data.username, data.message);
     });
 
     $scope.addLine = function (username, text) {
@@ -155,10 +155,15 @@ function ChatController($scope, socket, user) {
 
 function TableController($scope, socket, user) {
     $scope.seats = [];
+    $scope.pot = 0;
 
     for (var i = 0; i < 8; i++) {
         $scope.seats[i] = {id: i}
     }
+
+    socket.on('update_pot', function (data) {
+        $scope.pot = data.pot;
+    });
 }
 
 function SeatController($scope, $attrs, socket, user) {
