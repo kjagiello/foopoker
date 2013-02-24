@@ -11,6 +11,10 @@
     <div class="seat seat{{seatId}}">
         <input type="text" value="0" class="timer">
         <div class="spot" ng-click="sitDown()"><div class="sit-down" ng-show="!user">Sit down</div></div>
+        <div class="center user" ng-show="user">
+            <div class="username center">{{user.username}}</div>
+            <img src="http://placehold.it/50x50" class="center" alt="" />
+        </div>    
     </div>
     </script>
 
@@ -24,6 +28,16 @@
             url('static/fonts/BebasNeue-webfont.svg#webfontE057xtoO') format('svg');
         font-weight: normal;
         font-style: normal;
+    }
+
+    .center {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        margin: auto;
+    }
+
+    .username {
+        text-align: center;
     }
 
     html, body

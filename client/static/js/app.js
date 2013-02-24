@@ -174,7 +174,7 @@ function SeatController($scope, $attrs, socket, user) {
         if (data.seat != $scope.seatId)
             return;
 
-        $scope.user = true;
+        $scope.user = data.user;
     });
 
     socket.on('user_leave', function (data) {

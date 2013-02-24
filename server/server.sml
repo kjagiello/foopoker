@@ -607,6 +607,8 @@ sig
     val getPlayerName       : game ref -> string
     val getMoney            : game ref -> int
     val changeMoney         : game ref * int -> unit
+    val serializePlayer     : game ref -> JSON.T -> JSON.T
+    val syncBoard           : game ref -> unit
 
     val getChairIndexByPlayer : game ref -> game ref -> int option
 
@@ -948,6 +950,32 @@ struct
             sendToBoard board "server_message" filterAll d
         end
 
+    fun serializePlayer (player) d =
+        let 
+            val du = JSON.empty
+                  |> JSON.add ("username", JSON.String (getPlayerName player))
+        in
+            JSON.add ("user", du) d
+        end
+
+    fun syncBoard (player as (ref (Player {board=board, ...}))) =
+        let
+            fun sendSerializedPlayer u (i, ref Null) = ()
+              | sendSerializedPlayer u (i, p) =
+                let
+                    val d = JSON.empty
+                         |> JSON.add ("seat", JSON.Int i)
+                         |> serializePlayer p
+                in
+                    send [u] "user_join" filterAll d
+                end
+        in
+            case board of
+                (ref (Board {chairs=chairs, ...})) =>
+                        Vector.appi (sendSerializedPlayer player) (!chairs)
+              | _ => ()
+        end
+
     fun spectateTable (player as (ref (Player {board=board, ...})), id) =
         let
             val b = Vector.sub (!boardIndex, id)
@@ -956,7 +984,10 @@ struct
 
             case board of
                 (ref (Board {spectators=spectators, ...})) =>
-                    spectators := player::(!spectators)
+                let in
+                    spectators := player::(!spectators);
+                    syncBoard player
+                end
               | _ => ();
 
             board
@@ -1002,8 +1033,12 @@ struct
         let
             val playersCount = getTakenChairsCount board
 
+            val du = JSON.empty
+                  |> JSON.add ("username", JSON.String (getPlayerName player))
+
             val d1 = JSON.empty
                   |> JSON.add ("seat", JSON.Int chairId)
+                  |> serializePlayer (player)
         in
             setStake (player, 0);
             sendToBoard board "user_join" filterAll d1;
