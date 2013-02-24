@@ -596,6 +596,7 @@ sig
 
     val filterServerPlayers : (game -> bool) -> game ref list
     val filterBoardPlayers  : game ref -> (game -> bool) -> game ref list
+    val filterBoardChairs   : game ref -> (game -> bool) -> game ref list
     val filterINull         : int * game -> bool
     val filterNull          : game -> bool
     val filterNotNull       : game -> bool
@@ -614,10 +615,13 @@ sig
     val getPlayerName       : game ref -> string
     val getMoney            : game ref -> int
     val changeMoney         : game ref * int -> unit
+    val getChairIndexByPlayer : game ref -> game ref -> int option
 
     val createBoard         : string * int * (int * int) * (int * int) -> unit
     val spectateTable       : game ref * int -> game ref
+    val unspectateTable     : game ref -> unit
     val joinTable           : game ref * game ref * int -> int option
+    val leaveTable          : game ref * game ref -> unit
     val printBoards         : unit -> unit
     val setTableState       : game ref * tableState -> unit
     val getChair            : game ref * int -> game ref
@@ -687,8 +691,8 @@ struct
       | Null
 
     datatype tableEvent = 
-        PlayerJoined of game ref
-      | PlayerLeaving of game ref
+        PlayerJoined of game ref * int
+      | PlayerLeaving of game ref * int
       | PlayerFold of game ref
       | PlayerRaise of game ref * int
       | PlayerCall of game ref
@@ -725,6 +729,16 @@ struct
     fun filterBoardPlayers (ref (Board {spectators=spectators, ...})) f =
         filterRefList (!spectators) f
 
+    fun filterBoardChairs (ref (Board {chairs=chairs, ...})) f =
+        filterRefList (nvectorToList (!chairs)) f
+
+    fun filterBoardChairs (ref (Board {chairs=ref chairs, ...})) f =
+        let 
+            val chairs = nvectorToList chairs
+        in
+            filterRefList chairs f
+        end
+
     fun filterPlayer (Player {connection=c1, ...}) (Player {connection=c2, ...}) =
         WebsocketServer.sameConnection (c1, c2)
 
@@ -737,6 +751,16 @@ struct
     fun getFreeId v =
         let
             val id = Vector.findi (fn (_, ref x) => filterNull x) v
+        in
+            case id of
+                SOME (i, _) => SOME i
+              | NONE => NONE
+        end
+
+    fun getChairIndexByPlayer _ (ref Null) = NONE
+      | getChairIndexByPlayer (ref (Board {chairs=chairs, ...})) p =
+        let
+            val id = Vector.findi (fn (_, ref x) => not (filterNull x) andalso filterPlayer x (!p)) (!chairs)
         in
             case id of
                 SOME (i, _) => SOME i
@@ -864,21 +888,6 @@ struct
             clients := c::(!clients)
         end
 
-    fun handleDisconnect (c) =
-        let 
-            val player = getPlayer c
-        in
-            case player of 
-                SOME (ref (player as (Player {id=id, ...}))) => 
-                    let in
-                        playerIndex := Vector.update (!playerIndex, id, ref Null);
-                        players := filterServerPlayers (filterOthers player)
-                    end
-              | _ => ();
-
-            clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
-        end
-
     fun parseMessage (m) =
         let
             val p = JSONEncoder.parse (Byte.bytesToString m) handle _ => raise InvalidMessage
@@ -921,6 +930,14 @@ struct
             board
         end
 
+    fun unspectateTable (player as (ref (Player {board=board, ...}))) =
+        let in
+            case board of
+                ref (Board {spectators=spectators, ...}) =>
+                    spectators := filterBoardPlayers board (filterOthers (!player))
+              | _ => ()
+        end
+
     fun getTakenChairsCount (ref (Board {chairs=ref chairs, ...})) =
         let
             val chairs = nvectorToList chairs
@@ -949,33 +966,44 @@ struct
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
-    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableIdle, deck=deck, cards=cards, lastBet=lastBet, ...})), PlayerJoined (player)) =
+    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, deck=deck, cards=cards, lastBet=lastBet, ...})), PlayerJoined (player, chairId)) =
         let
             val playersCount = getTakenChairsCount board
+
+            val d1 = JSON.empty
+                  |> JSON.add ("seat", JSON.Int chairId)
         in
-            (* Enough players at the table? *)
-            if playersCount >= 2 then
-                let 
-                    val newDeck = shuffleDeck 52;
+            sendToBoard board "user_join" filterAll d1;
 
-                    val chairs = nvectorToList (!chairs)
-                    val players = filterRefList chairs filterNotNull (* TODO: STATE *)
-                in
-                    List.app (fn (ref (Player {state=state, ...})) => state := PlayerInGame) players;
+            case state of
+                TableIdle =>
+                let in
+                    (* Enough players at the table? *)
+                    if playersCount >= 2 then
+                        let 
+                            val newDeck = shuffleDeck 52;
 
-                    tableMessage (board, "Shuffling cards, drinking beer. Pre-flop comming.");
+                            val chairs = nvectorToList (!chairs)
+                            val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+                        in
+                            List.app (fn (ref (Player {state=state, ...})) => state := PlayerInGame) players;
 
-                    deck := newDeck;
-                    lastBet := 0;
+                            tableMessage (board, "Shuffling cards, drinking beer. Pre-flop comming.");
 
-                    setTableState (board, TablePreFlop)
+                            (* reset table *)
+                            deck := newDeck;
+                            lastBet := 0;
+
+                            setTableState (board, TablePreFlop)
+                        end
+                    else
+                        (* nope :( you are forever alone *)
+                        ()
                 end
-            else
-                (* nope :( you are forever alone *)
-                ()
+              | _ => ()
         end
       
-      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, ...})), StateChanged (TablePreFlop)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, smallBlind=smallBlind, ...})), StateChanged (TablePreFlop)) = 
             let 
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull (* TODO: STATE *)
@@ -983,30 +1011,30 @@ struct
                 (* distribute two cards to each player at the table *)
                 List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
 
-                setTableState (board, TableBet (TableFlop, BetBigBlind, 0, 1, bigBlind))
+                setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 1, smallBlind))
             end                
 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, ...})), StateChanged (TableFlop)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableFlop)) = 
             let in
                 cardOnTable (board, takeCard (board));
                 cardOnTable (board, takeCard (board));
                 cardOnTable (board, takeCard (board));
 
-                setTableState (board, TableBet (TableTurn, BetNormal, 0, 1, bigBlind))
+                setTableState (board, TableBet (TableTurn, BetNormal, 0, 1, 0))
             end
 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, ...})), StateChanged (TableTurn)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableTurn)) = 
             let in
                 cardOnTable (board, takeCard (board));
 
-                setTableState (board, TableBet (TableRiver, BetNormal, 0, 1, bigBlind))
+                setTableState (board, TableBet (TableRiver, BetNormal, 0, 1, 0))
             end
 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, ...})), StateChanged (TableRiver)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableRiver)) = 
             let in
                 cardOnTable (board, takeCard (board));
 
-                setTableState (board, TableBet (TableShowdown, BetNormal, 0, 1, bigBlind))
+                setTableState (board, TableBet (TableShowdown, BetNormal, 0, 1, 0))
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
@@ -1020,9 +1048,7 @@ struct
                         (id, rank, 100)
                     end
 
-                val chairs = nvectorToList (!chairs)
-                val players = filterRefList chairs filterNotNull (* TODO: STATE *)
-
+                val players = filterBoardChairs board filterNotNull
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
             in
                 PolyML.print (showDown playerList);
@@ -1042,10 +1068,13 @@ struct
             let 
                 val realPosition = position mod (Vector.length (!chairs))
                 val chair = getChair (board, realPosition)
-                val (amount, blind, nextBet) = case betType of
-                    BetNormal => (!lastBet, false, BetNormal)
-                  | BetSmallBlind => (smallBlind, true, BetNormal)
-                  | BetBigBlind => (bigBlind, true, BetSmallBlind)
+                
+                val (amount, nextBet) = case betType of
+                    BetNormal => (maxBet, BetNormal)
+                  | BetSmallBlind => (smallBlind, BetBigBlind)
+                  | BetBigBlind => (bigBlind, BetNormal)
+
+                val maxBet = Int.max (amount, maxBet)
             in
                 if startPosition = realPosition then
                     setTableState (board, nextState)
@@ -1056,19 +1085,29 @@ struct
                       | player => serverMessage (player, "your turn to bet! /raise /call /fold")
             end
 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref TableIdle, ...})), PlayerLeaving (player)) = 
-        (* We don't care about players leaving a table where nothing happens (state: Idle ) *)
-        ()
-      | handleTableEvent (board as (ref (Board {chairs=chairs, state=_, ...})), PlayerLeaving (player)) = 
-        (* this gets called when someone leaves a table with an ongoing game *)
+      | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, ...})), PlayerLeaving (player, chairId)) = 
+        
         let
             val playersCount = getTakenChairsCount board
+
+            val d1 = JSON.empty
+                  |> JSON.add ("seat", JSON.Int chairId)
         in
-            if playersCount < 2 then
-                (* game is going on, but there are not enough players in the chairs *)
-                ()
-            else
-                ()
+            sendToBoard board "user_leave" filterAll d1;
+
+            case state of
+                (* We don't care about players leaving a table where nothing happens (state: Idle ) *)
+                TableIdle => ()
+
+                (* this gets called when someone leaves a table with an ongoing game *)
+              | _ =>
+                let in
+                    if playersCount < 2 then
+                        (* game is going on, but there are not enough players in the chairs *)
+                        ()
+                    else
+                        ()
+                end
         end
 
         (* fold *)
@@ -1092,18 +1131,18 @@ struct
             ...
         })), PlayerCall (player as (ref (Player ({state=ref PlayerInGame, ...}))))) =
         let
-            val (amount, blind, nextBet) = case betType of
-                BetNormal => (!lastBet, false, BetNormal)
-              | BetSmallBlind => (smallBlind, true, BetNormal)
-              | BetBigBlind => (bigBlind, true, BetSmallBlind)
+            val (amount, nextBet) = case betType of
+                    BetNormal => (maxBet, BetNormal)
+                  | BetSmallBlind => (smallBlind, BetBigBlind)
+                  | BetBigBlind => (bigBlind, BetNormal)
 
             val realPosition = position mod (Vector.length (!chairs))
             val chair = getChair (board, realPosition)
         in
             if samePlayer (chair, player) then
                 let in
-                    changeMoney (player, ~maxBet);
-                    setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, maxBet))
+                    changeMoney (player, ~amount);
+                    setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
                 end
             else
                 serverMessage (player, "Not your turn.")
@@ -1159,11 +1198,29 @@ struct
                 Null => 
                     let in
                         chairs := Vector.update (!chairs, id, player);
-                        handleTableEvent (board, PlayerJoined player);
+                        handleTableEvent (board, PlayerJoined (player, id));
                         SOME id
                     end
               | _ => NONE
         end
+
+    fun leaveTable (player, board as (ref (Board {chairs=chairs, ...}))) =
+        let
+            val index = getChairIndexByPlayer board player
+
+            val _ = PolyML.print chairs
+            val _ = PolyML.print index
+        in
+            case index of
+                SOME index => 
+                    let in
+                        handleTableEvent (board, PlayerLeaving (player, index));
+                        chairs := Vector.update (!chairs, index, ref Null)
+                    end
+              | _ => ()
+        end
+      | leaveTable (_, _) = ()
+
 
     fun handleCommand (player, command, arguments) =
         let in
@@ -1207,10 +1264,11 @@ struct
                                 case chair of
                                     ref Null =>
                                         let in
+                                            leaveTable (player, board);
                                             joinTable (player, board, valOf id);
-                                            serverMessage (player, "Time to play!")
+                                            ()
                                         end
-                                  | _ => serverMessage (player, "That chair is taken. Sorry brah!") 
+                                  | _ => ()
                             end
                     end
                 else
@@ -1241,7 +1299,8 @@ struct
                     end
               | _ => raise InvalidCommand
         end
-fun     handleEvent (player as (ref (Player {name=ref username, ...})), (e, r, d)) =
+
+        fun handleEvent (player as (ref (Player {name=ref username, ...})), (e, r, d)) =
         case e of 
             "chat" => 
                 let 
@@ -1309,6 +1368,25 @@ fun     handleEvent (player as (ref (Player {name=ref username, ...})), (e, r, d
               | _ => ();
             ()
         end) handle InvalidMessage => (print "invalid message\n");
+
+    fun handleDisconnect (c) =
+        let 
+            val _ = print "[server]\tClient disconnected.\n"
+            val player = getPlayer c
+        in
+            case player of 
+                SOME (player as ref (Player {id=id, board=board, ...})) => 
+                    let in
+                        leaveTable (player, board);
+                        unspectateTable player;
+
+                        playerIndex := Vector.update (!playerIndex, id, ref Null);
+                        players := filterServerPlayers (filterOthers (!player))
+                    end
+              | _ => ();
+
+            clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
+        end
 end;
 
 MLHoldemServer.createBoard ("Test Bord 1", 8, (5, 10), (100, 1000));

@@ -10,7 +10,7 @@
     <script type="text/ng-template" id='seat.html'>
     <div class="seat seat{{seatId}}">
         <input type="text" value="0" class="timer">
-        <div class="spot" ng-click="sitDown()"><div class="sit-down">Sit down</div></div>
+        <div class="spot" ng-click="sitDown()"><div class="sit-down" ng-show="!user">Sit down</div></div>
     </div>
     </script>
 

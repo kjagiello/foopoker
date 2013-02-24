@@ -163,6 +163,21 @@ function TableController($scope, socket, user) {
 
 function SeatController($scope, $attrs, socket, user) {
     $scope.seatId = $attrs.seatId;
+    $scope.user = null;
+
+    socket.on('user_join', function (data) {
+        if (data.seat != $scope.seatId)
+            return;
+
+        $scope.user = true;
+    });
+
+    socket.on('user_leave', function (data) {
+        if (data.seat != $scope.seatId)
+            return;
+
+        $scope.user = null;
+    });
 
     $scope.sitDown = function () {
         $scope.seatId = $attrs.seatId;
@@ -175,7 +190,8 @@ app.directive('seat', function () {
         templateUrl: 'seat.html',
         restrict: 'E',
         scope: {
-            seatId: '@'
+            seatId: '@',
+            user: '@'
         },
         controller: SeatController
     }
