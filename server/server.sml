@@ -17,7 +17,10 @@ use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
 
 use "../utils/json.sml";
+
 use "../utils/utils.sml";
+
+use "databas.sml";
 
 fun mapi f l =
     let fun mm _ nil = nil
@@ -1185,7 +1188,6 @@ struct
 						val printRank = print_eval_7hand (c1, c2, c3, c4, c5, c6, c7)
 						val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
 						
-						
 						val hand = print_eval_7hand(c1, c2, c3, c4, c5, c6, c7);
 						val hand = handToString(hand);
 						val strToChat = name^" shows " ^ hand ^": "^printRank^"."
@@ -1201,7 +1203,7 @@ struct
                 val ps = showDown playerList
                 val dealerChat = printShowDown ps
             in
-                tableMessage (board, dealerChat);
+                sidePotUpd(ps);tableMessage (board, dealerChat);
                 ()
                 
                 (* TODO: we need delay preflop here *)

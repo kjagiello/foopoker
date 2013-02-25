@@ -1,5 +1,5 @@
-abstype sidepot = Sidepot of (string * int * int) list * int
-	with
+datatype sidepot = Sidepot of (string * int * int) list * int
+	
 	
 	(*
 		emptyPot
@@ -169,7 +169,7 @@ abstype sidepot = Sidepot of (string * int * int) list * int
 				printShowDown'(players, t, rest)
 		end;
 	
-end;
+
 
 
 val a = [("krille", 1, 50), ("Joel", 1, 70), ("Anders", 2, 100), ("Isildur1", 3, 100), ("durrrr", 4, 100)];

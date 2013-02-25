@@ -1,4 +1,4 @@
-PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
+(*PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
 
 
 val ord = o_ord;
@@ -10,7 +10,7 @@ use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
 
 use "../utils/json.sml";
-
+*)
 
 fun readAll (h, acc) = 
     let
@@ -48,6 +48,9 @@ fun chopJsonInt (JSON.Int x) = x;
 *)
 fun chopJsonString (JSON.String x) = x; 
 
+datatype dbplayer = DBplayer of string * int;
+val emptyPlayer = DBplayer("", 0)
+
 (*
 	findPlayer p
 	TYPE: 			string -> bool
@@ -64,17 +67,16 @@ fun findPlayer(pl) =
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun findPlayer'([]) = (TextIO.closeIn x;false)
+		fun findPlayer'([]) = (TextIO.closeIn x;emptyPlayer)
 		| findPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then
-				(TextIO.closeIn x;true)
+				(TextIO.closeIn x;DBplayer(JSON.toString(JSON.get x' "Name"), chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;DBplayer(JSON.toString(JSON.get x' "Name"), )*)
 			else
 				findPlayer'(xs')
 		
 	in
 		findPlayer'(users)
 	end;
-
 (*
 	addPlayer pl, pw
 	TYPE: 			string * string -> unit
@@ -124,12 +126,12 @@ fun regPlayer(pl, pw) =
 	let 
 		exception usernameExists
 	in
-		if findPlayer(pl) = false then
+		if findPlayer(pl) <> emptyPlayer then
 			addPlayer(pl, pw)
 		else
 			 raise usernameExists
 	end;
-	
+
 (*
 	loginPlayer pl, pw
 	TYPE: 			string * string -> bool
@@ -276,6 +278,35 @@ fun jsonToList() =
 	end; 
 
 (*
+	getMoney(db)
+	TYPE: 		dbplayer -> int
+	PRE: 		(none)
+	POST: 		An int.
+	EXAMPLE: 	
+*)
+fun getMoney(DBplayer(pl, m)) = m;
+
+(*
+	sidePotUpd sp
+	TYPE: 		sidepot list -> unit
+	PRE: 		(none)
+	POST: 		()
+	EXAMPLE: 	
+*)
+fun sidePotUpd([]) = () 
+| sidePotUpd(Sidepot(players, t)::spRest) =
+	let
+		fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
+		| sidePotUpd'((p, h, m)::xs, spRest') =
+			let
+				val newMoney = getMoney(findPlayer(p)) + m
+			in
+				(updateMoney(p, newMoney);sidePotUpd'(xs, spRest'))
+			end
+	in
+		sidePotUpd'(players, spRest)
+	end;
+(*
 	topList n 
 	TYPE:		int -> (string * int) list
 	PRE:		n > 0 
@@ -328,8 +359,21 @@ fun topList(0) = []
 		else
 			List.take(db, n)		
 
-	end;
+	end;	
+	
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
 
-	val y = JSON.empty;
-	val y = JSON.add ("test1", (JSON.String "foo")) y;
-	val y = JSON.add ("test2", (JSON.Bool true)) y;
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
+
