@@ -59,6 +59,13 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 			winnersMinPot'(xs, [x], m)
 		end;
 	
+	(*
+		cashFromLosers 
+		TYPE:		('a * ''b * int) list * ('c * ''b * int) list -> int
+		PRE:
+		POST:
+		EXAMPLE:
+	*)
 	fun cashFromLosers([], _) = 0
 	| cashFromLosers((p, h, m)::xs, org) = 
 		let
@@ -74,7 +81,13 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		in
 			cashFromLosers'(org, h, m,  0)
 		end;
-		
+	(*
+		mkSidePot
+		TYPE:		(int * int * int) list * int -> sidepot
+		PRE:
+		POST:
+		EXAMPLE:
+	*)		
 	fun mkSidePot([], _) = emptyPot 
 	| mkSidePot(winners, tot) =
 		let
@@ -88,7 +101,13 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 			mkSidePot'(winners, cashEach, [], tot)
 		end;
 
-
+	(*
+		mkNewList
+		TYPE:		('a * 'b * int) list * ('c * 'd * int) list -> ('a * 'b * int) list
+		PRE:		(none)
+		POST:
+		EXAMPLE:
+	*)
 	fun mkNewList(org, (p, h, m)::xs) = 
 		let
 			fun mkNewList'([], _) = [] 
@@ -96,21 +115,25 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 				if m' <= money then
 					mkNewList'(xs', money)
 				else
-					(print("("^Int.toString(p')^", "^Int.toString(h')^", "^Int.toString(m'-money)^") \n"); (p', h', m'-money)::mkNewList'(xs', money))					
+					(p', h', m'-money)::mkNewList'(xs', money)				
 		in
 			mkNewList'(org, m)
 		end;
-	
-	
-	
+	(*
+		showDown
+		TYPE:		(int * int * int) list -> sidepot list 
+		PRE:
+		POST:
+		EXAMPLE:
+	*)
 	fun showDown([]) = []
 	| showDown p = 
-	let
-			val winners = winners(p)
-			val minPot = winnersMinPot(winners)
-			val loserCash = cashFromLosers(minPot, p)
-			val mkSidepot = mkSidePot(winners, loserCash)
-			val mkNewList = mkNewList(p, minPot)
+		let
+			val winners = winners(p)							(*Winners -> list*)
+			val minPot = winnersMinPot(winners)					(*Takes the winner's min pot*)
+			val loserCash = cashFromLosers(minPot, p)			(*Grabs losers money-minPot*)
+			val mkSidepot = mkSidePot(winners, loserCash)		(*Makes a sidepot out of the winners*)
+			val mkNewList = mkNewList(p, minPot)				(*Subtract minPot from original list, remove players with money = 0 *)
 		in
 			mkSidepot::showDown(mkNewList)						(*Cons Sidepot and repeat process.*)
 		end;
@@ -121,7 +144,7 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		PRE:		(none)
 		POST:		l in text as a string. 
 		EXAMPLE:	showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
-		 			"1 and 0 split a pot of 1000. \n1 won a pot of $2400.\n3 won a pot of $300.\n": string
+		 			"0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
 	*)
 	(*
 		INFO: 		Returns information of all the players involved in the sidepot. 
@@ -141,9 +164,13 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 					intStr(p)^" and "^printShowDown'(xs, t, rest)
 		in
 			if antPlayers = 1 then
-				intStr(p)^" won a pot of $"^intStr(m)^".\n"^printShowDown(rest)
+				intStr(p)^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
 			else
 				printShowDown'(players, t, rest)
 		end;
 
+<<<<<<< HEAD
 end;
+=======
+end;
+>>>>>>> Database fixed

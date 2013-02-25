@@ -18,7 +18,10 @@ use "showdown.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
 use "cardToWord.sml";
+<<<<<<< HEAD
 
+=======
+>>>>>>> Database fixed
 
 (*
 	handValue h 
@@ -199,7 +202,3 @@ print(Int.toString(eval_7hand(a,b,c,d,e,f,g)));
 
 print("\n\n");
 
-
-val a = [1,2,3,4,5];
-val b = ["a", "b", "c", "d", "e"];
- 

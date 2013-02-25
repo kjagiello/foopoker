@@ -30,6 +30,23 @@ fun renderToFile(qt, name) =
 	        TextIO.flushOut(h)
 	    end;
 
+(*
+	chopJsonInt x
+	TYPE: 		T -> int
+	PRE: 		(none)
+	POST:		x as an int. 
+	EXAMPLE:	chopJsonInt[JSON.Int 2] = 2: int
+*)
+fun chopJsonInt (JSON.Int x) = x;
+
+(*
+	chopJsonString x
+	TYPE: 		T -> string
+	PRE: 		(none)
+	POST:		x as a string. 
+	EXAMPLE:	chopJsonString[JSON.String "hej"] = "hej": string
+*)
+fun chopJsonString (JSON.String x) = x; 
 
 (*
 	findPlayer p
@@ -78,7 +95,12 @@ fun addPlayer(pl, pw) =
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 		
+		val pid = chopJsonInt(JSON.get db "primaryid")
+		val newid = pid + 1
+		val db = JSON.update ("primaryid", (JSON.Int newid)) db
+		
 		val	y = JSON.empty
+		val y = JSON.add ("ID", (JSON.Int pid)) y
 		val y = JSON.add ("Name", (JSON.String player)) y
 		val y = JSON.add ("Pwd", (JSON.String password)) y
 		val y = JSON.add ("Cash", (JSON.Int money)) y
@@ -141,6 +163,7 @@ fun loginPlayer(pl, pw) =
 		loginPlayer'(users)
 	end;
 
+
 (*
 	updateMoney pl, m
 	TYPE: 			string * int -> unit
@@ -174,23 +197,57 @@ fun updateMoney(pl, m) =
 	in
 		updateMoney'(users, [])
 	end;
-(*
-	chopJsonInt x
-	TYPE: 		T -> int
-	PRE: 		(none)
-	POST:		x as an int. 
-	EXAMPLE:	chopJsonInt[JSON.Int 2] = 2: int
-*)
-fun chopJsonInt (JSON.Int x) = x;
 
 (*
-	chopJsonString x
-	TYPE: 		T -> string
+	dropTable()
+	TYPE: 		unit -> unit
 	PRE: 		(none)
-	POST:		x as a string. 
-	EXAMPLE:	chopJsonString[JSON.String "hej"] = "hej": string
+	POST: 		()
+	ExAMPLE: 	dropTable() = (): unit
 *)
-fun chopJsonString (JSON.String x) = x; 
+fun dropTable() = 
+	let
+		val x = TextIO.openIn "medlemsdatabas.txt"
+		val db = readAll (x, "")
+		val freshTable = "{\"primaryid\":1,\"users\":[]}\n"
+	in
+		renderToFile(freshTable, "medlemsdatabas.txt")
+	end;
+	
+(*
+	deletePlayer(pl)
+	TYPE: 		string -> unit
+	PRE: 		(none)
+	POST: 		()
+	ExAMPLE: 	deletePlayer("Joel") = (): unit
+*)
+fun deletePlayer(pl) = 
+	let 
+		val player = pl
+		val x = TextIO.openIn "medlemsdatabas.txt"
+		val db = readAll (x, "")
+		val db = JSONEncoder.parse(db)
+		val JSON.List users = JSON.get db "users"
+
+		fun deletePlayer'([], db') = 
+			let 
+				val db' = JSON.List db'
+				val db = JSON.update ("users", db') db
+				val db = JSON.encode db
+			in
+				renderToFile(db, "medlemsdatabas.txt")
+			end
+				
+		| deletePlayer'(x'::xs', db') = 
+			if JSON.toString(JSON.get x' "Name") = player then
+				deletePlayer'(xs', db')
+			else
+				deletePlayer'(xs', x'::db')
+		
+	in
+		deletePlayer'(users, [])
+	end;
+
 
 (*
 	jsonToList()
@@ -228,6 +285,8 @@ fun jsonToList() =
 fun topList(0) = []
 | topList(n) = 
 	let
+		(*Bubblesort from:
+		http://www.utdallas.edu/~krw053000/progs/bubblesort.sml*)
 		(* Returns the first x elements of a list *)
 		fun firstx(A, 0) = nil |
 			firstx(nil, x) = nil |
@@ -268,4 +327,8 @@ fun topList(0) = []
 			db
 		else
 			List.take(db, n)		
+<<<<<<< HEAD
 	end;
+=======
+	end;
+>>>>>>> Database fixed
