@@ -619,7 +619,8 @@ sig
     val changeStake         : game ref * int -> unit
     val setStake            : game ref * int -> unit
     val getStake            : game ref -> int
-
+	val getName 			: game ref -> string
+	
     val createBoard         : string * int * (int * int) * (int * int) -> unit
     val spectateTable       : game ref * int -> game ref
     val unspectateTable     : game ref -> unit
@@ -904,9 +905,12 @@ struct
         in
             sendToBoard board "update_pot" filterAll d
         end
-
+	
     fun getStake (player as ref (Player {stake=ref stake, ...})) =
         stake
+
+	fun getName (player as ref (Player {name=ref name, ...})) =
+        name
 
     fun setStake (player as ref (Player {stake=stake, ...}), amount) =
         stake := amount
@@ -1195,13 +1199,30 @@ struct
 						tableMessage (board, strToChat);
                         (name, rank, getStake (player))
                     end
-
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull (* TODO: STATE *)
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
                 val ps = showDown playerList
+
+				
                 val dealerChat = printShowDown ps
+
+				fun sidePotUpd([]) = () 
+				| sidePotUpd(Sidepot(players, t)::spRest) =
+					let
+						fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
+						| sidePotUpd'((p, h, m)::xs, spRest') =
+							let
+								val oldMoney = getDBMoney(findPlayer(p))
+								val newMoney = oldMoney + m
+							in
+								(updateMoney(p, newMoney);sidePotUpd'(xs, spRest'))
+							end
+					in
+						sidePotUpd'(players, spRest)
+					end;
+				
             in
                 sidePotUpd(ps);tableMessage (board, dealerChat);
                 ()

@@ -278,13 +278,13 @@ fun jsonToList() =
 	end; 
 
 (*
-	getMoney(db)
+	getDBMoney(db)
 	TYPE: 		dbplayer -> int
 	PRE: 		(none)
 	POST: 		An int.
 	EXAMPLE: 	
 *)
-fun getMoney(DBplayer(pl, m)) = m;
+fun getDBMoney(DBplayer(pl, m)) = m;
 
 (*
 	sidePotUpd sp
@@ -292,7 +292,7 @@ fun getMoney(DBplayer(pl, m)) = m;
 	PRE: 		(none)
 	POST: 		()
 	EXAMPLE: 	
-*)
+
 fun sidePotUpd([]) = () 
 | sidePotUpd(Sidepot(players, t)::spRest) =
 	let
@@ -306,6 +306,7 @@ fun sidePotUpd([]) = ()
 	in
 		sidePotUpd'(players, spRest)
 	end;
+*)
 (*
 	topList n 
 	TYPE:		int -> (string * int) list
