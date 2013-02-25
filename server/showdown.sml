@@ -1,4 +1,4 @@
-abstype sidepot = Sidepot of (int * int * int) list * int
+abstype sidepot = Sidepot of (string * int * int) list * int
 	with
 	
 	(*
@@ -71,13 +71,10 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		let
 			fun cashFromLosers'([], _, _, totMoney) = totMoney
 			| cashFromLosers'((p', h', m')::xs', hand, money, totMoney) =
-				if hand <> h' then
 					if m' >= money then
 						cashFromLosers'(xs', hand, money, totMoney+money)
 					else 
 						cashFromLosers'(xs', hand, money, totMoney+m')
-				else
-					cashFromLosers'(xs', hand, money, totMoney)
 		in
 			cashFromLosers'(org, h, m,  0)
 		end;
@@ -96,7 +93,7 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 			
 			fun mkSidePot'([], _, winners, tot) = Sidepot(winners, tot)
 			| mkSidePot'((p, h, m)::xs, cashEach, winners, tot) =
-				mkSidePot'(xs, cashEach, (p, h, m+cashEach)::winners, tot)
+				mkSidePot'(xs, cashEach, (p, h, cashEach)::winners, tot)
 		in
 			mkSidePot'(winners, cashEach, [], tot)
 		end;
@@ -137,7 +134,7 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 		in
 			mkSidepot::showDown(mkNewList)						(*Cons Sidepot and repeat process.*)
 		end;
-	
+
 	(*
 		printShowDown l
 		TYPE:		sidepot list -> string
@@ -159,14 +156,22 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 			fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
 			| printShowDown'(player as (p, h, m)::xs, t, rest) =
 				if xs = [] then
-					intStr(p)^" "^printShowDown'(xs, t, rest)
+					p^" "^printShowDown'(xs, t, rest)
 				else
-					intStr(p)^" and "^printShowDown'(xs, t, rest)
+					p^" and "^printShowDown'(xs, t, rest)
 		in
 			if antPlayers = 1 then
-				intStr(p)^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+				if t <> 0 then
+					p^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+				else
+					""
 			else
 				printShowDown'(players, t, rest)
 		end;
-
+	
 end;
+
+
+val a = [("krille", 1, 50), ("Joel", 1, 70), ("Anders", 2, 100), ("Isildur1", 3, 100), ("durrrr", 4, 100)];
+val b = showDown(a);
+val c = printShowDown(b);

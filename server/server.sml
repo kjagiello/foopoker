@@ -1060,14 +1060,14 @@ struct
                     (* Enough players at the table? *)
                     if playersCount >= 2 then
                         let 
-                            val newDeck = shuffleDeck 52;
+                            val newDeck = shuffleDeck 51;
 
                             val chairs = nvectorToList (!chairs)
                             val players = filterRefList chairs filterNotNull (* TODO: STATE *)
                         in
                             List.app (fn (ref (Player {state=state, ...})) => state := PlayerInGame) players;
 
-                            tableMessage (board, "Shuffling cards, drinking beer. Pre-flop comming.");
+                            tableMessage (board, "Shuffling cards, drinking beer. Pre-flop coming.");
 
                             (* reset table *)
                             deck := newDeck;
@@ -1176,10 +1176,11 @@ struct
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
             let 
-                fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, id=id, ...})) =
+                fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, name=name, ...})) =
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
+						val ref name = name
                         val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
 						val printRank = print_eval_7hand (c1, c2, c3, c4, c5, c6, c7)
 						val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
@@ -1187,10 +1188,10 @@ struct
 						
 						val hand = print_eval_7hand(c1, c2, c3, c4, c5, c6, c7);
 						val hand = handToString(hand);
-						val strToChat = "Player shows " ^ hand ^": "^printRank^"."
+						val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
 						tableMessage (board, strToChat);
-                        (id, rank, getStake (player))
+                        (name, rank, getStake (player))
                     end
 
                 val chairs = nvectorToList (!chairs)
@@ -1346,7 +1347,7 @@ struct
     and setTableState (board as (ref (Board {state=state, ...})), newState) =
         let in
             state := newState;
-            print "new state incomming: ";
+            print "new state incoming: ";
             PolyML.print (StateChanged (newState));
             handleTableEvent (board, StateChanged (newState))
         end
