@@ -708,6 +708,7 @@ struct
 
     fun samePlayer (ref (Player {connection=c1, ...}), ref (Player {connection=c2, ...})) =
         WebsocketServer.sameConnection (c1, c2)
+      | samePlayer (_, _) = false
 
     fun filterNull Null = true
       | filterNull _ = false
@@ -750,8 +751,7 @@ struct
               | NONE => NONE
         end
 
-    fun getChairIndexByPlayer _ (ref Null) = NONE
-      | getChairIndexByPlayer (ref (Board {chairs=chairs, ...})) p =
+    fun getChairIndexByPlayer (ref (Board {chairs=chairs, ...})) p =
         let
             val id = Vector.findi (fn (_, ref x) => not (filterNull x) andalso filterPlayer x (!p)) (!chairs)
         in
@@ -1017,13 +1017,24 @@ struct
             card
         end
 
-    fun cardOnTable (ref (Board {cards=cards, ...}), card) =
-        cards := card::(!cards)
+    fun cardOnTable (board as ref (Board {cards=cards, ...}), card) =
+        let 
+            val d1 = JSON.empty
+                  |> JSON.add ("id", JSON.String (printCard card))
+        in
+            cards := card::(!cards);
+
+            sendToBoard board "new_card" filterAll d1
+        end
 
     fun cardToPlayer (player as ref (Player {cards=cards, ...}), card) =
-        let in
+        let 
+            val d1 = JSON.empty
+                  |> JSON.add ("id", JSON.String (printCard card))
+        in
             cards := card::(!cards);
-            serverMessage (player, printCard card)
+
+            send [player] "new_player_card" filterAll d1
         end
 
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
@@ -1080,30 +1091,87 @@ struct
                 (* distribute two cards to each player at the table *)
                 List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
 
-                setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 1, smallBlind))
+                setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 0, smallBlind))
             end                
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableFlop)) = 
-            let in
+            let 
+                fun sendBestHand (ref (Board {cards=bcards, ...})) (player as ref (Player {cards=pcards, id=id, state=ref PlayerInGame, ...})) =
+                    let
+                        val ref [c1, c2] = pcards
+                        val ref [c3, c4, c5] = bcards
+                        val rank = eval5Cards (c1, c2, c3, c4, c5)
+                        val rank = printHand (handRank rank)
+
+                        val d1 = JSON.empty
+                              |> JSON.add ("hand", JSON.String rank)
+                    in
+                        send [player] "best_hand" filterAll d1
+                    end
+                  | sendBestHand _ _ = ()
+
+                val chairs = nvectorToList (!chairs)
+                val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+            in
                 cardOnTable (board, takeCard (board));
                 cardOnTable (board, takeCard (board));
                 cardOnTable (board, takeCard (board));
 
-                setTableState (board, TableBet (TableTurn, BetNormal, 0, 1, 0))
+                List.app (sendBestHand board) players;
+
+                setTableState (board, TableBet (TableTurn, BetNormal, 0, 0, 0))
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableTurn)) = 
-            let in
+            let 
+                fun sendBestHand (ref (Board {cards=bcards, ...})) (player as ref (Player {cards=pcards, id=id, state=ref PlayerInGame, ...})) =
+                    let
+                        val ref [c1, c2] = pcards
+                        val ref [c3, c4, c5, c6] = bcards
+                        val rank = eval_6hand (c1, c2, c3, c4, c5, c6)
+                        val rank = printHand (handRank rank)
+
+                        val d1 = JSON.empty
+                              |> JSON.add ("hand", JSON.String rank)
+                    in
+                        send [player] "best_hand" filterAll d1
+                    end
+                  | sendBestHand _ _ = ()
+
+                val chairs = nvectorToList (!chairs)
+                val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+            in
                 cardOnTable (board, takeCard (board));
 
-                setTableState (board, TableBet (TableRiver, BetNormal, 0, 1, 0))
+                List.app (sendBestHand board) players;
+
+                setTableState (board, TableBet (TableRiver, BetNormal, 0, 0, 0))
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableRiver)) = 
-            let in
+            let 
+                fun sendBestHand (ref (Board {cards=bcards, ...})) (player as ref (Player {cards=pcards, id=id, state=ref PlayerInGame, ...})) =
+                    let
+                        val ref [c1, c2] = pcards
+                        val ref [c3, c4, c5, c6, c7] = bcards
+                        val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+                        val rank = printHand (handRank rank)
+
+                        val d1 = JSON.empty
+                              |> JSON.add ("hand", JSON.String rank)
+                    in
+                        send [player] "best_hand" filterAll d1
+                    end
+                  | sendBestHand _ _ = ()
+
+                val chairs = nvectorToList (!chairs)
+                val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+            in
                 cardOnTable (board, takeCard (board));
 
-                setTableState (board, TableBet (TableShowdown, BetNormal, 0, 1, 0))
+                List.app (sendBestHand board) players;
+
+                setTableState (board, TableBet (TableShowdown, BetNormal, 0, 0, 0))
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
@@ -1149,13 +1217,22 @@ struct
 
                 val maxBet = Int.max (amount, maxBet)
             in
-                if startPosition = realPosition then
+                if position - startPosition >= Vector.length (!chairs) then
                     setTableState (board, nextState)
                 else
                     (* TODO: check player state (could have folded before) *)
                     case chair of
                         ref Null => setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
-                      | player => serverMessage (player, "your turn to bet! /raise /call /fold")
+                      | player => 
+                        let 
+                            val chairIndex = valOf (getChairIndexByPlayer board player)
+                            val d1 = JSON.empty
+                                  |> JSON.add ("time", JSON.Int 10)
+                                  |> JSON.add ("seat", JSON.Int chairIndex)
+                        in
+                            sendToBoard board "countdown" filterAll d1;
+                            serverMessage (player, "your turn to bet! /raise /call /fold")
+                        end
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, ...})), PlayerLeaving (player, chairId)) = 
@@ -1241,6 +1318,8 @@ struct
             val chair = getChair (board, realPosition)
 
             val maxBet = Int.max (amount, raiseAmount)
+            val startPosition = realPosition
+            val position = realPosition
         in
             if samePlayer (chair, player) then
                 let in
@@ -1265,7 +1344,8 @@ struct
         end
 
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
-        (SOME (Vector.sub (!chairs, id))) handle Subscript => NONE
+        ((SOME (Vector.sub (!chairs, id))) handle Subscript => NONE)
+      | getChair (_, _) = NONE
 
     fun joinTable (player, board as (ref (Board {chairs=chairs, spectators=spectators, ...})), id) =
         let
@@ -1299,8 +1379,7 @@ struct
     fun handleCommand (player, command, arguments) =
         let in
             case command of
-                "help" => serverMessage (player, "tjenare!")
-              | "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
+                "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
               | "rooms" => 
                 let 
                     val boards = map (fn (ref (Board {name=name, id=id, ...})) => "+ " ^ name ^ " (ID: " ^ Int.toString (id) ^ ")") (!boards);
