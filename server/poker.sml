@@ -18,10 +18,6 @@ use "showdown.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
 use "cardToWord.sml";
-<<<<<<< HEAD
-
-=======
->>>>>>> Database fixed
 
 (*
 	handValue h 
@@ -181,15 +177,15 @@ fun Call (call, playerMoney) =
 		else 
 			call
     end;
+(*
 
-
-val a = cardToWord("Ah");
-val b = cardToWord("Kh");
-val c = cardToWord("Qh");
-val d = cardToWord("Jh");
-val e = cardToWord("Th");
-val f = cardToWord("Ac");
-val g = cardToWord("As");
+val a = cardToWord("7s");
+val b = cardToWord("2c");
+val c = cardToWord("2h");
+val d = cardToWord("Kh");
+val e = cardToWord("Qs");
+val f = cardToWord("Td");
+val g = cardToWord("9d");
 
 print("\nBest 5-hand:\n");
 print(printHand(handRank(eval5Cards(a,b,c,d,e)))^", "^printTypeHand(a, b, c, d, e)^"\n");
@@ -199,6 +195,9 @@ print("\nBest 7-hand:\n");
 printHand(handRank(eval_7hand(a,b,c,d,e,f,g)));
 print_eval_7hand(a,b,c,d,e,f,g);
 print(Int.toString(eval_7hand(a,b,c,d,e,f,g))); 
-
+val h = print_eval_7hand(a, b, c, d, e, f, g);
+printTypeHand(h);
+handToString(h);
 print("\n\n");
 
+*)

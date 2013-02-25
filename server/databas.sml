@@ -327,8 +327,9 @@ fun topList(0) = []
 			db
 		else
 			List.take(db, n)		
-<<<<<<< HEAD
+
 	end;
-=======
-	end;
->>>>>>> Database fixed
+
+	val y = JSON.empty;
+	val y = JSON.add ("test1", (JSON.String "foo")) y;
+	val y = JSON.add ("test2", (JSON.Bool true)) y;

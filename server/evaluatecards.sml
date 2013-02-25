@@ -166,7 +166,7 @@ fun eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 *)
 fun print_eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 	let
-		fun print_eval_7hand'(_, _, _, _, _, _, _, 0, best, (a, b, c, d, e)) = (printCard(a), printCard(b), printCard(c), printCard(d), printCard(e))
+		fun print_eval_7hand'(_, _, _, _, _, _, _, 0, best, (a, b, c, d, e)) = (a, b, c, d, e)
 		| print_eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n, best, bestHand) =
 			let 
 				val perm = (c1', c2', c3', c4', c5', c6', c7', n-1)
@@ -179,3 +179,5 @@ fun print_eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 	in
 		print_eval_7hand'(c1, c2, c3, c4, c5, c6, c7, 21, 9999, (0wx0, 0wx0, 0wx0, 0wx0, 0wx0))
 	end;
+
+fun handToString(a, b, c, d, e) = printCard(a)^"-"^printCard(b)^"-"^printCard(c)^"-"^printCard(d)^"-"^printCard(e);

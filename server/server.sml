@@ -1176,12 +1176,20 @@ struct
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
             let 
-                fun prepareForShowdown (ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, id=id, ...})) =
+                fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, id=id, ...})) =
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
                         val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+						val printRank = print_eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+						val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
+						
+						
+						val hand = print_eval_7hand(c1, c2, c3, c4, c5, c6, c7);
+						val hand = handToString(hand);
+						val strToChat = "Player shows " ^ hand ^": "^printRank^"."
                     in
+						tableMessage (board, strToChat);
                         (id, rank, getStake (player))
                     end
 

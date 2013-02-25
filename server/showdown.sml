@@ -169,8 +169,4 @@ abstype sidepot = Sidepot of (int * int * int) list * int
 				printShowDown'(players, t, rest)
 		end;
 
-<<<<<<< HEAD
 end;
-=======
-end;
->>>>>>> Database fixed
