@@ -898,8 +898,9 @@ struct
             val _ = money := amount;
             val d = JSON.empty
                  |> JSON.add ("money", JSON.Int (!money))
+			val playerStr = getPlayerName(player)
         in            
-            sendToAll "update_money" (filterPlayer (!player)) d
+            (updateMoney(playerStr, amount);sendToAll "update_money" (filterPlayer (!player)) d)
         end
       | setMoney (board as ref (Board {pot=pot, ...}), amount) =
         let
@@ -1209,7 +1210,46 @@ struct
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
                 val ps = showDown playerList
 				
-                val dealerChat = "HEJ"(*printShowDown ps*)
+				(*
+					printShowDown l
+					TYPE:		sidepot list -> string
+					PRE:		(none)
+					POST:		l in text as a string. 
+					EXAMPLE:	showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
+					 			"0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
+				*)
+				(*
+					INFO: 		Returns information of all the players involved in the sidepot. 
+				*)
+
+				fun printShowDown([]) = ""
+				| printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
+					let 
+						val antPlayers = length players
+						val intStr = Int.toString
+						val gamePlayer = getPlayerName(getPlayerById(p))
+
+						fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+						| printShowDown'((p', h', m')::xs, t, rest) =
+							let
+								val gamePlayer' = getPlayerName(getPlayerById(p'))
+							in
+								if xs = [] then
+									gamePlayer'^" "^printShowDown'(xs, t, rest)
+								else
+									gamePlayer'^" and "^printShowDown'(xs, t, rest)
+							end
+					in
+						if antPlayers = 1 then
+							if t <> 0 then
+								gamePlayer^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+							else
+								""
+						else
+							printShowDown'(players, t, rest)
+					end;
+				
+                val dealerChat = printShowDown ps
 
 				fun sidePotUpd([]) = () 
 				| sidePotUpd(Sidepot(players, t)::spRest) =
@@ -1218,12 +1258,8 @@ struct
 						| sidePotUpd'((p,h,m)::xs, spRest') =
 							let
 								val gamePlayer = getPlayerById(p)
-								val player = getPlayerName(gamePlayer)
-								val oldMoney = getDBMoney(findPlayer(player))
-								val newMoney = oldMoney + m
-								
 							in
-								(changeMoney(gamePlayer, newMoney); updateMoney(player, newMoney);sidePotUpd'(xs, spRest'))
+								(changeMoney(gamePlayer, m); sidePotUpd'(xs, spRest'))
 							end
 					in
 						sidePotUpd'(players, spRest)
