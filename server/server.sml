@@ -271,7 +271,7 @@ sig
     type connection
     type event
     
-    val create              : int * (connection -> unit) * (connection -> unit) * (connection * int * Word8Vector.vector -> unit) -> server
+    val create              : int * (connection -> unit) * (connection -> unit) * (connection * int * Word8Vector.vector -> unit) * (unit -> unit) -> server
     val run                 : server -> unit
     val shutdown            : server -> unit
     val readSockets         : server * Socket.sock_desc list -> unit
@@ -311,12 +311,13 @@ struct
         connections: connection list ref,
         connectHandler: (connection -> unit),
         disconnectHandler: (connection -> unit),
-        messageHandler: (connection * int * Word8Vector.vector -> unit)
+        messageHandler: (connection * int * Word8Vector.vector -> unit),
+        tickHandler: unit -> unit
     }
 
     datatype event = Connect of connection
 
-    fun create (port, ch, dh, mh) =
+    fun create (port, ch, dh, mh, th) =
         let
             val s = INetSock.TCP.socket ()
             val a = INetSock.any port
@@ -325,7 +326,7 @@ struct
             Socket.bind (s, a);
             Socket.listen (s, 128);
 
-            {listenSocket=s, connections=ref [], connectHandler=ch, disconnectHandler=dh, messageHandler=mh}
+            {listenSocket=s, connections=ref [], connectHandler=ch, disconnectHandler=dh, messageHandler=mh, tickHandler=th}
         end
 
     fun sameConnection ({socket=s1, ...}, {socket=s2, ...}) =
@@ -552,13 +553,15 @@ struct
               | SOME c => readData (s, c)
         end
 
-    fun run (s as {listenSocket=ls, connections=cs, ...}) =
+    fun run (s as {listenSocket=ls, connections=cs, tickHandler=th, ...}) =
         let 
             val lsDesc = Socket.sockDesc ls
             val csDesc = map (fn {socket=s, ...} => Socket.sockDesc s) (!cs)
 
-            val {rds, ...} = Socket.select {rds=lsDesc::csDesc, wrs=[], exs=[], timeOut=NONE}
+            val {rds, ...} = Socket.select {rds=lsDesc::csDesc, wrs=[], exs=[], timeOut=SOME (Time.fromSeconds 1)}
         in
+            th ();
+
             case rds of
                 [] => run s
               | _ => (readSockets (s, rds); run s)
@@ -574,11 +577,16 @@ sig
     type tableEvent
     type playerState
     type parsedMessage
+    type timer
 
     val players             : game ref list ref
     val boards              : game ref list ref
     val playerIndex         : game ref vector ref
     val boardIndex          : game ref vector ref
+    val timers              : timer list ref 
+
+    val delay               : (unit -> unit) -> int -> unit
+    val processTimers       : unit -> unit
 
     val samePlayer          : game ref * game ref -> bool
 
@@ -640,6 +648,7 @@ sig
     val handleTableEvent    : game ref * tableEvent -> unit
     val handleEvent         : game ref * parsedMessage -> unit
     val handleCommand       : game ref * string * string -> unit
+    val tick                : unit -> unit
 end
 
 structure MLHoldemServer :> WebsocketHandler = 
@@ -703,13 +712,29 @@ struct
       | PlayerCall of game ref
       | StateChanged of tableState
 
+    datatype timer =
+        Timer of (unit -> unit) * Time.time
+
     type parsedMessage = string * string * JSON.T
 
     val clients = ref [];
     val players = ref [];
     val boards = ref [];
+    val timers = ref [];
     val playerIndex = ref (Vector.tabulate(1024, fn _ => ref Null));
     val boardIndex = ref (Vector.tabulate(128, fn _ => ref Null));
+
+    fun delay f e =
+        timers := Timer (f, Time.now () + (Time.fromSeconds e))::(!timers)
+
+    fun processTimers () =
+        let
+            val now = Time.now ()
+            val expiredTimers = filter (fn (t as Timer (_, ex)) => now >= ex) (!timers)
+        in
+            List.app (fn Timer (f, _) => f ()) expiredTimers;
+            timers := filter (fn (t as Timer (_, ex)) => now < ex) (!timers)
+        end
 
 	fun getPlayerById id =
 		Vector.sub (!playerIndex, id)
@@ -1051,7 +1076,7 @@ struct
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
-    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, deck=deck, cards=cards, lastBet=lastBet, ...})), PlayerJoined (player, chairId)) =
+    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, ...})), PlayerJoined (player, chairId)) =
         let
             val playersCount = getTakenChairsCount board
 
@@ -1070,22 +1095,9 @@ struct
                 let in
                     (* Enough players at the table? *)
                     if playersCount >= 2 then
-                        let 
-                            val newDeck = shuffleDeck 51;
-
-                            val chairs = nvectorToList (!chairs)
-                            val players = filterRefList chairs filterNotNull (* TODO: STATE *)
-                        in
-                            List.app (fn (ref (Player {state=state, ...})) => state := PlayerInGame) players;
-
-                            tableMessage (board, "Shuffling cards, drinking beer. Pre-flop coming.");
-
-                            (* reset table *)
-                            deck := newDeck;
-                            lastBet := 0;
-                            setMoney (board, 0);
-
-                            setTableState (board, TablePreFlop)
+                        let in
+                            tableMessage (board, "Starting in 5 seconds.");
+                            delay (fn _ => setTableState (board, TablePreFlop)) 5
                         end
                     else
                         (* nope :( you are forever alone *)
@@ -1094,15 +1106,34 @@ struct
               | _ => ()
         end
       
-      | handleTableEvent (board as (ref (Board {chairs=chairs, smallBlind=smallBlind, ...})), StateChanged (TablePreFlop)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, smallBlind=smallBlind, deck=deck, cards=cards, lastBet=lastBet, ...})), StateChanged (TablePreFlop)) = 
             let 
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull (* TODO: STATE *)
+
+                val playersCount = getTakenChairsCount board
             in
-                (* distribute two cards to each player at the table *)
-                List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
-				
-                setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 0, smallBlind))
+                (* Enough players at the table? *)
+                if playersCount >= 2 then
+                    let 
+                        val newDeck = shuffleDeck 51
+                    in
+                        List.app (fn (ref (Player {state=state, ...})) => state := PlayerInGame) players;
+
+                        tableMessage (board, "Shuffling cards, drinking beer. Pre-flop coming.");
+
+                        (* reset table *)
+                        deck := newDeck;
+                        lastBet := 0;
+                        setMoney (board, 0);
+
+                        (* distribute two cards to each player at the table *)
+                        List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
+                        
+                        setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 0, smallBlind))
+                    end
+                else
+                    setTableState (board, TableIdle)
             end                
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableFlop)) = 
@@ -1323,6 +1354,7 @@ struct
                   | BetSmallBlind => (smallBlind, BetBigBlind)
                   | BetBigBlind => (bigBlind, BetNormal)
 
+            val amount = Int.max (amount, maxBet)
             val realPosition = position mod (Vector.length (!chairs))
             val chair = getChair (board, realPosition)
         in
@@ -1419,7 +1451,8 @@ struct
     fun handleCommand (player, command, arguments) =
         let in
             case command of
-                "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
+                "testdelay" => (delay (fn () => print "hellloooo\n") 5)
+              | "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
               | "rooms" => 
                 let 
                     val boards = map (fn (ref (Board {name=name, id=id, ...})) => "+ " ^ name ^ " (ID: " ^ Int.toString (id) ^ ")") (!boards);
@@ -1595,12 +1628,15 @@ struct
 
             clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
         end
+
+    fun tick () =
+        processTimers ()
 end;
 MLHoldemServer.createBoard ("Test Bord 1", 8, (5, 10), (100, 1000));
 MLHoldemServer.createBoard ("Test Bord 2", 8, (5, 10), (100, 1000));
 MLHoldemServer.createBoard ("Test Bord 3", 8, (5, 10), (100, 1000));
 MLHoldemServer.createBoard ("Test Bord 4", 8, (5, 10), (100, 1000));
 MLHoldemServer.printBoards ();
-val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage);
+val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage, MLHoldemServer.tick);
 PolyML.exception_trace(fn () => WebsocketServer.run s);
 (*WebsocketServer.run s handle Interrupt => WebsocketServer.shutdown s;*)
