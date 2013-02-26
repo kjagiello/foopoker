@@ -46,7 +46,7 @@ fun vectorToInt (v) =
         List.foldr (LargeWord.xorb) (LargeWord.fromInt 0) l
     end
 
-fun parseHeaders(d) =
+fun parseHeadersers(d) =
     let
         exception Incomplete
 
@@ -925,7 +925,7 @@ struct
                  |> JSON.add ("money", JSON.Int (!money))
 			val playerStr = getPlayerName(player)
         in            
-            (updateMoney(playerStr, amount);sendToAll "update_money" (filterPlayer (!player)) d)
+            (db_updateMoney(playerStr, amount);sendToAll "update_money" (filterPlayer (!player)) d)
         end
       | setMoney (board as ref (Board {pot=pot, ...}), amount) =
         let
@@ -1057,7 +1057,7 @@ struct
     fun cardOnTable (board as ref (Board {cards=cards, ...}), card) =
         let 
             val d1 = JSON.empty
-                  |> JSON.add ("id", JSON.String (printCard card))
+                  |> JSON.add ("id", JSON.String (eval_printCard card))
         in
             cards := card::(!cards);
 
@@ -1067,7 +1067,7 @@ struct
     fun cardToPlayer (player as ref (Player {cards=cards, ...}), card) =
         let 
             val d1 = JSON.empty
-                  |> JSON.add ("id", JSON.String (printCard card))
+                  |> JSON.add ("id", JSON.String (eval_printCard card))
         in
             cards := card::(!cards);
 
@@ -1143,7 +1143,7 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5] = bcards
-                        val rank = eval5Cards (c1, c2, c3, c4, c5)
+                        val rank = eval_5cards (c1, c2, c3, c4, c5)
                         val rank = printHand (handRank rank)
 
                         val d1 = JSON.empty
@@ -1225,10 +1225,10 @@ struct
                         val ref [c3, c4, c5, c6, c7] = bcards
 						val ref name = name
                         val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
-						val printRank = print_eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+						val printRank = eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
 						val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
 						
-						val hand = print_eval_7hand(c1, c2, c3, c4, c5, c6, c7);
+						val hand = eval_print7hand(c1, c2, c3, c4, c5, c6, c7);
 						val hand = handToString(hand);
 						val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
@@ -1397,7 +1397,6 @@ struct
             if samePlayer (chair, player) then
                 let in
                     changeMoney (player, ~amount);
-					updateMoney(getName(player), getDBMoney(findPlayer(getName(player)))-amount);
                     changeMoney (board, amount);
                     changeStake (player, amount);
                     setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, maxBet))
@@ -1431,7 +1430,6 @@ struct
             if samePlayer (chair, player) then
                 let in
                     changeMoney (player, ~raiseAmount);
-					updateMoney(getName(player), getDBMoney(findPlayer(getName(player)))-raiseAmount);
                     changeMoney (board, raiseAmount);
                     changeStake (player, raiseAmount);
                     setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, maxBet))
@@ -1608,10 +1606,11 @@ struct
 						val password = JSON.toString (JSON.get d "password")
                         val _ = if size username = 0 then raise InvalidMessage else ()
                     in
-						if (loginPlayer(username, password) handle _ => false) = true then
+
+						if db_loginPlayer(username, password) = true then
 							let
 		                        val player = createPlayer (c, username)
-								val money = getDBMoney(findPlayer(username))
+								val money = db_getMoney(db_findPlayer(username))
 		                        val response = JSON.empty
 		                                    |> JSON.add ("status", JSON.String (if isSome player then "OK" else "error"))
 
@@ -1640,7 +1639,8 @@ struct
 						val username = JSON.toString (JSON.get d "username")
 						val password = JSON.toString (JSON.get d "password")
 					in
-						regPlayer(username, password)
+						db_regPlayer(username, password) handle usernameExists =>
+							(print "Username does already exist!\n")
 					end
               | _ => ();
             ()

@@ -184,7 +184,7 @@ fun checkFull([]) = ""
 *)
 fun printTypeHand(c1, c2, c3, c4, c5) =
 	let 
-		val n = eval5Cards(c1, c2, c3, c4, c5)
+		val n = eval_5cards(c1, c2, c3, c4, c5)
 		val flush = c1
 		
 		val op andb = Word32.andb

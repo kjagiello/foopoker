@@ -1,15 +1,15 @@
 (*
-	printCard n 
+	eval_printCard n 
 	TYPE:		Word32.word -> card
 	PRE:		(none)
 	POST:		n as a card. 
-	EXAMPLE:	printCard(0wx8001B25) = Card ("K", "s"): card
+	EXAMPLE:	eval_printCard(0wx8001B25) = Card ("K", "s"): card
 *)
 (*
 	INFO: 		***Cactus Kev's Poker Hand Evaluator***
 				Converts a binary card into a card. 
 *)
-fun printCard n =
+fun eval_printCard n =
 	let
 		val op andb = Word32.andb
 		val r = Word32.>>(n, Word.fromInt(8))
@@ -17,21 +17,21 @@ fun printCard n =
 		val w = Word32.fromInt(0)
 	in
 		if andb(n, 0wx8000) > w then
-			rank(r) ^ "c"
+			v_rank(r) ^ "c"
 		else if andb(n, 0wx4000) > w then
-			rank(r) ^ "d"
+			v_rank(r) ^ "d"
 		else if andb(n, 0wx2000) > w then
-			rank(r) ^ "h"
+			v_rank(r) ^ "h"
 		else
-			rank(r) ^ "s"
+			v_rank(r) ^ "s"
 	end;
 	
 (*
-	findCard n 
+	eval_findCard n 
 	TYPE:		Word32.word -> Word32.word
 	PRE:		(n)
 	POST:		A Word32.word. 
-	EXAMPLE: 	findCard(0wxFF) = 0wxCCC: Word32.word
+	EXAMPLE: 	eval_findCard(0wxFF) = 0wxCCC: Word32.word
 *)
 (*
 	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
@@ -39,7 +39,7 @@ fun printCard n =
 				
 				Finds a binary card in the vector tables. 
 *)
-fun findCard n =
+fun eval_findCard n =
 	let
 		val frInt = Word.fromInt
 		val op ++ = Word32.+
@@ -55,17 +55,17 @@ fun findCard n =
 		
 		val b = Word32.toInt(andb(>>(u, frInt(8)), 0wx1ff))
 		val a = >>( ++(u, <<(u, frInt(2)) ), frInt(19))
-		val r = xorb(a, Word32.fromInt(adjust(b)))
+		val r = xorb(a, Word32.fromInt(v_adjust(b)))
 	in
 		r
 	end;
 	
 (*
-	eval5Cards (c1, c2, c3, c4, c5)
+	eval_5cards (c1, c2, c3, c4, c5)
 	TYPE: 		Word32.word * Word32.word * Word32.word * Word32.word * Word32.word -> int
 	PRE: 		(none)
 	POST: 		An integer. 
-	EXAMPLE: 	eval5Cards()	
+	EXAMPLE: 	eval_5cards()	
 *)
 (*
 	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
@@ -73,7 +73,7 @@ fun findCard n =
 				
 				Evaluates a hand and returns its hand value. 
 *)
-fun eval5Cards (c1, c2, c3, c4, c5) =
+fun eval_5cards (c1, c2, c3, c4, c5) =
 	let
 		val orb = Word32.orb
 		val frInt = Word.fromInt
@@ -107,18 +107,18 @@ fun eval5Cards (c1, c2, c3, c4, c5) =
 		*)
 		
 		val q = Word32.toInt(>>(orb(orb(orb(orb(c1, c2), c3), c4), c5), frInt(16)))
-		val s = unique5(q)
+		val s = v_unique5(q)
 		val p = andb(c1, 0wxFF) * andb(c2, 0wxFF) * andb(c3, 0wxFF) * andb(c4, 0wxFF) * andb(c5, 0wxFF)
 	in	
-		(*check for Flushes and StraightFlushes*)
+		(*check for v_flushes and Straightv_flushes*)
 		if andb(andb(andb(andb(andb(c1, c2), c3), c4), c5), 0wxF000) > w then 
-			flushes(q)
+			v_flushes(q)
 		(*check for Straights and HighCard hands*)
 		else if frInt32(s) > w then 
 		 	s
 		(*check for every other card*)
 		else
-			values(toInt32(findCard(p)))
+			v_values(toInt32(eval_findCard(p)))
 	end;
 
 (*
@@ -138,8 +138,8 @@ fun eval_6hand(c1, c2, c3, c4, c5, c6) =
 			let 
 				val perm = (c1', c2', c3', c4', c5', c6', n-1)
 			in
-				if eval5Cards(perm6(perm)) < best then
-					eval_6hand'(c1', c2', c3', c4', c5', c6', n-1, eval5Cards(perm6(perm)))
+				if eval_5cards(v_perm6(perm)) < best then
+					eval_6hand'(c1', c2', c3', c4', c5', c6', n-1, eval_5cards(v_perm6(perm)))
 				else
 					eval_6hand'(c1', c2', c3', c4', c5', c6', n-1, best)
 			end
@@ -165,8 +165,8 @@ fun eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 			let 
 				val perm = (c1', c2', c3', c4', c5', c6', c7', n-1)
 			in
-				if eval5Cards(perm7(perm)) < best then
-					eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, eval5Cards(perm7(perm)))
+				if eval_5cards(v_perm7(perm)) < best then
+					eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, eval_5cards(v_perm7(perm)))
 				else
 					eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, best)
 			end
@@ -175,32 +175,32 @@ fun eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 	end;
 
 (*
-	print_eval_7hand
+	eval_print7hand
 	TYPE: 		Word32.word * Word32.word * Word32.word * Word32.word * Word32.word *
 	   			Word32.word * Word32.word -> card * card * card * card * card
 	PRE:		(none)
 	POST:		Words as cards. 
-	EXAMPLE: 	print_eval_7hand(0wx10002C29, 0wx1002817, 0wx4002A1F, 0wx200291D, 0wx408611, 
+	EXAMPLE: 	eval_print7hand(0wx10002C29, 0wx1002817, 0wx4002A1F, 0wx200291D, 0wx408611, 
 				0wx1001817, 0wx8002B25) = 
 				(Card ("A", "h"), Card ("T", "h"), Card ("Q", "h"), Card ("J", "h"), Card ("K", "h"))
 *)
 (*
 	INFO: 		Prints out which 5-card hand is the best hand out of 7 cards. 
 *)
-fun print_eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
+fun eval_print7hand(c1, c2, c3, c4, c5, c6, c7) =
 	let
-		fun print_eval_7hand'(_, _, _, _, _, _, _, 0, best, (a, b, c, d, e)) = (a, b, c, d, e)
-		| print_eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n, best, bestHand) =
+		fun eval_print7hand'(_, _, _, _, _, _, _, 0, best, (a, b, c, d, e)) = (a, b, c, d, e)
+		| eval_print7hand'(c1', c2', c3', c4', c5', c6', c7', n, best, bestHand) =
 			let 
 				val perm = (c1', c2', c3', c4', c5', c6', c7', n-1)
 			in
-				if eval5Cards(perm7(perm)) < best then
-					print_eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, eval5Cards(perm7(perm)), perm7(perm))
+				if eval_5cards(v_perm7(perm)) < best then
+					eval_print7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, eval_5cards(v_perm7(perm)), v_perm7(perm))
 				else
-					print_eval_7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, best, bestHand)
+					eval_print7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, best, bestHand)
 			end
 	in
-		print_eval_7hand'(c1, c2, c3, c4, c5, c6, c7, 21, 9999, (0wx0, 0wx0, 0wx0, 0wx0, 0wx0))
+		eval_print7hand'(c1, c2, c3, c4, c5, c6, c7, 21, 9999, (0wx0, 0wx0, 0wx0, 0wx0, 0wx0))
 	end;
 
-fun handToString(a, b, c, d, e) = printCard(a)^"-"^printCard(b)^"-"^printCard(c)^"-"^printCard(d)^"-"^printCard(e);
+fun handToString(a, b, c, d, e) = eval_printCard(a)^"-"^eval_printCard(b)^"-"^eval_printCard(c)^"-"^eval_printCard(d)^"-"^eval_printCard(e);

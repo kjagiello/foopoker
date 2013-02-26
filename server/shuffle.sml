@@ -23,21 +23,21 @@ in
     end
 end;
 (*
-	removeElement l, e
+	sh_removeElement l, e
 	TYPE:		''a list * ''a -> ''a list
 	PRE:		(none)
 	POST:		An ''a list withouth the element e.
-	EXAMPLE:	removeElement([5,4,3,2], 5) = [4,3,2]
+	EXAMPLE:	sh_removeElement([5,4,3,2], 5) = [4,3,2]
 *)
 (*
 	INFO: 		Removes an element from a list. 
 *)
-fun removeElement ([], _) = []
-  | removeElement (first::rest, x) =
+fun sh_removeElement ([], _) = []
+  | sh_removeElement (first::rest, x) =
     if first = x then
         rest
     else
-        first::removeElement (rest, x);
+        first::sh_removeElement (rest, x);
 (*
 	shuffle l
 	TYPE:		''a list -> ''a list
@@ -53,7 +53,7 @@ fun shuffle [] = []
     let
         val index = random () mod (length l)
         val element = List.nth (l, index)
-        val l = removeElement (l, element)
+        val l = sh_removeElement (l, element)
     in
         element::shuffle l
     end;
