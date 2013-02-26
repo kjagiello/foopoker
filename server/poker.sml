@@ -179,12 +179,11 @@ fun Call (call, playerMoney) =
 			call
     end;
 (*
-
-val a = cardToWord("7s");
-val b = cardToWord("2c");
-val c = cardToWord("2h");
-val d = cardToWord("Kh");
-val e = cardToWord("Qs");
+val a = cardToWord("Ah");
+val b = cardToWord("Kh");
+val c = cardToWord("Qh");
+val d = cardToWord("Jh");
+val e = cardToWord("Th");
 val f = cardToWord("Td");
 val g = cardToWord("9d");
 
@@ -200,5 +199,5 @@ val h = print_eval_7hand(a, b, c, d, e, f, g);
 printTypeHand(h);
 handToString(h);
 print("\n\n");
-
+printHand(handRank(flushes(7936)));
 *)

@@ -607,6 +607,7 @@ sig
     val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
 
     val getPlayer           : WebsocketServer.connection -> game ref option
+	val getPlayerById		: int -> game ref
     val getPlayerName       : game ref -> string
     val getMoney            : game ref -> int
     val changeMoney         : game ref * int -> unit
@@ -709,6 +710,9 @@ struct
     val boards = ref [];
     val playerIndex = ref (Vector.tabulate(1024, fn _ => ref Null));
     val boardIndex = ref (Vector.tabulate(128, fn _ => ref Null));
+
+	fun getPlayerById id =
+		Vector.sub (!playerIndex, id)
 
     fun samePlayer (ref (Player {connection=c1, ...}), ref (Player {connection=c2, ...})) =
         WebsocketServer.sameConnection (c1, c2)
@@ -1097,7 +1101,7 @@ struct
             in
                 (* distribute two cards to each player at the table *)
                 List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
-
+				
                 setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 0, smallBlind))
             end                
 
@@ -1183,7 +1187,7 @@ struct
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
             let 
-                fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, name=name, ...})) =
+                fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, name=name, id=id, ...})) =
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
@@ -1197,27 +1201,29 @@ struct
 						val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
 						tableMessage (board, strToChat);
-                        (name, rank, getStake (player))
+                        (id, rank, getStake (player))
                     end
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull (* TODO: STATE *)
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
                 val ps = showDown playerList
-
 				
-                val dealerChat = printShowDown ps
+                val dealerChat = "HEJ"(*printShowDown ps*)
 
 				fun sidePotUpd([]) = () 
 				| sidePotUpd(Sidepot(players, t)::spRest) =
 					let
 						fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
-						| sidePotUpd'((p, h, m)::xs, spRest') =
+						| sidePotUpd'((p,h,m)::xs, spRest') =
 							let
-								val oldMoney = getDBMoney(findPlayer(p))
+								val gamePlayer = getPlayerById(p)
+								val player = getPlayerName(gamePlayer)
+								val oldMoney = getDBMoney(findPlayer(player))
 								val newMoney = oldMoney + m
+								
 							in
-								(updateMoney(p, newMoney);sidePotUpd'(xs, spRest'))
+								(changeMoney(gamePlayer, newMoney); updateMoney(player, newMoney);sidePotUpd'(xs, spRest'))
 							end
 					in
 						sidePotUpd'(players, spRest)
@@ -1323,6 +1329,7 @@ struct
             if samePlayer (chair, player) then
                 let in
                     changeMoney (player, ~amount);
+					updateMoney(getName(player), getDBMoney(findPlayer(getName(player)))-amount);
                     changeMoney (board, amount);
                     changeStake (player, amount);
                     setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, maxBet))
@@ -1356,6 +1363,7 @@ struct
             if samePlayer (chair, player) then
                 let in
                     changeMoney (player, ~raiseAmount);
+					updateMoney(getName(player), getDBMoney(findPlayer(getName(player)))-raiseAmount);
                     changeMoney (board, raiseAmount);
                     changeStake (player, raiseAmount);
                     setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, maxBet))
@@ -1528,27 +1536,45 @@ struct
                 "login" => 
                     let 
                         val username = JSON.toString (JSON.get d "username")
+						val password = JSON.toString (JSON.get d "password")
                         val _ = if size username = 0 then raise InvalidMessage else ()
-                        val player = createPlayer (c, username)
-                        val response = JSON.empty
-                                    |> JSON.add ("status", JSON.String (if isSome player then "OK" else "error"))
-                        
-                        val d1 = JSON.empty
-                             |> JSON.add ("message", JSON.String (username ^ " has connected."))
-                             |> JSON.add ("username", JSON.String "Server")
+						
+						
                     in
-                        sendClientResponse r c response;
-                        
-                        case player of
-                            SOME (player) =>
-                                let in
-                                    changeMoney (player, 1000);
-                                    sendToAll "server_message" (filterOthers (!player)) d1;
+						if loginPlayer(username, password) = true then
+							let
+		                        val player = createPlayer (c, username)
+								val money = getDBMoney(findPlayer(username))
+		                        val response = JSON.empty
+		                                    |> JSON.add ("status", JSON.String (if isSome player then "OK" else "error"))
 
-                                    serverMessage (player, "Welcome, " ^ username ^ "!")
-                                end
-                          | _ => ()
+		                        val d1 = JSON.empty
+		                             |> JSON.add ("message", JSON.String (username ^ " has connected."))
+		                             |> JSON.add ("username", JSON.String "Server")
+							in
+					
+                        		sendClientResponse r c response;
+                        
+		                        case player of
+		                            SOME (player) =>
+		                                let in
+		                                    changeMoney (player, money);
+		                                    sendToAll "server_message" (filterOthers (!player)) d1;
+
+		                                    serverMessage (player, "Welcome, " ^ username ^ "!")
+		                                end
+		                          | _ => ()
+							end
+						else
+							print("incorrect password")
                     end
+			  | "register" =>
+					let
+						val username = JSON.toString (JSON.get d "username")
+						val password = JSON.toString (JSON.get d "password")
+					in
+						regPlayer(username, password)
+					end
               | _ => ();
             ()
         end) handle InvalidMessage => (print "invalid message\n");
@@ -1572,7 +1598,6 @@ struct
             clients := List.filter (fn x => not(WebsocketServer.sameConnection (c, x))) (!clients)
         end
 end;
-
 MLHoldemServer.createBoard ("Test Bord 1", 8, (5, 10), (100, 1000));
 MLHoldemServer.createBoard ("Test Bord 2", 8, (5, 10), (100, 1000));
 MLHoldemServer.createBoard ("Test Bord 3", 8, (5, 10), (100, 1000));

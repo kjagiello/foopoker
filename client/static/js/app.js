@@ -253,8 +253,9 @@ app.directive('seat', function () {
 function LoginController($scope, socket, user) {
     $scope.login = function () {
         user.username = prompt('Choose an username'); //uniqueId(); //
-
-        socket.emit('login', {username: user.username}, function (message) {
+		user.password = prompt('Choose a password');
+		
+        socket.emit('login', {username: user.username, password: user.password}, function (message) {
             console.log(message.status);
             if (message.status == 'OK') {
                 $('#login-interface').hide();
@@ -263,6 +264,23 @@ function LoginController($scope, socket, user) {
             }
             else {
                 $scope.login();
+            }
+        });
+    }
+
+	$scope.register = function () {
+        user.username = prompt('Choose an username'); //uniqueId(); //
+		user.password = prompt('Choose a password');
+		
+        socket.emit('register', {username: user.username, password: user.password}, function (message) {
+            console.log(message.status);
+            if (message.status == 'OK') {
+                $('#login-interface').hide();
+                $('#game-interface').show();
+                $('body').removeClass('login-interface');
+            }
+            else {
+                $scope.register();
             }
         });
     }

@@ -49,7 +49,17 @@ fun chopJsonInt (JSON.Int x) = x;
 fun chopJsonString (JSON.String x) = x; 
 
 datatype dbplayer = DBplayer of string * int;
-val emptyPlayer = DBplayer("", 0)
+
+val emptyPlayer = DBplayer("", 0);
+
+(*
+	getDBMoney(db)
+	TYPE: 		dbplayer -> int
+	PRE: 		(none)
+	POST: 		An int.
+	EXAMPLE: 	
+*)
+fun getDBMoney(DBplayer(pl, m)) = m;
 
 (*
 	findPlayer p
@@ -126,7 +136,7 @@ fun regPlayer(pl, pw) =
 	let 
 		exception usernameExists
 	in
-		if findPlayer(pl) <> emptyPlayer then
+		if findPlayer(pl) = emptyPlayer then
 			addPlayer(pl, pw)
 		else
 			 raise usernameExists
@@ -277,14 +287,7 @@ fun jsonToList() =
 		jsonToList'(users, 1)
 	end; 
 
-(*
-	getDBMoney(db)
-	TYPE: 		dbplayer -> int
-	PRE: 		(none)
-	POST: 		An int.
-	EXAMPLE: 	
-*)
-fun getDBMoney(DBplayer(pl, m)) = m;
+
 
 (*
 	sidePotUpd sp
@@ -299,7 +302,7 @@ fun sidePotUpd([]) = ()
 		fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
 		| sidePotUpd'((p, h, m)::xs, spRest') =
 			let
-				val newMoney = getMoney(findPlayer(p)) + m
+				val newMoney = getDBMoney(findPlayer(p)) + m
 			in
 				(updateMoney(p, newMoney);sidePotUpd'(xs, spRest'))
 			end
@@ -361,20 +364,3 @@ fun topList(0) = []
 			List.take(db, n)		
 
 	end;	
-	
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-print("BÖÖÖÖÖÖÖÖÖÖÖÖG");
-

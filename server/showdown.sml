@@ -1,4 +1,4 @@
-datatype sidepot = Sidepot of (string * int * int) list * int
+datatype sidepot = Sidepot of (int * int * int) list * int
 	
 	
 	(*
@@ -135,6 +135,8 @@ datatype sidepot = Sidepot of (string * int * int) list * int
 			mkSidepot::showDown(mkNewList)						(*Cons Sidepot and repeat process.*)
 		end;
 
+showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]);
+
 	(*
 		printShowDown l
 		TYPE:		sidepot list -> string
@@ -145,7 +147,7 @@ datatype sidepot = Sidepot of (string * int * int) list * int
 	*)
 	(*
 		INFO: 		Returns information of all the players involved in the sidepot. 
-	*)
+	
 
 	fun printShowDown([]) = ""
 	| printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
@@ -168,10 +170,4 @@ datatype sidepot = Sidepot of (string * int * int) list * int
 			else
 				printShowDown'(players, t, rest)
 		end;
-	
-
-
-
-val a = [("krille", 1, 50), ("Joel", 1, 70), ("Anders", 2, 100), ("Isildur1", 3, 100), ("durrrr", 4, 100)];
-val b = showDown(a);
-val c = printShowDown(b);
+		*)
