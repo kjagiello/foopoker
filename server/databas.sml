@@ -12,6 +12,12 @@ use "../utils/sha1.sml";
 use "../utils/json.sml";
 *)
 
+datatype Dbplayer = Dbplayer of string * int;
+
+val emptyPlayer = Dbplayer("", 0);
+
+val db_Name = "medlemsdatabas.txt";
+
 fun db_readAll (h, acc) = 
     let
         val s = TextIO.inputLine h
@@ -48,18 +54,16 @@ fun db_chopJsonInt (JSON.Int x) = x;
 *)
 fun db_chopJsonString (JSON.String x) = x; 
 
-datatype dbplayer = DBplayer of string * int;
 
-val emptyPlayer = DBplayer("", 0);
 
 (*
 	db_getMoney(db)
-	TYPE: 		dbplayer -> int
+	TYPE: 		Dbplayer -> int
 	PRE: 		(none)
 	POST: 		An int.
 	EXAMPLE: 	
 *)
-fun db_getMoney(DBplayer(pl, m)) = m;
+fun db_getMoney(Dbplayer(pl, m)) = m;
 
 (*
 	db_findPlayer p
@@ -72,7 +76,7 @@ fun db_getMoney(DBplayer(pl, m)) = m;
 fun db_findPlayer(pl) = 
 	let 
 		val player = pl
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -80,7 +84,7 @@ fun db_findPlayer(pl) =
 		fun db_findPlayer'([]) = (TextIO.closeIn x;emptyPlayer)
 		| db_findPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then
-				(TextIO.closeIn x;DBplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;DBplayer(JSON.toString(JSON.get x' "Name"), )*)
+				(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), )*)
 			else
 				db_findPlayer'(xs')
 		
@@ -102,7 +106,7 @@ fun db_addPlayer(pl, pw) =
 		val password = SHA1.hash pw
 		val money = 1000
 		
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -122,7 +126,7 @@ fun db_addPlayer(pl, pw) =
 		val db = JSON.encode db
 		
 	in
-		db_renderToFile(db, "medlemsdatabas.txt")
+		db_renderToFile(db, db_Name)
 	end;
 (*
 	db_regPlayer pl, pw
@@ -154,7 +158,7 @@ fun db_loginPlayer(pl, pw) =
 	let 
 		val player = pl
 		val password = SHA1.hash pw
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -186,7 +190,7 @@ fun db_updateMoney(pl, m) =
 	let 
 		val player = pl
 		val money = m
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -199,7 +203,7 @@ fun db_updateMoney(pl, m) =
 					val db = JSON.update ("users", users') db
 					val db = JSON.encode db
 				in
-					db_renderToFile(db, "medlemsdatabas.txt")
+					db_renderToFile(db, db_Name)
 				end
 			else
 				db_updateMoney'(xs, x::db')
@@ -217,11 +221,11 @@ fun db_updateMoney(pl, m) =
 *)
 fun db_dropTable() = 
 	let
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val freshTable = "{\"primaryid\":1,\"users\":[]}\n"
 	in
-		db_renderToFile(freshTable, "medlemsdatabas.txt")
+		db_renderToFile(freshTable, db_Name)
 	end;
 	
 (*
@@ -234,7 +238,7 @@ fun db_dropTable() =
 fun db_deletePlayer(pl) = 
 	let 
 		val player = pl
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -245,7 +249,7 @@ fun db_deletePlayer(pl) =
 				val db = JSON.update ("users", db') db
 				val db = JSON.encode db
 			in
-				db_renderToFile(db, "medlemsdatabas.txt")
+				db_renderToFile(db, db_Name)
 			end
 				
 		| db_deletePlayer'(x'::xs', db') = 
@@ -268,7 +272,7 @@ fun db_deletePlayer(pl) =
 *)
 fun db_jsonToList() = 
 	let 
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
