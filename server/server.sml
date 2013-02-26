@@ -585,8 +585,9 @@ sig
     val boardIndex          : game ref vector ref
     val timers              : timer list ref 
 
-    val delay               : (unit -> unit) -> int -> unit
+    val delay               : (unit -> unit) -> int -> timer
     val processTimers       : unit -> unit
+    val cancelTimer         : timer -> unit
 
     val samePlayer          : game ref * game ref -> bool
 
@@ -656,6 +657,10 @@ struct
     exception InvalidMessage
     exception InvalidCommand
 
+    datatype timer =
+        Timer of int * (unit -> unit) * Time.time
+      | NullTimer
+
     datatype betType =
         BetNormal
       | BetSmallBlind
@@ -690,7 +695,9 @@ struct
             cards: Word32.word list ref,
             lastBet: int ref,
             spectators: game ref list ref,
-            pot: int ref
+            pot: int ref,
+            betTimer: timer ref,
+            startTimer: timer ref
         }
       | Player of {
             id: int,
@@ -712,11 +719,9 @@ struct
       | PlayerCall of game ref
       | StateChanged of tableState
 
-    datatype timer =
-        Timer of (unit -> unit) * Time.time
-
     type parsedMessage = string * string * JSON.T
 
+    val maxTimerId = ref 0;
     val clients = ref [];
     val players = ref [];
     val boards = ref [];
@@ -725,16 +730,26 @@ struct
     val boardIndex = ref (Vector.tabulate(128, fn _ => ref Null));
 
     fun delay f e =
-        timers := Timer (f, Time.now () + (Time.fromSeconds e))::(!timers)
+        let 
+            val timer = Timer (!maxTimerId, f, Time.now () + (Time.fromSeconds e))
+        in
+            timers := timer::(!timers);
+            maxTimerId := (!maxTimerId) + 1;
+            timer
+        end
 
     fun processTimers () =
         let
             val now = Time.now ()
-            val expiredTimers = filter (fn (t as Timer (_, ex)) => now >= ex) (!timers)
+            val expiredTimers = filter (fn (Timer (_, _, ex)) => now >= ex) (!timers)
         in
-            List.app (fn Timer (f, _) => f ()) expiredTimers;
-            timers := filter (fn (t as Timer (_, ex)) => now < ex) (!timers)
+            List.app (fn Timer (_, f, _) => f ()) expiredTimers;
+            timers := filter (fn (t as Timer (_, _, ex)) => now < ex) (!timers)
         end
+
+    fun cancelTimer (Timer (id, _, _)) =
+        timers := List.filter (fn Timer (x, _, _) => id <> x) (!timers)
+      | cancelTimer _ = ()
 
 	fun getPlayerById id =
 		Vector.sub (!playerIndex, id)
@@ -890,7 +905,9 @@ struct
                 cards=ref [],
                 lastBet=ref 0,
                 spectators=ref [],
-                pot=ref 0
+                pot=ref 0,
+                betTimer=ref NullTimer,
+                startTimer=ref NullTimer
             })
         in
             boards := board::(!boards);
@@ -1077,7 +1094,7 @@ struct
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
-    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, ...})), PlayerJoined (player, chairId)) =
+    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, startTimer=startTimer, ...})), PlayerJoined (player, chairId)) =
         let
             val playersCount = getTakenChairsCount board
 
@@ -1097,8 +1114,10 @@ struct
                     (* Enough players at the table? *)
                     if playersCount >= 2 then
                         let in
-                            tableMessage (board, "Starting in 5 seconds.");
-                            delay (fn _ => setTableState (board, TablePreFlop)) 5
+                            tableMessage (board, "Starting in 15 seconds.");
+                            cancelTimer (!startTimer);
+                            startTimer := delay (fn _ => setTableState (board, TablePreFlop)) 15;
+                            ()
                         end
                     else
                         (* nope :( you are forever alone *)
@@ -1130,6 +1149,7 @@ struct
 
                         (* distribute two cards to each player at the table *)
                         List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
+                        List.app (fn x => (PolyML.print (getPlayerName x); ())) players;
                         
                         setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 0, smallBlind))
                     end
@@ -1309,6 +1329,7 @@ struct
             lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
+            betTimer=betTimer,
             ...
         })), StateChanged (TableBet (nextState, betType, startPosition, position, maxBet))) = 
             let 
@@ -1332,9 +1353,10 @@ struct
                         let 
                             val chairIndex = valOf (getChairIndexByPlayer board player)
                             val d1 = JSON.empty
-                                  |> JSON.add ("time", JSON.Int 10)
+                                  |> JSON.add ("time", JSON.Int 30)
                                   |> JSON.add ("seat", JSON.Int chairIndex)
                         in
+                            betTimer := delay (fn _ => handleTableEvent (board, PlayerFold player)) 30;
                             sendToBoard board "countdown" filterAll d1;
                             serverMessage (player, "your turn to bet! /raise /call /fold")
                         end
@@ -1370,10 +1392,29 @@ struct
             lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
+            betTimer=betTimer,
             state=ref (TableBet (nextState, betType, startPosition, position, maxBet)),
             ...
         })), PlayerFold (player as (ref (Player ({state=ref PlayerInGame, ...}))))) = 
-            ()
+            let
+            val (amount, nextBet) = case betType of
+                    BetNormal => (maxBet, BetNormal)
+                  | BetSmallBlind => (smallBlind, BetBigBlind)
+                  | BetBigBlind => (bigBlind, BetNormal)
+
+            val amount = Int.max (amount, maxBet)
+            val realPosition = position mod (Vector.length (!chairs))
+            val chair = getChair (board, realPosition)
+        in
+            if samePlayer (chair, player) then
+                let in
+                    cancelTimer (!betTimer);
+
+                    setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, maxBet))
+                end
+            else
+                serverMessage (player, "Not your turn.")
+        end
 
         (* call *)
       | handleTableEvent (board as (ref (Board {
@@ -1381,6 +1422,7 @@ struct
             lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
+            betTimer=betTimer,
             state=ref (TableBet (nextState, betType, startPosition, position, maxBet)),
             ...
         })), PlayerCall (player as (ref (Player ({state=ref PlayerInGame, ...}))))) =
@@ -1396,6 +1438,8 @@ struct
         in
             if samePlayer (chair, player) then
                 let in
+                    cancelTimer (!betTimer);
+
                     changeMoney (player, ~amount);
 					updateMoney(getName(player), getDBMoney(findPlayer(getName(player)))-amount);
                     changeMoney (board, amount);
@@ -1412,6 +1456,7 @@ struct
             lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind,
+            betTimer=betTimer,
             state=ref (TableBet (nextState, betType, startPosition, position, maxBet)),
             ...
         })), x as PlayerRaise (player as (ref (Player ({state=ref PlayerInGame, ...}))), raiseAmount)) = 
@@ -1430,6 +1475,8 @@ struct
         in
             if samePlayer (chair, player) then
                 let in
+                    cancelTimer (!betTimer);
+
                     changeMoney (player, ~raiseAmount);
 					updateMoney(getName(player), getDBMoney(findPlayer(getName(player)))-raiseAmount);
                     changeMoney (board, raiseAmount);
@@ -1487,7 +1534,7 @@ struct
     fun handleCommand (player, command, arguments) =
         let in
             case command of
-                "testdelay" => (delay (fn () => print "hellloooo\n") 5)
+                "testdelay" => (delay (fn () => print "hellloooo\n") 5; ())
               | "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
               | "rooms" => 
                 let 
@@ -1608,7 +1655,7 @@ struct
 						val password = JSON.toString (JSON.get d "password")
                         val _ = if size username = 0 then raise InvalidMessage else ()
                     in
-						if (loginPlayer(username, password) handle _ => false) = true then
+						if loginPlayer(username, password) = true then
 							let
 		                        val player = createPlayer (c, username)
 								val money = getDBMoney(findPlayer(username))
@@ -1619,6 +1666,7 @@ struct
 		                             |> JSON.add ("message", JSON.String (username ^ " has connected."))
 		                             |> JSON.add ("username", JSON.String "Server")
 							in
+                                print "[server]\tClient logged in.";
 					
                         		sendClientResponse r c response;
                         
