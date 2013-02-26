@@ -46,7 +46,7 @@ fun vectorToInt (v) =
         List.foldr (LargeWord.xorb) (LargeWord.fromInt 0) l
     end
 
-fun parseHeadersers(d) =
+fun parseHeaders(d) =
     let
         exception Incomplete
 
