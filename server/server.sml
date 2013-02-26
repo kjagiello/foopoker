@@ -1538,10 +1538,8 @@ struct
                         val username = JSON.toString (JSON.get d "username")
 						val password = JSON.toString (JSON.get d "password")
                         val _ = if size username = 0 then raise InvalidMessage else ()
-						
-						
                     in
-						if loginPlayer(username, password) = true then
+						if (loginPlayer(username, password) handle _ => false) = true then
 							let
 		                        val player = createPlayer (c, username)
 								val money = getDBMoney(findPlayer(username))
