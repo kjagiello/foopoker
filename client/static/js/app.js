@@ -115,6 +115,21 @@ function GameController($scope, socket, user) {
     socket.on('update_money', function (data) {
         $scope.wallet = data.money;
     });
+
+    $scope.call = function () {
+        var msg = "/call";
+        var cmd = msg.substring(1).split(' ');
+
+        socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+    }
+
+    $scope.raise = function () {
+        var msg = "/raise 100";
+        var cmd = msg.substring(1).split(' ');
+
+        socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+    }
+
 }
 
 function ChatController($scope, socket, user) {

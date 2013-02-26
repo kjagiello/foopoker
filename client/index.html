@@ -78,7 +78,27 @@
         margin-left: -351px;
         margin-top: -182px;
     }
-
+    div.betting {
+        position: relative;
+        top: 50%;
+        left: 70%;
+        margin-top: 150px;
+		margin-left: 50px;
+    }
+    div.raise {
+        position: relative;
+        top: 50%;
+        left: 70%;
+        margin-top: 150px;
+		margin-left: 70px;
+    }
+    div.fold {
+        position: relative;
+        top: 50%;
+        left: 70%;
+        margin-top: 150px;
+		margin-left: 90px;
+    }
     div.outer{
         display: inline-block;
         position: relative;
@@ -505,6 +525,12 @@
             </div>
             <seat ng-repeat="s in seats" seat-id="{{ s.id }}"></seat>
             <div class="outer"><div class="pot inner">{{ pot }}$</div></div>
+			<div class="betting">
+				<button class="small awesome green" ng-click="call()">Call</button>
+			<button class="small awesome orange"  ng-click="raise()">Raise</button>
+			<button class="small awesome red"  ng-click="fold()">Fold</button></div>
+			
+			
         </div>
 
         <div id="superbar">

@@ -12,7 +12,6 @@ datatype color = CLUB | DIAMOND | HEART | SPADE;
 
 datatype value = Deuce | Trey | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace;
 
-
 use "vectors.sml";
 use "shuffledeck.sml";
 use "showdown.sml";
@@ -188,7 +187,7 @@ val f = cardToWord("Td");
 val g = cardToWord("9d");
 
 print("\nBest 5-hand:\n");
-print(printHand(handRank(eval5Cards(a,b,c,d,e)))^", "^printTypeHand(a, b, c, d, e)^"\n");
+print(printHand(handRank(eval_5Cards(a,b,c,d,e)))^", "^printTypeHand(a, b, c, d, e)^"\n");
 print("\nBest 6-hand:\n");
 printHand(handRank(eval_6hand(a,b,c,d,e,f)));
 print("\nBest 7-hand:\n");
@@ -199,5 +198,4 @@ val h = print_eval_7hand(a, b, c, d, e, f, g);
 printTypeHand(h);
 handToString(h);
 print("\n\n");
-printHand(handRank(flushes(7936)));
-*)
+printHand(handRank(flushes(7936)));*)

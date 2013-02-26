@@ -1,9 +1,9 @@
 (*
-	flushes c
+	v_flushes c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 7936
 	POST:		An int. 
-	EXAMPLE:	flushes(7936) = 1
+	EXAMPLE:	v_flushes(7936) = 1
 *)
 (*
 	INFO: 		***Cactus Kev's Poker Hand Evaluator***
@@ -13,7 +13,7 @@
 				mean that combination is not possible with a five-card
 				flush hand.
 *)
-fun flushes(c) =
+fun v_flushes(c) =
 	let
 		val flush = 
 		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -435,20 +435,20 @@ fun flushes(c) =
 		Vector.sub(flushList, c)
 	end;
 (*
-	flushes c
+	v_unique5 c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 7936
 	POST:		An int. 
-	EXAMPLE:	unique5(7936) = 1600
+	EXAMPLE:	v_unique5(7936) = 1600
 *)
 (*
 	INFO: 		***Cactus Kev's Poker Hand Evaluator***
 	
 				This is a table lookup for all non-flush hands consisting
-				of five unique ranks (i.e.  either Straights or High Card
-				hands).  It's similar to the above "flushes" vector.
+				of five unique v_ranks (i.e.  either Straights or High Card
+				hands).  It's similar to the above "v_flushes" vector.
 *)
-fun unique5(c) =
+fun v_unique5(c) =
 	let
 		val unique = 
 		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -878,11 +878,11 @@ fun unique5(c) =
 		Vector.sub(uniqueList, c)
 	end;
 (*
-	adjust c
+	v_adjust c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 511
 	POST:		An int. 
-	EXAMPLE:	adjust(511) = 7006
+	EXAMPLE:	v_adjust(511) = 7006
 *)
 (*
 	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
@@ -890,9 +890,9 @@ fun unique5(c) =
 				
 				This is a vector for all other hands that aren't a flush/straightflush/straight/highcard.
 *)
-fun adjust(c) =
+fun v_adjust(c) =
 	let
-		val adjust = 
+		val v_adjust = 
 		[0, 5628, 7017, 1298, 2918, 2442, 8070, 6383, 6383, 7425, 2442, 5628, 8044, 7425, 3155, 6383, 
 		    2918, 7452, 1533, 6849, 5586, 7452, 7452, 1533, 2209, 6029, 2794, 3509, 7992, 7733, 7452, 131, 
 		    6029, 4491, 1814, 7452, 6110, 3155, 7077, 6675, 532, 1334, 7555, 5325, 3056, 1403, 1403, 3969, 
@@ -926,16 +926,16 @@ fun adjust(c) =
 		    2918, 3366, 608, 4303, 3921, 0, 2918, 1905, 218, 6687, 5963, 859, 3083, 2987, 896, 5056, 
 		    1905, 2918, 4415, 7966, 7646, 2883, 5628, 7017, 8029, 6528, 4474, 6322, 5562, 6669, 4610, 7006]
 
-		val adjustList = Vector.fromList(adjust)
+		val v_adjustList = Vector.fromList(v_adjust)
 	in
-		Vector.sub(adjustList, c)
+		Vector.sub(v_adjustList, c)
 	end;
 (*
-	values c
+	v_values c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 8191
 	POST:		An int. 
-	EXAMPLE:	adjust(8191) = 166
+	EXAMPLE:	v_values(8191) = 166
 *)
 (*
 	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
@@ -943,9 +943,9 @@ fun adjust(c) =
 				
 				This is a vector for all other hands that aren't a flush/straightflush/straight/highcard.
 *)
-fun values(c) =
+fun v_values(c) =
 	let
-		val values = 
+		val v_values = 
 		[148, 2934,  166, 5107, 4628,  166,  166,  166,  166, 3033,  166, 4692,  166, 5571, 2225,  166, 
 		    5340, 3423,  166, 3191, 1752,  166, 5212,  166,  166, 3520,  166,  166,  166, 1867,  166, 3313, 
 		     166, 3461,  166,  166, 3174, 1737, 5010, 5008,  166, 4344, 2868, 3877,  166, 4089,  166, 5041, 
@@ -1459,22 +1459,22 @@ fun values(c) =
 		    5330, 5048, 4037,  166, 6033, 4625, 3326, 2013, 5283,  136, 3373, 2154,  166,  166,  166, 4421, 
 		     166, 5438, 2627, 2266, 2320,  166, 2588, 4790, 4290,  166, 4767, 5829, 2925, 5916, 2133,  166]
 
-		val valueList = Vector.fromList(values)
+		val valueList = Vector.fromList(v_values)
 	in
 		Vector.sub(valueList, c)
 	end;
 
 (*
-	perm6(c1, c2, c3, c4, c5, c6, c7)
+	v_perm6(c1, c2, c3, c4, c5, c6, c7)
 	TYPE:		'a * 'a * 'a * 'a * 'a * 'a * int -> 'a * 'a * 'a * 'a * 'a
 	PRE:		(none)
 	POST:		A vector with (a', a', a', a', a') elements. 
-	EXAMPLE: 	perm6(0, 1, 2, 3, 4, 5, 3) = (0, 1, 3, 4, 5)
+	EXAMPLE: 	v_perm6(0, 1, 2, 3, 4, 5, 3) = (0, 1, 3, 4, 5)
 *)
 (*
 	INFO:		The different combinations of a 5-card hand that 6 cards can make (6). 
 *)
-fun perm6(c1', c2', c3', c4', c5', c6', n) =
+fun v_perm6(c1', c2', c3', c4', c5', c6', n) =
 	let
 		val cards = 
 		[(c1', c2', c3', c4', c5'), 
@@ -1488,17 +1488,17 @@ fun perm6(c1', c2', c3', c4', c5', c6', n) =
 		Vector.sub(cardList, n)
 	end;
 (*
-	perm7(c1, c2, c3, c4, c5, c6, c7)
+	v_perm7(c1, c2, c3, c4, c5, c6, c7)
 	TYPE:		'a * 'a * 'a * 'a * 'a * 'a * int -> 'a * 'a * 'a * 'a * 'a
 	PRE:		(none)
 	POST:		A vector with (a', a', a', a', a') elements. 
-	EXAMPLE: 	perm7(0, 1, 2, 3, 4, 5, 6, 1) = (0, 1, 2, 3, 4)
+	EXAMPLE: 	v_perm7(0, 1, 2, 3, 4, 5, 6, 1) = (0, 1, 2, 3, 4)
 *)
 (*
 	INFO:		***Cactus Kev's Poker Hand Evaluator***
 				The different combinations of a 5-card hand that 7 cards can make (21). 
 *)	
-fun perm7(c1', c2', c3', c4', c5', c6', c7', n) =
+fun v_perm7(c1', c2', c3', c4', c5', c6', c7', n) =
 	let
 		val cards = 
 		[(c1', c2', c3', c4', c5'), 
@@ -1527,17 +1527,17 @@ fun perm7(c1', c2', c3', c4', c5', c6', c7', n) =
 		Vector.sub(cardList, n)
 	end;
 (*
-	rank n
+	v_rank n
 	TYPE:		int -> string
 	PRE:		0 <= n <= 12
 	POST:		n as a string. 
-	EXAMPLE: 	rank(12) = "A"
+	EXAMPLE: 	v_rank(12) = "A"
 *)
 (*
 	INFO: 		***Cactus Kev's Poker Hand Evaluator***
 				Returns the value of a card. 
 *)
-fun rank n =
+fun v_rank n =
 	let	
 		val cards = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]
 		val cardList = Vector.fromList(cards)
