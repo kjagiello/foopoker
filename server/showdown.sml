@@ -135,39 +135,6 @@ datatype sidepot = Sidepot of (int * int * int) list * int
 			mkSidepot::showDown(mkNewList)						(*Cons Sidepot and repeat process.*)
 		end;
 
-showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]);
 
-	(*
-		printShowDown l
-		TYPE:		sidepot list -> string
-		PRE:		(none)
-		POST:		l in text as a string. 
-		EXAMPLE:	showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
-		 			"0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
-	*)
-	(*
-		INFO: 		Returns information of all the players involved in the sidepot. 
-	
 
-	fun printShowDown([]) = ""
-	| printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
-		let 
-			val antPlayers = length players
-			val intStr = Int.toString
-
-			fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
-			| printShowDown'(player as (p, h, m)::xs, t, rest) =
-				if xs = [] then
-					p^" "^printShowDown'(xs, t, rest)
-				else
-					p^" and "^printShowDown'(xs, t, rest)
-		in
-			if antPlayers = 1 then
-				if t <> 0 then
-					p^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
-				else
-					""
-			else
-				printShowDown'(players, t, rest)
-		end;
-		*)
+		
