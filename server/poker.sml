@@ -19,7 +19,6 @@ use "evaluatecards.sml";
 use "printtypehand.sml";
 use "cardToWord.sml";
 
-
 (*
 	handValue h 
 	TYPE: 		hand -> int
@@ -178,28 +177,25 @@ fun Call (call, playerMoney) =
 		else 
 			call
     end;
-
-
+(*
 val a = cardToWord("Ah");
 val b = cardToWord("Kh");
 val c = cardToWord("Qh");
 val d = cardToWord("Jh");
 val e = cardToWord("Th");
-val f = cardToWord("Ac");
-val g = cardToWord("As");
+val f = cardToWord("Td");
+val g = cardToWord("9d");
 
 print("\nBest 5-hand:\n");
-print(printHand(handRank(eval5Cards(a,b,c,d,e)))^", "^printTypeHand(a, b, c, d, e)^"\n");
+print(printHand(handRank(eval_5Cards(a,b,c,d,e)))^", "^printTypeHand(a, b, c, d, e)^"\n");
 print("\nBest 6-hand:\n");
 printHand(handRank(eval_6hand(a,b,c,d,e,f)));
 print("\nBest 7-hand:\n");
 printHand(handRank(eval_7hand(a,b,c,d,e,f,g)));
 print_eval_7hand(a,b,c,d,e,f,g);
 print(Int.toString(eval_7hand(a,b,c,d,e,f,g))); 
-
+val h = print_eval_7hand(a, b, c, d, e, f, g);
+printTypeHand(h);
+handToString(h);
 print("\n\n");
-
-
-val a = [1,2,3,4,5];
-val b = ["a", "b", "c", "d", "e"];
- 
+printHand(handRank(flushes(7936)));*)

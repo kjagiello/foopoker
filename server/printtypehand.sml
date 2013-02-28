@@ -86,16 +86,18 @@ fun checkTwoPair([]) = ""
 fun checkPairThreeFour([]) = ""	
 | checkPairThreeFour(x::rest) = 
 		let 
-			fun checkPairThreeFour'([], _) = ""
-			| checkPairThreeFour'(x::rest, ptf) =
+			fun checkPairThreeFour'([], _, list) = checkPairThreeFour(list)
+			| checkPairThreeFour'(x::rest, ptf, list) =
 				if x = ptf then
 					dealerRanks(ptf)
 				else
-					checkPairThreeFour'(rest, x)
+					checkPairThreeFour'(rest, ptf, list)
 		in
-			checkPairThreeFour'(rest, x)
+			checkPairThreeFour'(rest, x, rest)
 		end;
-		
+
+checkPairThreeFour([9, 2, 6, 2, 10]);
+	
 (*
 	checkStraight l
 	TYPE: 		int list -> string
@@ -182,7 +184,7 @@ fun checkFull([]) = ""
 *)
 fun printTypeHand(c1, c2, c3, c4, c5) =
 	let 
-		val n = eval5Cards(c1, c2, c3, c4, c5)
+		val n = eval_5cards(c1, c2, c3, c4, c5)
 		val flush = c1
 		
 		val op andb = Word32.andb

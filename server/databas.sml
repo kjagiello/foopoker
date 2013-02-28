@@ -1,4 +1,4 @@
-PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
+(*PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
 
 
 val ord = o_ord;
@@ -11,18 +11,33 @@ use "../utils/sha1.sml";
 
 use "../utils/json.sml";
 
+fun compareloop(L, 1) = nil |
+	compareloop(nil, X) = nil |
+	compareloop([h], X) = [h] |
+	compareloop((p, m)::(p', m')::t, X) = if m<m' then (p', m')::(compareloop((p, m)::t, X-1))
+		else (p, m)::(compareloop((p', m')::t, X-1));
 
-fun readAll (h, acc) = 
+*)
+
+
+
+datatype Dbplayer = Dbplayer of string * int;
+
+val emptyPlayer = Dbplayer("", 0);
+
+val db_Name = "medlemsdatabas.txt";
+
+fun db_readAll (h, acc) = 
     let
         val s = TextIO.inputLine h
     in
         case s
-            of SOME (s)   => readAll (h, acc ^ s)
+            of SOME (s)   => db_readAll (h, acc ^ s)
              | NONE       => acc
     end
 
 
-fun renderToFile(qt, name) =
+fun db_renderToFile(qt, name) =
 	    let
 	        val h = TextIO.openOut name
 	    in
@@ -30,55 +45,87 @@ fun renderToFile(qt, name) =
 	        TextIO.flushOut(h)
 	    end;
 
+(*
+	db_chopJsonInt x
+	TYPE: 		T -> int
+	PRE: 		(none)
+	POST:		x as an int. 
+	EXAMPLE:	db_chopJsonInt[JSON.Int 2] = 2: int
+*)
+fun db_chopJsonInt (JSON.Int x) = x;
 
 (*
-	findPlayer p
+	db_chopJsonString x
+	TYPE: 		T -> string
+	PRE: 		(none)
+	POST:		x as a string. 
+	EXAMPLE:	db_chopJsonString[JSON.String "hej"] = "hej": string
+*)
+fun db_chopJsonString (JSON.String x) = x; 
+
+
+
+(*
+	db_getMoney(db)
+	TYPE: 		Dbplayer -> int
+	PRE: 		(none)
+	POST: 		An int.
+	EXAMPLE: 	
+*)
+fun db_getMoney(Dbplayer(pl, m)) = m;
+
+(*
+	db_findPlayer p
 	TYPE: 			string -> bool
 	PRE: 			(none)
 	POST: 			True/false. 
 	SIDE-EFFECTS: 	-
-	EXAMPLE: 		findPlayer("Joel") = True: bool		
+	EXAMPLE: 		db_findPlayer("Joel") = True: bool		
 *)
-fun findPlayer(pl) = 
+fun db_findPlayer(pl) = 
 	let 
 		val player = pl
-		val x = TextIO.openIn "medlemsdatabas.txt"
-		val db = readAll (x, "")
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun findPlayer'([]) = (TextIO.closeIn x;false)
-		| findPlayer'(x'::xs') = 
+		fun db_findPlayer'([]) = (TextIO.closeIn x;emptyPlayer)
+		| db_findPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then
-				(TextIO.closeIn x;true)
+				(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), )*)
 			else
-				findPlayer'(xs')
+				db_findPlayer'(xs')
 		
 	in
-		findPlayer'(users)
+		db_findPlayer'(users)
 	end;
-
 (*
-	addPlayer pl, pw
+	db_addPlayer pl, pw
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
 	SIDE-EFFECTS: 	-
-	EXAMPLE: 		addPlayer("Joel", "12345") = ()
+	EXAMPLE: 		db_addPlayer("Joel", "12345") = ()
 *)
 
-fun addPlayer(pl, pw) = 
+fun db_addPlayer(pl, pw) = 
 	let 
 		val player = pl
 		val password = SHA1.hash pw
 		val money = 1000
 		
-		val x = TextIO.openIn "medlemsdatabas.txt"
-		val db = readAll (x, "")
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 		
+		val pid = db_chopJsonInt(JSON.get db "primaryid")
+		val newid = pid + 1
+		val db = JSON.update ("primaryid", (JSON.Int newid)) db
+		
 		val	y = JSON.empty
+		val y = JSON.add ("ID", (JSON.Int pid)) y
 		val y = JSON.add ("Name", (JSON.String player)) y
 		val y = JSON.add ("Pwd", (JSON.String password)) y
 		val y = JSON.add ("Cash", (JSON.Int money)) y
@@ -88,184 +135,198 @@ fun addPlayer(pl, pw) =
 		val db = JSON.encode db
 		
 	in
-		renderToFile(db, "medlemsdatabas.txt")
+		db_renderToFile(db, db_Name)
 	end;
 (*
-	regPlayer pl, pw
+	db_regPlayer pl, pw
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
 	SIDE-EFFECTS: 	-
-	EXAMPLE: 		regPlayer("Joel", "12345") = ()
+	EXAMPLE: 		db_regPlayer("Joel", "12345") = ()
 *)
-fun regPlayer(pl, pw) = 
+fun db_regPlayer(pl, pw) = 
 	let 
 		exception usernameExists
 	in
-		if findPlayer(pl) = false then
-			addPlayer(pl, pw)
+		if db_findPlayer(pl) = emptyPlayer then
+			db_addPlayer(pl, pw)
 		else
 			 raise usernameExists
 	end;
-	
+
 (*
-	loginPlayer pl, pw
+	db_loginPlayer pl, pw
 	TYPE: 			string * string -> bool
 	PRE: 			(none)
 	POST: 			()
 	SIDE-EFFECTS: 	-
-	EXAMPLE: 		regPlayer("Joel", "12345") = true
+	EXAMPLE: 		db_regPlayer("Joel", "12345") = true
 *)
-fun loginPlayer(pl, pw) =
+fun db_loginPlayer(pl, pw) =
 	let 
-		exception userNotExists
-		exception wrongPwd
 		val player = pl
 		val password = SHA1.hash pw
-		val x = TextIO.openIn "medlemsdatabas.txt"
-		val db = readAll (x, "")
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun loginPlayer'([]) = (TextIO.closeIn x;raise userNotExists)
-		| loginPlayer'(x'::xs') = 
+		fun db_loginPlayer'([]) = (TextIO.closeIn x;false)
+		| db_loginPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then
 				if JSON.toString(JSON.get x' "Pwd") = password then
 					(TextIO.closeIn x;true)
 				else
-					(TextIO.closeIn x;raise wrongPwd)
+					(TextIO.closeIn x;false)
 			else
-				loginPlayer'(xs')
+				db_loginPlayer'(xs')
 			
 	in
-		loginPlayer'(users)
+		db_loginPlayer'(users)
 	end;
 
+
 (*
-	updateMoney pl, m
+	db_updateMoney pl, m
 	TYPE: 			string * int -> unit
 	PRE: 			(none)
 	POST: 			()
 	SIDE-EFFECTS: 	-
-	EXAMPLE: 		updateMoney("Joel", 1500) = ()
+	EXAMPLE: 		db_updateMoney("Joel", 1500) = ()
 *)
-fun updateMoney(pl, m) = 
+fun db_updateMoney(pl, m) = 
 	let 
 		val player = pl
 		val money = m
-		val x = TextIO.openIn "medlemsdatabas.txt"
-		val db = readAll (x, "")
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 
-		fun updateMoney'([], db') = ()
-		| updateMoney'(x::xs, db') = 
+		fun db_updateMoney'([], db') = ()
+		| db_updateMoney'(x::xs, db') = 
 			if JSON.toString(JSON.get x "Name") = player then
 				let
 					val users' = JSON.List ((JSON.update("Cash", (JSON.Int money)) x)::db'@xs)
 					val db = JSON.update ("users", users') db
 					val db = JSON.encode db
 				in
-					renderToFile(db, "medlemsdatabas.txt")
+					db_renderToFile(db, db_Name)
 				end
 			else
-				updateMoney'(xs, x::db')
+				db_updateMoney'(xs, x::db')
 			
 	in
-		updateMoney'(users, [])
+		db_updateMoney'(users, [])
 	end;
-(*
-	chopJsonInt x
-	TYPE: 		T -> int
-	PRE: 		(none)
-	POST:		x as an int. 
-	EXAMPLE:	chopJsonInt[JSON.Int 2] = 2: int
-*)
-fun chopJsonInt (JSON.Int x) = x;
 
 (*
-	chopJsonString x
-	TYPE: 		T -> string
+	db_dropTable()
+	TYPE: 		unit -> unit
 	PRE: 		(none)
-	POST:		x as a string. 
-	EXAMPLE:	chopJsonString[JSON.String "hej"] = "hej": string
+	POST: 		()
+	ExAMPLE: 	db_dropTable() = (): unit
 *)
-fun chopJsonString (JSON.String x) = x; 
+fun db_dropTable() = 
+	let
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
+		val freshTable = "{\"primaryid\":1,\"users\":[]}\n"
+	in
+		db_renderToFile(freshTable, db_Name)
+	end;
+	
+(*
+	db_deletePlayer(pl)
+	TYPE: 		string -> unit
+	PRE: 		(none)
+	POST: 		()
+	ExAMPLE: 	db_deletePlayer("Joel") = (): unit
+*)
+fun db_deletePlayer(pl) = 
+	let 
+		val player = pl
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
+		val db = JSONEncoder.parse(db)
+		val JSON.List users = JSON.get db "users"
+
+		fun db_deletePlayer'([], db') = 
+			let 
+				val db' = JSON.List db'
+				val db = JSON.update ("users", db') db
+				val db = JSON.encode db
+			in
+				db_renderToFile(db, db_Name)
+			end
+				
+		| db_deletePlayer'(x'::xs', db') = 
+			if JSON.toString(JSON.get x' "Name") = player then
+				db_deletePlayer'(xs', db')
+			else
+				db_deletePlayer'(xs', x'::db')
+		
+	in
+		db_deletePlayer'(users, [])
+	end;
+
 
 (*
-	jsonToList()
+	db_jsonToList()
 	TYPE: 		unit -> (string * int) list
 	PRE: 		(none)
 	POST: 		A (string * int) list.
-	EXAMPLE: 	jsonToList() = [("Joel", 1000), ("Krille", 1000)]: (string * int) list
+	EXAMPLE: 	db_jsonToList() = [("Joel", 1000), ("Krille", 1000)]: (string * int) list
 *)
-fun jsonToList() = 
+fun db_jsonToList() = 
 	let 
-		val x = TextIO.openIn "medlemsdatabas.txt"
-		val db = readAll (x, "")
+		val x = TextIO.openIn db_Name
+		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
 		
-		fun jsonToList'([], _) = (TextIO.closeIn x;[])
-		| jsonToList'(x'::xs', n) =
+		fun db_jsonToList'([], _) = (TextIO.closeIn x;[])
+		| db_jsonToList'(x'::xs', n) =
 			let
-				val jName = chopJsonString(JSON.get x' "Name")
-				val jCash = chopJsonInt(JSON.get x' "Cash")
+				val jName = db_chopJsonString(JSON.get x' "Name")
+				val jCash = db_chopJsonInt(JSON.get x' "Cash")
 			in
-				(jName, jCash)::jsonToList'(xs', n+1)
+				(jName, jCash)::db_jsonToList'(xs', n+1)
 			end
 	in 
-		jsonToList'(users, 1)
+		db_jsonToList'(users, 1)
 	end; 
 
+
 (*
-	topList n 
+	db_topList n 
 	TYPE:		int -> (string * int) list
 	PRE:		n > 0 
 	POST:		A (string * int) list.		
-	EXAMPLE: 	topList(10) = [("Joel", "1500"), "Krille", "1000", "Jocke", 1000]
+	EXAMPLE: 	db_topList(10) = [("Joel", 1500), (Krille, 1000), (Jocke, 1000)]
 *)
-fun topList(0) = []
-| topList(n) = 
+
+
+
+fun db_topList(0) = []
+| db_topList(n) = 
 	let
-		(* Returns the first x elements of a list *)
-		fun firstx(A, 0) = nil |
-			firstx(nil, x) = nil |
-			firstx(h::t, 1) = [h] |
-			firstx(h::t, x) = if x > length(h::t) then h::t
-				else h::firstx(t, x - 1);
-
-		(*  Returns the last element of a list *)
-		fun last([]) = nil |
-			last([h]) = [h] |
-			last(h::t) = last(t);
-
-		(* Sorts once *)
-		fun compareloop(L, 1) = nil |
-			compareloop(nil, X) = nil |
-			compareloop([h], X) = [h] |
-			compareloop((p, m)::(p', m')::t, X) = if m<m' then (p', m')::(compareloop((p, m)::t, X-1))
-				else (p, m)::(compareloop((p', m')::t, X-1));
-
-		(*  Performs compareloop X times  *)
-
-		fun sort(A, 0, 0) = nil |
-			sort([h], X, Y) = [h] |
-			sort(nil, X, Y) = nil |
-			sort(h::t, X, 0) = sort(compareloop(h::t, length(h::t) + 1), X, 1) |
-			sort(h::t, X, Y) = if X =Y then compareloop(h::t, length(h::t)+1)@last(t)
-				else sort( compareloop( firstx(h::t, length(t)), length(h::t)), X, Y+1)@last(t);
-		(* Bubblesorts occur*)
-		fun bubblesort(nil) = nil |
-			bubblesort([h]) = [h] |
-			bubblesort(L) = sort(L, length(L)+1, 0);
+		fun quickSort (nil) = nil
+		|   quickSort (l) = 
+			let 
+				val (p, m) = List.nth(l, length(l) div 2)
+	        in
+				quickSort(List.filter(fn (x, y) => y > m)(l)) @ ((p, m) :: quickSort(List.filter(fn (x, y) => y < m)(l)))
+			end;
 		
 		(* Grab the database*)
-		val db = bubblesort(jsonToList())
+		val db = quickSort(db_jsonToList())
 		val lDb = length db
 	in
 		if n > lDb then
 			db
 		else
 			List.take(db, n)		
-	end;
+
+	end;	

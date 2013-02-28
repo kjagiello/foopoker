@@ -110,10 +110,26 @@ app.factory('socket', function ($rootScope) {
 
 function GameController($scope, socket, user) {
     $scope.wallet = 0;
+    $scope.username = user.username;
 
     socket.on('update_money', function (data) {
         $scope.wallet = data.money;
     });
+
+    $scope.call = function () {
+        var msg = "/call";
+        var cmd = msg.substring(1).split(' ');
+
+        socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+    }
+
+    $scope.raise = function () {
+        var msg = "/raise 100";
+        var cmd = msg.substring(1).split(' ');
+
+        socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+    }
+
 }
 
 function ChatController($scope, socket, user) {
@@ -156,6 +172,9 @@ function ChatController($scope, socket, user) {
 function TableController($scope, socket, user) {
     $scope.seats = [];
     $scope.pot = 0;
+    $scope.cards = [];
+    $scope.playerCards = [];
+    $scope.bestHand = "";
 
     for (var i = 0; i < 8; i++) {
         $scope.seats[i] = {id: i}
@@ -164,11 +183,34 @@ function TableController($scope, socket, user) {
     socket.on('update_pot', function (data) {
         $scope.pot = data.pot;
     });
+
+    socket.on('new_card', function (data) {
+        $scope.cards.push(data);
+    });
+
+    socket.on('new_player_card', function (data) {
+        $scope.playerCards.push(data);
+    });
+
+    socket.on('best_hand', function (data) {
+        $scope.bestHand = data.hand;
+    })
 }
 
-function SeatController($scope, $attrs, socket, user) {
+function SeatController($scope, $attrs, $timeout, socket, user) {
     $scope.seatId = $attrs.seatId;
     $scope.user = null;
+    $scope.timerLast = 0;
+    $scope.timer = 100;
+    $scope.timertimerHandle = null;
+
+    $scope.countdown = function(){
+        var v = Math.round(100 / $scope.timerLast);
+        var v = v < 100 ? v : 100;
+
+        $scope.timer = $scope.timer + v;
+        $('.timer').trigger('change');
+    }
 
     socket.on('user_join', function (data) {
         if (data.seat != $scope.seatId)
@@ -184,6 +226,26 @@ function SeatController($scope, $attrs, socket, user) {
         $scope.user = null;
     });
 
+    socket.on('countdown', function (data) {
+        if (data.seat != $scope.seatId) {
+            $scope.timer = 100;
+            return;
+        }
+
+        $timeout.cancel($scope.timerHandle);
+
+        $scope.timer = 0;
+        $scope.timerLast = data.time;
+    });
+
+    $scope.$watch('timer', function (newValue, oldValue) {
+        if ($scope.timer < 100) {
+            $scope.timerHandle = $timeout($scope.countdown, 1000);
+
+            $('.timer').trigger('change');
+        }
+    });
+
     $scope.sitDown = function () {
         $scope.seatId = $attrs.seatId;
         socket.emit('command', {name: 'sit', arguments: $scope.seatId});
@@ -196,7 +258,8 @@ app.directive('seat', function () {
         restrict: 'E',
         scope: {
             seatId: '@',
-            user: '@'
+            user: '@',
+            timer: '@'
         },
         controller: SeatController
     }
@@ -204,9 +267,10 @@ app.directive('seat', function () {
 
 function LoginController($scope, socket, user) {
     $scope.login = function () {
-        user.username = uniqueId(); // prompt('Choose an username');
-
-        socket.emit('login', {username: user.username}, function (message) {
+        user.username = prompt('Choose an username'); //uniqueId(); //
+		user.password = prompt('Choose a password');
+		
+        socket.emit('login', {username: user.username, password: user.password}, function (message) {
             console.log(message.status);
             if (message.status == 'OK') {
                 $('#login-interface').hide();
@@ -215,6 +279,23 @@ function LoginController($scope, socket, user) {
             }
             else {
                 $scope.login();
+            }
+        });
+    }
+
+	$scope.register = function () {
+        user.username = prompt('Choose an username'); //uniqueId(); //
+		user.password = prompt('Choose a password');
+		
+        socket.emit('register', {username: user.username, password: user.password}, function (message) {
+            console.log(message.status);
+            if (message.status == 'OK') {
+                $('#login-interface').hide();
+                $('#game-interface').show();
+                $('body').removeClass('login-interface');
+            }
+            else {
+                $scope.register();
             }
         });
     }

@@ -84,7 +84,7 @@ abstype 'a queue = Queue of 'a list * 'a list
 	(*	
 		bitDeck n 
 		TYPE: 		int -> Word32.word list
-		PRE: 		n = 52
+		PRE: 		n = 51
 		POST: 		A Word32.word list. 
 		EXAMPLE: 	bitDeck(52) = [0wx2, 0wx3, 0wx5, 0wx7, 0wxB, 0wxD, 0wx11, 0wx13, 0wx17, 0wx1D, ...]:
 		   			Word32.word list
