@@ -1,0 +1,116 @@
+@font-face {
+    font-family: "BebasNeueRegular";
+    src: url(../../static/fonts/BebasNeue-webfont.woff) format("woff");
+    src: local('益'),
+        url('../../static/fonts/BebasNeue-webfont.woff') format('woff'),
+        url('../../static/fonts/BebasNeue-webfont.ttf') format('truetype'),
+        url('../../static/fonts/BebasNeue-webfont.svg#webfontE057xtoO') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.rounded-corners (@radius: 5px) {
+  -webkit-border-radius: @radius;
+  -moz-border-radius: @radius;
+  -ms-border-radius: @radius;
+  -o-border-radius: @radius;
+  border-radius: @radius;
+}
+
+.text-shadow (@string: 0px 0px 5px rgba(0, 0, 0, .75)) {
+	text-shadow: @string;
+}
+
+.box-shadow (@string) {
+	-webkit-box-shadow: @string;
+	-moz-box-shadow:    @string;
+	box-shadow:         @string;
+}
+
+.drop-shadow (@x: 0, @y: 1px, @blur: 2px, @spread: 0, @alpha: 0.25) {
+	-webkit-box-shadow:	@x @y @blur @spread rgba(0, 0, 0, @alpha);
+	-moz-box-shadow:	@x @y @blur @spread rgba(0, 0, 0, @alpha);
+	box-shadow:		@x @y @blur @spread rgba(0, 0, 0, @alpha);
+}
+
+.fullscreen() {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+html {
+	.fullscreen;
+}
+
+body {
+	color: #fff;
+}
+
+.doc {
+	.fullscreen;
+}
+
+hr {
+	height: 26px;
+	border: 0;
+	margin: 10px 0;
+	background: url(../../static/img/separator.png) no-repeat 50% 50%;
+}
+
+.btn-shadow {
+	.box-shadow(0 1px 3px rgba(0,0,0,0.5));
+	.text-shadow(1px 1px 3px rgba(0,0,0,0.9));
+}
+
+.btn-wide  {
+	width: 150px;
+}
+
+.spacer {
+	font-size: 20px;
+	margin: 0px 18px;
+	letter-spacing: 2px;
+}
+
+.push-down {
+	margin-top: 20px;
+}
+
+/* logo */
+.login-background {
+	background: url(../../static/img/login-bg.jpg);
+	background-size: cover;
+}
+
+.login-wrapper {
+	position: absolute;
+	top: 48%;
+	text-align: center;
+	font-family: BebasNeueRegular;
+}
+
+.logo {
+	letter-spacing: 5px;
+}
+
+.logo h1 {	
+	font-size: 85px;
+	letter-spacing: 5px;
+	font-weight: normal;
+	.text-shadow;
+}
+
+.logo h2 {	
+	font-size: 20px;
+	letter-spacing: 3px;
+	font-weight: normal;
+	.text-shadow;
+}
+
+/* browser */
+.browser-background {
+	background: url(../../static/img/table-bg.png);
+}
