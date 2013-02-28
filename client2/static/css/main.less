@@ -1,0 +1,207 @@
+@font-face {
+    font-family: "BebasNeueRegular";
+    src: url(../../static/fonts/BebasNeue-webfont.woff) format("woff");
+    src: local('益'),
+        url('../../static/fonts/BebasNeue-webfont.woff') format('woff'),
+        url('../../static/fonts/BebasNeue-webfont.ttf') format('truetype'),
+        url('../../static/fonts/BebasNeue-webfont.svg#webfontE057xtoO') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.rounded-corners (@radius: 5px) {
+  -webkit-border-radius: @radius;
+  -moz-border-radius: @radius;
+  -ms-border-radius: @radius;
+  -o-border-radius: @radius;
+  border-radius: @radius;
+}
+
+.text-shadow (@string: 0px 0px 5px rgba(0, 0, 0, .75)) {
+	text-shadow: @string;
+}
+
+.box-shadow (@string) {
+	-webkit-box-shadow: @string;
+	-moz-box-shadow:    @string;
+	box-shadow:         @string;
+}
+
+.drop-shadow (@x: 0, @y: 1px, @blur: 2px, @spread: 0, @alpha: 0.25) {
+	-webkit-box-shadow:	@x @y @blur @spread rgba(0, 0, 0, @alpha);
+	-moz-box-shadow:	@x @y @blur @spread rgba(0, 0, 0, @alpha);
+	box-shadow:		@x @y @blur @spread rgba(0, 0, 0, @alpha);
+}
+
+.fullscreen() {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+.no-margin {
+	margin: 0;
+}
+
+html {
+	.fullscreen;
+}
+
+body {
+	
+}
+
+.doc {
+	.fullscreen;
+}
+
+hr {
+	height: 26px;
+	border: 0;
+	margin: 10px 0;
+	background: url(../../static/img/separator.png) no-repeat 50% 50%;
+}
+
+.btn-shadow {
+	.box-shadow(0 1px 3px rgba(0,0,0,0.5));
+	.text-shadow(1px 1px 3px rgba(0,0,0,0.9));
+}
+
+.btn-wide  {
+	width: 150px;
+}
+
+.btn-green {
+	background-color: hsl(75, 73%, 33%) !important;
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#b2de2f", endColorstr="#729116");
+	background-image: -khtml-gradient(linear, left top, left bottom, from(#b2de2f), to(#729116));
+	background-image: -moz-linear-gradient(top, #b2de2f, #729116);
+	background-image: -ms-linear-gradient(top, #b2de2f, #729116);
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #b2de2f), color-stop(100%, #729116));
+	background-image: -webkit-linear-gradient(top, #b2de2f, #729116);
+	background-image: -o-linear-gradient(top, #b2de2f, #729116);
+	background-image: linear-gradient(#b2de2f, #729116);
+	border-color: #729116 #729116 hsl(75, 73%, 28%);
+	color: #fff !important;
+	-webkit-font-smoothing: antialiased;
+}
+
+.btn-green:hover {
+	color: #fff;
+}
+
+.btn-orange {
+	background-color: hsl(22, 100%, 39%) !important;
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#fe7a2d", endColorstr="#c64800");
+	background-image: -khtml-gradient(linear, left top, left bottom, from(#fe7a2d), to(#c64800));
+	background-image: -moz-linear-gradient(top, #fe7a2d, #c64800);
+	background-image: -ms-linear-gradient(top, #fe7a2d, #c64800);
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #fe7a2d), color-stop(100%, #c64800));
+	background-image: -webkit-linear-gradient(top, #fe7a2d, #c64800);
+	background-image: -o-linear-gradient(top, #fe7a2d, #c64800);
+	background-image: linear-gradient(#fe7a2d, #c64800);
+	border-color: #c64800 #c64800 hsl(22, 100%, 34%);
+	color: #fff !important;
+	-webkit-font-smoothing: antialiased;
+}
+
+.btn-orange:hover {
+	color: #fff;
+}
+
+.spacer {
+	font-size: 20px;
+	margin: 0px 18px;
+	letter-spacing: 2px;
+}
+
+.push-down {
+	margin-top: 20px;
+}
+
+/* logo */
+.login-background {
+	background: url(../../static/img/login-bg.jpg);
+	background-size: cover;
+}
+
+.login-wrapper {
+	position: absolute;
+	top: 48%;
+	text-align: center;
+	font-family: BebasNeueRegular;
+	color: #fff;
+}
+
+.logo {
+	letter-spacing: 5px;
+	
+	h1 {	
+		font-size: 85px;
+		letter-spacing: 5px;
+		font-weight: normal;
+		.text-shadow;
+	}
+
+	h2 {	
+		font-size: 20px;
+		letter-spacing: 3px;
+		font-weight: normal;
+		.text-shadow;
+	}
+}
+
+/* browser */
+.browser-background {
+	background: url(../../static/img/table-bg.png);
+}
+
+/* userbar */
+.userbar-wrapper {
+	position: absolute;
+	bottom: 0;
+	z-index: 10000;
+	width: 100%;
+}
+
+.userbar {
+	height: 32px;
+	width: 100%;
+	background-color: #1C1D1B;
+	font-size: 12px;
+
+	.element {
+		height: 32px;
+		line-height: 32px;
+		color: #bbb;
+		border-right: solid 1px #2D3229;
+		padding: 0px 10px;
+		float: left;
+		display: inline-block;
+
+		&.pull-right {
+			float: right;
+			border: 0;
+			border-left: solid 1px #2D3229;
+		}
+
+		.avatar {
+			padding: 1px;
+			border: solid 1px #2D3229;
+			display: inline-block;
+			width: 16px;
+			height: 16px;
+			vertical-align: middle;
+			margin-top: -2px;
+			margin-right: 3px;
+
+			img {
+				vertical-align: top;
+			}
+		}
+	}
+}

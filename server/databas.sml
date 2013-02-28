@@ -10,7 +10,22 @@ use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
 
 use "../utils/json.sml";
+
+fun compareloop(L, 1) = nil |
+	compareloop(nil, X) = nil |
+	compareloop([h], X) = [h] |
+	compareloop((p, m)::(p', m')::t, X) = if m<m' then (p', m')::(compareloop((p, m)::t, X-1))
+		else (p, m)::(compareloop((p', m')::t, X-1));
+
 *)
+
+
+
+datatype Dbplayer = Dbplayer of string * int;
+
+val emptyPlayer = Dbplayer("", 0);
+
+val db_Name = "medlemsdatabas.txt";
 
 fun db_readAll (h, acc) = 
     let
@@ -48,18 +63,16 @@ fun db_chopJsonInt (JSON.Int x) = x;
 *)
 fun db_chopJsonString (JSON.String x) = x; 
 
-datatype dbplayer = DBplayer of string * int;
 
-val emptyPlayer = DBplayer("", 0);
 
 (*
 	db_getMoney(db)
-	TYPE: 		dbplayer -> int
+	TYPE: 		Dbplayer -> int
 	PRE: 		(none)
 	POST: 		An int.
 	EXAMPLE: 	
 *)
-fun db_getMoney(DBplayer(pl, m)) = m;
+fun db_getMoney(Dbplayer(pl, m)) = m;
 
 (*
 	db_findPlayer p
@@ -72,7 +85,7 @@ fun db_getMoney(DBplayer(pl, m)) = m;
 fun db_findPlayer(pl) = 
 	let 
 		val player = pl
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -80,7 +93,7 @@ fun db_findPlayer(pl) =
 		fun db_findPlayer'([]) = (TextIO.closeIn x;emptyPlayer)
 		| db_findPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then
-				(TextIO.closeIn x;DBplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;DBplayer(JSON.toString(JSON.get x' "Name"), )*)
+				(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), )*)
 			else
 				db_findPlayer'(xs')
 		
@@ -102,7 +115,7 @@ fun db_addPlayer(pl, pw) =
 		val password = SHA1.hash pw
 		val money = 1000
 		
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -122,7 +135,7 @@ fun db_addPlayer(pl, pw) =
 		val db = JSON.encode db
 		
 	in
-		db_renderToFile(db, "medlemsdatabas.txt")
+		db_renderToFile(db, db_Name)
 	end;
 (*
 	db_regPlayer pl, pw
@@ -154,7 +167,7 @@ fun db_loginPlayer(pl, pw) =
 	let 
 		val player = pl
 		val password = SHA1.hash pw
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -186,7 +199,7 @@ fun db_updateMoney(pl, m) =
 	let 
 		val player = pl
 		val money = m
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -199,7 +212,7 @@ fun db_updateMoney(pl, m) =
 					val db = JSON.update ("users", users') db
 					val db = JSON.encode db
 				in
-					db_renderToFile(db, "medlemsdatabas.txt")
+					db_renderToFile(db, db_Name)
 				end
 			else
 				db_updateMoney'(xs, x::db')
@@ -217,11 +230,11 @@ fun db_updateMoney(pl, m) =
 *)
 fun db_dropTable() = 
 	let
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val freshTable = "{\"primaryid\":1,\"users\":[]}\n"
 	in
-		db_renderToFile(freshTable, "medlemsdatabas.txt")
+		db_renderToFile(freshTable, db_Name)
 	end;
 	
 (*
@@ -234,7 +247,7 @@ fun db_dropTable() =
 fun db_deletePlayer(pl) = 
 	let 
 		val player = pl
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -245,7 +258,7 @@ fun db_deletePlayer(pl) =
 				val db = JSON.update ("users", db') db
 				val db = JSON.encode db
 			in
-				db_renderToFile(db, "medlemsdatabas.txt")
+				db_renderToFile(db, db_Name)
 			end
 				
 		| db_deletePlayer'(x'::xs', db') = 
@@ -268,7 +281,7 @@ fun db_deletePlayer(pl) =
 *)
 fun db_jsonToList() = 
 	let 
-		val x = TextIO.openIn "medlemsdatabas.txt"
+		val x = TextIO.openIn db_Name
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
@@ -293,45 +306,22 @@ fun db_jsonToList() =
 	POST:		A (string * int) list.		
 	EXAMPLE: 	db_topList(10) = [("Joel", 1500), (Krille, 1000), (Jocke, 1000)]
 *)
+
+
+
 fun db_topList(0) = []
 | db_topList(n) = 
 	let
-		(*Bubblesort from:
-		http://www.utdallas.edu/~krw053000/progs/bubblesort.sml*)
-		(* Returns the first x elements of a list *)
-		fun firstx(A, 0) = nil |
-			firstx(nil, x) = nil |
-			firstx(h::t, 1) = [h] |
-			firstx(h::t, x) = if x > length(h::t) then h::t
-				else h::firstx(t, x - 1);
-
-		(*  Returns the last element of a list *)
-		fun last([]) = nil |
-			last([h]) = [h] |
-			last(h::t) = last(t);
-
-		(* Sorts once *)
-		fun compareloop(L, 1) = nil |
-			compareloop(nil, X) = nil |
-			compareloop([h], X) = [h] |
-			compareloop((p, m)::(p', m')::t, X) = if m<m' then (p', m')::(compareloop((p, m)::t, X-1))
-				else (p, m)::(compareloop((p', m')::t, X-1));
-
-		(*  Performs compareloop X times  *)
-
-		fun sort(A, 0, 0) = nil |
-			sort([h], X, Y) = [h] |
-			sort(nil, X, Y) = nil |
-			sort(h::t, X, 0) = sort(compareloop(h::t, length(h::t) + 1), X, 1) |
-			sort(h::t, X, Y) = if X =Y then compareloop(h::t, length(h::t)+1)@last(t)
-				else sort( compareloop( firstx(h::t, length(t)), length(h::t)), X, Y+1)@last(t);
-		(* Bubblesorts occur*)
-		fun bubblesort(nil) = nil |
-			bubblesort([h]) = [h] |
-			bubblesort(L) = sort(L, length(L)+1, 0);
+		fun quickSort (nil) = nil
+		|   quickSort (l) = 
+			let 
+				val (p, m) = List.nth(l, length(l) div 2)
+	        in
+				quickSort(List.filter(fn (x, y) => y > m)(l)) @ ((p, m) :: quickSort(List.filter(fn (x, y) => y < m)(l)))
+			end;
 		
 		(* Grab the database*)
-		val db = bubblesort(db_jsonToList())
+		val db = quickSort(db_jsonToList())
 		val lDb = length db
 	in
 		if n > lDb then

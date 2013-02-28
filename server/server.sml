@@ -616,7 +616,7 @@ sig
     val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
 
     val getPlayer           : WebsocketServer.connection -> game ref option
-	val getPlayerById		: int -> game ref
+    val getPlayerById       : int -> game ref
     val getPlayerName       : game ref -> string
     val getMoney            : game ref -> int
     val changeMoney         : game ref * int -> unit
@@ -629,8 +629,8 @@ sig
     val changeStake         : game ref * int -> unit
     val setStake            : game ref * int -> unit
     val getStake            : game ref -> int
-	val getName 			: game ref -> string
-	
+    val getName             : game ref -> string
+    
     val createBoard         : string * int * (int * int) * (int * int) -> unit
     val spectateTable       : game ref * int -> game ref
     val unspectateTable     : game ref -> unit
@@ -751,8 +751,8 @@ struct
         timers := List.filter (fn Timer (x, _, _) => id <> x) (!timers)
       | cancelTimer _ = ()
 
-	fun getPlayerById id =
-		Vector.sub (!playerIndex, id)
+    fun getPlayerById id =
+        Vector.sub (!playerIndex, id)
 
     fun samePlayer (ref (Player {connection=c1, ...}), ref (Player {connection=c2, ...})) =
         WebsocketServer.sameConnection (c1, c2)
@@ -940,7 +940,7 @@ struct
             val _ = money := amount;
             val d = JSON.empty
                  |> JSON.add ("money", JSON.Int (!money))
-			val playerStr = getPlayerName(player)
+            val playerStr = getPlayerName(player)
         in            
             (db_updateMoney(playerStr, amount);sendToAll "update_money" (filterPlayer (!player)) d)
         end
@@ -952,11 +952,11 @@ struct
         in
             sendToBoard board "update_pot" filterAll d
         end
-	
+    
     fun getStake (player as ref (Player {stake=ref stake, ...})) =
         stake
 
-	fun getName (player as ref (Player {name=ref name, ...})) =
+    fun getName (player as ref (Player {name=ref name, ...})) =
         name
 
     fun setStake (player as ref (Player {stake=stake, ...}), amount) =
@@ -1243,16 +1243,16 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
-						val ref name = name
+                        val ref name = name
                         val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
-						val printRank = eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
-						val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
-						
-						val hand = eval_print7hand(c1, c2, c3, c4, c5, c6, c7);
-						val hand = handToString(hand);
-						val strToChat = name^" shows " ^ hand ^": "^printRank^"."
+                        val printRank = eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
+                        val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
+                        
+                        val hand = eval_print7hand(c1, c2, c3, c4, c5, c6, c7);
+                        val hand = handToString(hand);
+                        val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
-						tableMessage (board, strToChat);
+                        tableMessage (board, strToChat);
                         (id, rank, getStake (player))
                     end
                 val chairs = nvectorToList (!chairs)
@@ -1260,62 +1260,62 @@ struct
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
                 val ps = showDown playerList
-				
-				(*
-					printShowDown l
-					TYPE:		sidepot list -> string
-					PRE:		(none)
-					POST:		l in text as a string. 
-					EXAMPLE:	showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
-					 			"0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
-				*)
-				(*
-					INFO: 		Returns information of all the players involved in the sidepot. 
-				*)
+                
+                (*
+                    printShowDown l
+                    TYPE:       sidepot list -> string
+                    PRE:        (none)
+                    POST:       l in text as a string. 
+                    EXAMPLE:    showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
+                                "0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
+                *)
+                (*
+                    INFO:       Returns information of all the players involved in the sidepot. 
+                *)
 
-				fun printShowDown([]) = ""
-				| printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
-					let 
-						val antPlayers = length players
-						val intStr = Int.toString
-						val gamePlayer = getPlayerName(getPlayerById(p))
+                fun printShowDown([]) = ""
+                | printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
+                    let 
+                        val antPlayers = length players
+                        val intStr = Int.toString
+                        val gamePlayer = getPlayerName(getPlayerById(p))
 
-						fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
-						| printShowDown'((p', h', m')::xs, t, rest) =
-							let
-								val gamePlayer' = getPlayerName(getPlayerById(p'))
-							in
-								if xs = [] then
-									gamePlayer'^" "^printShowDown'(xs, t, rest)
-								else
-									gamePlayer'^" and "^printShowDown'(xs, t, rest)
-							end
-					in
-						if antPlayers = 1 then
-							if t <> 0 then
-								gamePlayer^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
-							else
-								""
-						else
-							printShowDown'(players, t, rest)
-					end;
-				
+                        fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+                        | printShowDown'((p', h', m')::xs, t, rest) =
+                            let
+                                val gamePlayer' = getPlayerName(getPlayerById(p'))
+                            in
+                                if xs = [] then
+                                    gamePlayer'^" "^printShowDown'(xs, t, rest)
+                                else
+                                    gamePlayer'^" and "^printShowDown'(xs, t, rest)
+                            end
+                    in
+                        if antPlayers = 1 then
+                            if t <> 0 then
+                                gamePlayer^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+                            else
+                                ""
+                        else
+                            printShowDown'(players, t, rest)
+                    end;
+                
                 val dealerChat = printShowDown ps
 
-				fun sidePotUpd([]) = () 
-				| sidePotUpd(Sidepot(players, t)::spRest) =
-					let
-						fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
-						| sidePotUpd'((p,h,m)::xs, spRest') =
-							let
-								val gamePlayer = getPlayerById(p)
-							in
-								(changeMoney(gamePlayer, m); sidePotUpd'(xs, spRest'))
-							end
-					in
-						sidePotUpd'(players, spRest)
-					end;
-				
+                fun sidePotUpd([]) = () 
+                | sidePotUpd(Sidepot(players, t)::spRest) =
+                    let
+                        fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
+                        | sidePotUpd'((p,h,m)::xs, spRest') =
+                            let
+                                val gamePlayer = getPlayerById(p)
+                            in
+                                (changeMoney(gamePlayer, m); sidePotUpd'(xs, spRest'))
+                            end
+                    in
+                        sidePotUpd'(players, spRest)
+                    end;
+                
             in
                 sidePotUpd(ps);tableMessage (board, dealerChat);
                 ()
@@ -1633,6 +1633,7 @@ struct
                     else
                         raise InvalidMessage
                 end
+          | _ => raise InvalidMessage
 
 
     fun handleMessage (c, opcode, m) =
@@ -1650,46 +1651,63 @@ struct
                 "login" => 
                     let 
                         val username = JSON.toString (JSON.get d "username")
-						val password = JSON.toString (JSON.get d "password")
+                        val password = JSON.toString (JSON.get d "password")
                         val _ = if size username = 0 then raise InvalidMessage else ()
                     in
 
-						if db_loginPlayer(username, password) = true then
-							let
-		                        val player = createPlayer (c, username)
-								val money = db_getMoney(db_findPlayer(username))
-		                        val response = JSON.empty
-		                                    |> JSON.add ("status", JSON.String (if isSome player then "OK" else "error"))
+                        if db_loginPlayer(username, password) = true then
+                            let
+                                val player = createPlayer (c, username)
+                                val money = db_getMoney(db_findPlayer(username))
+                                val response = JSON.empty
+                                            |> JSON.add ("status", JSON.String "OK")
 
-		                        val d1 = JSON.empty
-		                             |> JSON.add ("message", JSON.String (username ^ " has connected."))
-		                             |> JSON.add ("username", JSON.String "Server")
-							in
-                                print "[server]\tClient logged in.";
-					
-                        		sendClientResponse r c response;
+                                val d1 = JSON.empty
+                                     |> JSON.add ("message", JSON.String (username ^ " has connected."))
+                                     |> JSON.add ("username", JSON.String "Server")
+                            in
+                                print "[server]\tClient logged in.\n";
+                    
+                                sendClientResponse r c response;
                         
-		                        case player of
-		                            SOME (player) =>
-		                                let in
-		                                    changeMoney (player, money);
-		                                    sendToAll "server_message" (filterOthers (!player)) d1;
+                                case player of
+                                    SOME (player) =>
+                                        let in
+                                            changeMoney (player, money);
+                                            sendToAll "server_message" (filterOthers (!player)) d1;
 
-		                                    serverMessage (player, "Welcome, " ^ username ^ "!")
-		                                end
-		                          | _ => ()
-							end
-						else
-							print("incorrect password")
+                                            serverMessage (player, "Welcome, " ^ username ^ "!")
+                                        end
+                                  | _ => ()
+                            end
+                        else
+                            let
+                                val response = JSON.empty
+                                            |> JSON.add ("status", JSON.String "wrongpwd")
+                            in
+                                sendClientResponse r c response
+                            end
                     end
-			  | "register" =>
-					let
-						val username = JSON.toString (JSON.get d "username")
-						val password = JSON.toString (JSON.get d "password")
-					in
-						db_regPlayer(username, password) handle usernameExists =>
-							(print "Username does already exist!\n")
-					end
+              | "register" =>
+                    let
+                        val username = JSON.toString (JSON.get d "username")
+                        val password = JSON.toString (JSON.get d "password")
+                    in
+                        (let 
+                            val response = JSON.empty
+                                        |> JSON.add ("status", JSON.String "OK")
+                        in
+                            db_regPlayer(username, password);
+                            sendClientResponse r c response
+                        end)
+                        handle usernameExists =>
+                            let
+                                val response = JSON.empty
+                                        |> JSON.add ("status", JSON.String "nametaken")
+                            in
+                                sendClientResponse r c response
+                            end
+                    end
               | _ => ();
             ()
         end) handle InvalidMessage => (print "invalid message\n");
