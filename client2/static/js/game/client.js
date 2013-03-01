@@ -6,7 +6,33 @@ $(function(){
     $('.modal').on('show', function() { console.log('yo'); }).on('shown', function () {
         console.log($(this));
         $(this).find('input:first').focus();
-    })    
+    });
+
+    $('.expandable').click(function () {
+        $(this).find('.panel').toggle();
+    });
+
+    $('.userbar div[data-toggle="panel"]').click(function () {
+        var target = $($(this).data('target'));
+        var offsetLeft = $(this).position().left;
+        var offsetRight = $(this).parent().outerWidth() - (offsetLeft + $(this).outerWidth());
+
+        $(this).parent().find('div[data-toggle="panel"].expanded').not(this).each(function() {
+            var target = $($(this).data('target'));
+            target.addClass('hide');
+            $(this).removeClass('expanded');
+        })
+
+        target.css($(this).css('float'), ($(this).css('float') == 'right' ? offsetRight : offsetLeft) + 'px');
+
+        if ($(this).hasClass('expanded')) {
+            target.addClass('hide');
+            $(this).removeClass('expanded');
+        } else {
+            target.removeClass('hide');
+            $(this).addClass('expanded');
+        }
+    });
 });
 
 var app = angular.module('foopoker', []);
@@ -132,6 +158,36 @@ function LoginController($scope, $location, socket, user) {
                 });
             }
         });
+    }
+}
+
+function ChatController($scope, socket, user) {
+    $scope.messages = [];
+    $scope.maxLines = 50;
+
+    $scope.addLine = function (username, text) {
+        if (text.length) {
+            if ($scope.messages.length == $scope.maxLines) {
+                $scope.messages.shift();
+            }
+
+            $scope.messages.push({username: username, text: text.split("\n")});
+        }
+    }
+
+    $scope.sendMessage = function () {
+        if ($scope.message.lastIndexOf('/', 0) === 0) {
+            var msg = $scope.message;
+            var cmd = msg.substring(1).split(' ');
+
+            // socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+        }
+        else {
+            // socket.emit('chat', {message: $scope.message});
+            $scope.addLine ("krille", $scope.message);
+        }
+        
+        $scope.message = '';
     }
 }
 
