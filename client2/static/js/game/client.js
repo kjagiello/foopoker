@@ -35,6 +35,10 @@ $(function(){
     });
 });
 
+$(function() {
+        
+});
+
 var app = angular.module('foopoker', []);
 
 app.factory('user', function ($rootScope) {
@@ -197,7 +201,21 @@ function GameController ($scope, user, socket) {
 
 
 function BrowserController($scope) {
+    $scope.$on('$viewContentLoaded', function(){
+        $('.scroll-area').jScrollPane({
+            horizontalGutter:15,
+            verticalGutter:-8,
+            'showArrows': false
+        });
 
+        $('.jspDrag').hide();
+        $('.jspScrollable').mouseenter(function(){
+            $(this).find('.jspDrag').stop(true, true).fadeIn('slow');
+        });
+        $('.jspScrollable').mouseleave(function(){
+            $(this).find('.jspDrag').stop(true, true).fadeOut('slow');
+        });
+    });
 }
 
 app.config(['$routeProvider', function($routeProvider) {

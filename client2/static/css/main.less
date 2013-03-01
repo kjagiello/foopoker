@@ -189,6 +189,44 @@ hr {
     }
 }
 
+/*scrollpane custom CSS*/
+.jspVerticalBar {
+    width: 8px;
+    background: transparent;
+    right: 3px;
+}
+ 
+.jspHorizontalBar {
+    bottom: 5px;
+    width: 100%;
+    height: 8px;
+    background: transparent;
+}
+.jspTrack {
+    background: transparent;
+}
+ 
+.jspDrag {
+    background: rgba(0, 0, 0, 0.7);
+    -webkit-border-radius:4px;
+    -moz-border-radius:4px;
+    border-radius:4px;
+}
+ 
+.jspHorizontalBar .jspTrack,
+.jspHorizontalBar .jspDrag {
+    float: left;
+    height: 100%;
+}
+ 
+.jspCorner {
+    display:none
+}
+
+div {
+    outline: 0 !important;
+}
+
 /* browser */
 .browser-background {
     background: url(../../static/img/table-bg.png);
@@ -369,11 +407,15 @@ hr {
 #browser {
     position: absolute;
     top: 50%;
-    margin-top: -275px;
+    margin-top: -166px;
     left: 0;
     right: 0;
 
     .content {
-        height: 500px;
+        height: 332px;
+
+        .server-list {
+            height: 264px;
+        }
     }
 }
