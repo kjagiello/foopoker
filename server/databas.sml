@@ -18,9 +18,6 @@ fun compareloop(L, 1) = nil |
 		else (p, m)::(compareloop((p', m')::t, X-1));
 
 *)
-
-
-
 datatype Dbplayer = Dbplayer of string * int;
 
 val emptyPlayer = Dbplayer("", 0);
@@ -93,7 +90,7 @@ fun db_findPlayer(pl) =
 		fun db_findPlayer'([]) = (TextIO.closeIn x;emptyPlayer)
 		| db_findPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then
-				(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))(*(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), )*)
+				(TextIO.closeIn x;Dbplayer(JSON.toString(JSON.get x' "Name"), db_chopJsonInt(JSON.get x' "Cash")))
 			else
 				db_findPlayer'(xs')
 		
@@ -298,7 +295,6 @@ fun db_jsonToList() =
 		db_jsonToList'(users, 1)
 	end; 
 
-
 (*
 	db_topList n 
 	TYPE:		int -> (string * int) list
@@ -306,9 +302,6 @@ fun db_jsonToList() =
 	POST:		A (string * int) list.		
 	EXAMPLE: 	db_topList(10) = [("Joel", 1500), (Krille, 1000), (Jocke, 1000)]
 *)
-
-
-
 fun db_topList(0) = []
 | db_topList(n) = 
 	let

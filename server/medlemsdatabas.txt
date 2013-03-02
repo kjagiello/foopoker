@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 {"primaryid":6,"users":[{"Pwd":"_Üüü2áâÔ(Í$È’5	˜Ï¦ü","Name":"krille","ID":3,"Cash":1000},{"Pwd":"é×^çÉ-mÉé/ý­¸½IA˜","Name":"a","ID":2,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"test","ID":1,"Cash":1000},{"Pwd":"´D¬a?ÈÖ7•¾šÐ¾¯U6¬","Name":"test1","ID":4,"Cash":1000},{"Pwd":"HÚ¿±¼l¬5³¢L«/øDµ°Ç","Name":"joel","ID":5,"Cash":1000}]}
+=======
+{"primaryid":1,"users":[]}
+>>>>>>> New showdown (not ready yet though)
