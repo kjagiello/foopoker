@@ -218,8 +218,36 @@ function BrowserController($scope) {
     });
 }
 
+function RoomController($scope) {
+    $scope.$on('$viewContentLoaded', function(){
+        $('.seat').click(function () {
+            var table = $(this).parent('.poker-table');
+            var cards = $(this).find('.card');
+            var tablePos = $(table).offset();
+            var cardsPos = $(cards).offset();
+
+            var relX = $(table).offset().left - $(cards).offset().left + ($(table).width() / 2) - ($(cards).width() / 2);
+            var relY = $(table).offset().top - $(cards).offset().top + ($(table).height() / 2) - ($(cards).width() / 2) - 160;
+
+            console.log(tablePos, cardsPos, relY, relX);
+
+            $(this).toggleClass('folded');
+
+            if ($(this).hasClass('folded')) {
+                cards.animate({
+                    left: $(cards).position().left + relX, 
+                    top: $(cards).position().top + relY
+                }, function () {
+                    $(cards).fadeOut(function () { $(this).remove(); });
+                });
+            }
+        });
+    });
+}
+
 app.config(['$routeProvider', function($routeProvider) {
     $routeProvider.when('/', {templateUrl: 'static/templates/login.html', controller: LoginController}).
     when('/browser', {templateUrl: 'static/templates/browser.html', controller: BrowserController}).
+    when('/room/:id', {templateUrl: 'static/templates/room.html', controller: RoomController}).
     otherwise({redirectTo: '/'});
 }]);
