@@ -54,6 +54,14 @@
                 </div>
                 <form class="no-margin" ng-submit="sendMessage()" ng-submit=""><input type="text" class="no-margin" placeholder="Type here..." ng-model="message" /></form>
               </div>
+
+              <div class="game-ui">
+                <button>FOLD <i class="icon-remove icon-white"></i></button>
+                <button>CALL <i class="icon-ok icon-white"></i></button>
+                <button>RAISE <i class="icon-arrow-up icon-white"></i></button>
+              </div>
+
+              <div class="text">Best hand: Pair of Aces</div>
             </div>
           </div>
         </div>
@@ -61,6 +69,8 @@
     </div>
 
     <script src="http://code.jquery.com/jquery.js"></script>
+    <!-- temporary -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/jquery-ui.min.js"></script>
 
     <script src="static/js/jquery.mousewheel.js"></script>
     <script src="static/js/jquery.jscrollpane.min.js"></script>
