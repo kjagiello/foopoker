@@ -45,6 +45,12 @@
     box-shadow:         @string;
 }
 
+.backface-visibility (@string) {
+    -webkit-backface-visibility: @string;
+    -moz-backface-visibility:    @string;
+    backface-visibility:         @string;
+}
+
 .transform (@string) {
     transform: @string;
     -ms-transform: @string;
@@ -97,6 +103,7 @@ body {
 
 .doc {
     .fullscreen;
+    .backface-visibility(hidden);
 }
 
 hr {
@@ -463,7 +470,7 @@ div {
         height: 95px;
         background: url(../../static/img/seat-taken.png) no-repeat 50% 50%;
         position: absolute;
-        -webkit-backface-visibility: hidden;
+        .backface-visibility(hidden);
 
         -webkit-transition: all 0.25s linear;
         -webkit-filter: grayscale(0%) brightness(0%);
@@ -482,11 +489,7 @@ div {
 
         &.folded {
             -webkit-filter: grayscale(100%) brightness(-10%);
-            opacity: 0.75;
-
-            .avatar {
-                opacity: 0.5;
-            }
+            opacity: 0.70;
         }
 
         &.active {
@@ -512,23 +515,31 @@ div {
             position: absolute;
             left: 75px;
             top: -25px;
+            perspective: 1000;
+
+            &.reverse {
+                .transform(rotateY(180deg));
+            }
 
             .card {
                 position: absolute;
                 top: -15px;
                 .box-shadow(0px 0px 8px 3px rgba(0, 0, 0, 0.2));
-                -webkit-backface-visibility: hidden;
             }
 
             .card:first-child {
                 .transform(scale(0.60,0.60) rotate(-12deg));
                 left: 0px;
+                z-index: 900;
+                perspective: 900;
             }
 
             .card:last-child {
                 .transform(scale(0.60,0.60) rotate(0deg));
                 top: -20px;
                 left: 10px;
+                z-index: 1000;
+                perspective: 500;
             }
         }
 
@@ -582,62 +593,77 @@ div {
     height: 91px;
     display: inline-block;
     margin-right: 2px;
+    position: relative;
+    -webkit-transform-style: preserve-3d;
 
-    &.c2h { background-position: 0px 0px; }
-    &.c3h { background-position: -67px 0px; }
-    &.c4h { background-position: -134px 0px; }
-    &.c5h { background-position: -201px 0px; }
-    &.c6h { background-position: -268px 0px; }
-    &.c7h { background-position: -335px 0px; }
-    &.c8h { background-position: -402px 0px; }
-    &.c9h { background-position: -469px 0px; }
-    &.cTh { background-position: -536px 0px; }
-    &.cJh { background-position: -603px 0px; }
-    &.cQh { background-position: -670px 0px; }
-    &.cKh { background-position: -737px 0px; }
-    &.cAh { background-position: -804px 0px; }
+    .back, .face {
+        background: url(../../static/img/cards.png);
+        position: absolute;
+        width: 65px;
+        height: 91px;
+        -webkit-transform-style: preserve-3d;
+        .backface-visibility(hidden);
+        opacity: 0.9999;
+    }
 
-    &.c2s { background-position: 0px -94px; }
-    &.c3s { background-position: -67px -94px; }
-    &.c4s { background-position: -134px -94px; }
-    &.c5s { background-position: -201px -94px; }
-    &.c6s { background-position: -268px -94px; }
-    &.c7s { background-position: -335px -94px; }
-    &.c8s { background-position: -402px -94px; }
-    &.c9s { background-position: -469px -94px; }
-    &.cTs { background-position: -536px -94px; }
-    &.cJs { background-position: -603px -94px; }
-    &.cQs { background-position: -670px -94px; }
-    &.cKs { background-position: -737px -94px; }
-    &.cAs { background-position: -804px -94px; }
+    .back { 
+        background-position: 0px -370px; 
+        .transform(rotateY(180deg));
+    }
 
-    &.c2d { background-position: 0px -186px; }
-    &.c3d { background-position: -67px -186px; }
-    &.c4d { background-position: -134px -186px; }
-    &.c5d { background-position: -201px -186px; }
-    &.c6d { background-position: -268px -186px; }
-    &.c7d { background-position: -335px -186px; }
-    &.c8d { background-position: -402px -186px; }
-    &.c9d { background-position: -469px -186px; }
-    &.cTd { background-position: -536px -186px; }
-    &.cJd { background-position: -603px -186px; }
-    &.cQd { background-position: -670px -186px; }
-    &.cKd { background-position: -737px -186px; }
-    &.cAd { background-position: -804px -186px; }
+    &.c2h .face { background-position: 0px 0px; }
+    &.c3h .face { background-position: -67px 0px; }
+    &.c4h .face { background-position: -134px 0px; }
+    &.c5h .face { background-position: -201px 0px; }
+    &.c6h .face { background-position: -268px 0px; }
+    &.c7h .face { background-position: -335px 0px; }
+    &.c8h .face { background-position: -402px 0px; }
+    &.c9h .face { background-position: -469px 0px; }
+    &.cTh .face { background-position: -536px 0px; }
+    &.cJh .face { background-position: -603px 0px; }
+    &.cQh .face { background-position: -670px 0px; }
+    &.cKh .face { background-position: -737px 0px; }
+    &.cAh .face { background-position: -804px 0px; }
 
-    &.c2c { background-position: 0px -278px; }
-    &.c3c { background-position: -67px -278px; }
-    &.c4c { background-position: -134px -278px; }
-    &.c5c { background-position: -201px -278px; }
-    &.c6c { background-position: -268px -278px; }
-    &.c7c { background-position: -335px -278px; }
-    &.c8c { background-position: -402px -278px; }
-    &.c9c { background-position: -469px -278px; }
-    &.cTc { background-position: -536px -278px; }
-    &.cJc { background-position: -603px -278px; }
-    &.cQc { background-position: -670px -278px; }
-    &.cKc { background-position: -737px -278px; }
-    &.cAc { background-position: -804px -278px; }
+    &.c2s .face { background-position: 0px -94px; }
+    &.c3s .face { background-position: -67px -94px; }
+    &.c4s .face { background-position: -134px -94px; }
+    &.c5s .face { background-position: -201px -94px; }
+    &.c6s .face { background-position: -268px -94px; }
+    &.c7s .face { background-position: -335px -94px; }
+    &.c8s .face { background-position: -402px -94px; }
+    &.c9s .face { background-position: -469px -94px; }
+    &.cTs .face { background-position: -536px -94px; }
+    &.cJs .face { background-position: -603px -94px; }
+    &.cQs .face { background-position: -670px -94px; }
+    &.cKs .face { background-position: -737px -94px; }
+    &.cAs .face { background-position: -804px -94px; }
 
-    &.reverse { background-position: 0px -370px; }
+    &.c2d .face { background-position: 0px -186px; }
+    &.c3d .face { background-position: -67px -186px; }
+    &.c4d .face { background-position: -134px -186px; }
+    &.c5d .face { background-position: -201px -186px; }
+    &.c6d .face { background-position: -268px -186px; }
+    &.c7d .face { background-position: -335px -186px; }
+    &.c8d .face { background-position: -402px -186px; }
+    &.c9d .face { background-position: -469px -186px; }
+    &.cTd .face { background-position: -536px -186px; }
+    &.cJd .face { background-position: -603px -186px; }
+    &.cQd .face { background-position: -670px -186px; }
+    &.cKd .face { background-position: -737px -186px; }
+    &.cAd .face { background-position: -804px -186px; }
+
+    &.c2c .face { background-position: 0px -278px; }
+    &.c3c .face { background-position: -67px -278px; }
+    &.c4c .face { background-position: -134px -278px; }
+    &.c5c .face { background-position: -201px -278px; }
+    &.c6c .face { background-position: -268px -278px; }
+    &.c7c .face { background-position: -335px -278px; }
+    &.c8c .face { background-position: -402px -278px; }
+    &.c9c .face { background-position: -469px -278px; }
+    &.cTc .face { background-position: -536px -278px; }
+    &.cJc .face { background-position: -603px -278px; }
+    &.cQc .face { background-position: -670px -278px; }
+    &.cKc .face { background-position: -737px -278px; }
+    &.cAc .face { background-position: -804px -278px; }
 }
