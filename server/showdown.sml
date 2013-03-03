@@ -136,101 +136,118 @@ fun showDown([]) = []
 	end;
 	
 	
-(*
-if allin then create sidepot
 
-IpSidepot([(0, 50), (1, 50), (2, 50)], 0, false)
-IpSidepot([(3, 20)], 20, false)
-
-val a = [IpSidepot([(0, 50), (1, 50), (2, 50)], 0, false)]: ipsidepot list
-
-val b = mkIpSidepot(a, 3, 20) = [IpSidepot([(0, 30), (1, 30), (2, 30)], 0, false), 
-						 		 IpSidepot([(0, 20), (1, 20), (2, 20), (3, 20)], 20, false)]
-						
-val c = mkIpSidepot(b, 4, 40) = [IpSidepot([(0, 10), (1, 10), (2, 10)], 0, false), 
-						 		 IpSidepot([(0, 20), (1, 20), (2, 20), (3, 20), (4, 20)], 20, true), 
-								 IpSidepot([(0, 20), (1, 20), (2, 20), (4, 20)], 40, true)]
-
-if length a > 1 then
-
-For every call/raise:
-
-Algoritm: 
-1. Finns jag i n? 
-2. Om nej => 
-3. Är m >= sidopotten lägg mig i sidopotten, och gå till n+1. Om m < sidopotten, skapa en ny sidopott med m'-m och en med m. 
-4. Om ja => gå till n+1
-
-*)
 datatype ipsidepot = IpSidepot of int * (int * int * int) list * int * bool;
 
 val emptyIpSidepot = IpSidepot(0, [], 0, false);
 
+(*
+	mkSidepot l, id, h, m, full
+	TYPE: 		ipsidepot list * int * int * int * bool -> ipsidepot list
+	PRE:		m >= 0
+	POST: 		
+	EXAMPLE: 	
+*)
 fun mkSidepot([], _, _, _, _) = []
 | mkSidepot(l as iSp::xs, id, h, m, full) =
 	let 
-		(*Find player*)
-		fun findPlayer(pl''', id''') =
+		(*
+			findPlayer pl, id
+			TYPE:		(int*int*int) list * int -> bool
+			PRE:
+			POST:
+			EXAMPLE:
+		*)
+		fun findPlayer(pl, id') =
 			let
 				fun findPlayer'([], _) = false 
-				| findPlayer'((id''', h''', m''')::xs''', id'') =
-					if id'' = id''' then
+				| findPlayer'((id'', h'', m'')::xs, id') =
+					if id'' = id' then
 						true
 					else
-						findPlayer'(xs''', id'')
+						findPlayer'(xs, id')
 			in
-				findPlayer'(pl''', id''')
+				findPlayer'(pl, id')
 			end
-		
-		(*Update numbers*)
-		fun updNr(l', nr'') =
+		(*
+			updNr l, nr
+			TYPE:		ipsidepot list * int -> ipsidepot list
+			PRE:
+			POST:
+			EXAMPLE:
+		*)
+		fun updNr(l', nr) =
 			let
 				fun updNr'([], _) = [] 
-				| updNr'((iSp'' as IpSidepot(nr'', pl'', pot'', full''))::xs, nr''') =
-					if nr'' <= nr''' then
-						iSp'' :: updNr'(xs, nr''')
+				| updNr'((iSp' as IpSidepot(nr', pl', pot', full'))::xs, nr) =
+					if nr' <= nr' then
+						iSp' :: updNr'(xs, nr)
 					else
-						IpSidepot(nr''+1, pl'', pot'', full'') :: updNr'(xs, nr''')
+						IpSidepot(nr'+1, pl', pot', full') :: updNr'(xs, nr)
 			in
-				updNr'(l', nr'')
-			end
-		(*Change old sidepot*)
-		fun chOldSidepot(IpSidepot(nr''', pl''', pot''', full'''), id'', h'', m'', full'''') =
-			let
-				fun chOldSidepot'([], id''', h''', m''') = [(id''', h''', m''')]
-				| chOldSidepot'((id'''', h'''', m'''')::xs'''', id''', h''', m''') =
-					if m'''' >= m''' then
-						(id'''', h'''', m''')::chOldSidepot'(xs'''', id''', h''', m''')
-					else
-						(id'''', h'''', m'''')::chOldSidepot'(xs'''', id''', h''', m''')
-			in
-				IpSidepot(nr''', chOldSidepot'(pl''', id'', h'', m''), m'', full'''')
-			end
-			
-		(*Make new sidepot*)
-		fun mkNewSidepot(IpSidepot(nr''', pl''', pot''', full'''), m'') =
-			let
-				fun mkNewSidepot'([], m''') = []
-				| mkNewSidepot'((id'''', h'''', m'''')::xs'''', m''') =
-					(id'''', h'''', m''''-m''')::mkNewSidepot'(xs'''', m''')
-			in
-				IpSidepot(nr'''+1, mkNewSidepot'(pl''', m''), pot'''-m'', false)
+				updNr'(l', nr)
 			end
 		
+		(*
+			chOldSidepot s, id, h, m, full
+			TYPE:		ipsidepot * int * int * int * bool -> ipsidepot
+			PRE:
+			POST:
+			EXAMPLE:
+		*)
+		fun chOldSidepot(IpSidepot(nr'', pl'', pot'', full''), id', h', m', full') =
+			let
+				fun chOldSidepot'([], id', h', m') = [(id', h', m')]
+				| chOldSidepot'((id'', h'', m'')::xs'', id', h', m') =
+					if m'' >= m' then
+						(id'', h'', m')::chOldSidepot'(xs'', id', h', m')
+					else
+						(id'', h'', m'')::chOldSidepot'(xs'', id', h', m')
+			in
+				IpSidepot(nr'', chOldSidepot'(pl'', id', h', m'), m', full')
+			end
+		(*
+			mkNewSidepot s, m
+			TYPE:		ipsidepot * -> ipsidepot
+			PRE:
+			POST:
+			EXAMPLE:
+		*)
+		fun mkNewSidepot(IpSidepot(nr'', pl'', pot'', full''), m') =
+			let
+				fun mkNewSidepot'([], m''') = []
+				| mkNewSidepot'((id'', h'', m'')::xs'', m') =
+					(id'', h'', m''-m')::mkNewSidepot'(xs'', m')
+			in
+				IpSidepot(nr''+1, mkNewSidepot'(pl'', m'), pot''-m', false)
+			end
+		(*
+			mkFull s, m
+			TYPE:		ipsidepot list * bool -> ipsidepot list
+			PRE:
+			POST:
+			EXAMPLE:
+		*)		
 		fun mkFull([], _) = []
 		| mkFull(IpSidepot(nr'', pl'', pot'', full'')::xs, full') = 
 			if xs <> [] then
 				IpSidepot(nr'', pl'', pot'', full')::mkFull(xs, full')
 			else
 				IpSidepot(nr'', pl'', pot'', false)::mkFull(xs, full')
-
-			(*
-			Algoritm: 
-			1. Finns jag i n? 
-			2. Om nej => 
-			3. Är m >= sidopotten lägg mig i sidopotten, och gå till n+1. Om m < sidopotten, skapa en ny sidopott med m'-m och en med m. 
-			4. Om ja => gå till n+1
-			*)
+		(*
+			mkSidepot' l, id, h, m
+			TYPE:		ipsidepot list * int * int * int -> ipsidepot list
+			PRE:		m > 0
+			POST:
+			EXAMPLE:
+		*)
+		(*
+		Algoritm: 
+		1. Finns jag i n? 
+		2. Om nej => 
+		3. Är m >= sidopotten lägg mig i sidopotten, och gå till n+1. Om m < sidopotten, skapa en ny sidopott med m'-m och en med m. 
+		4. Om ja => gå till n+1
+		*)
 		
 		fun mkSidepot'([], iSp' as IpSidepot(nr', pl', pot', full'), id, h, m) = 
 			if full' = false then
@@ -264,7 +281,10 @@ fun mkSidepot([], _, _, _, _) = []
 				(print("5b. ");IpSidepot(nr', pl', pot', full')::mkSidepot'(xs, iSp', id, h, m))
 		
 	in
-		mkFull(mkSidepot'(xs, iSp, id, h, m), full)
+		if full = true then
+			mkFull(mkSidepot'(xs, iSp, id, h, m), full)
+		else
+			mkSidepot'(xs, iSp, id, h, m)
 	end;
 	
 val a = mkSidepot([emptyIpSidepot], 0, 9999, 1000, true);
