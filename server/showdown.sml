@@ -169,15 +169,6 @@ val emptyIpSidepot = IpSidepot(0, [], 0, false);
 fun mkSidepot([], _, _, _, _) = []
 | mkSidepot(l as iSp::xs, id, h, m, full) =
 	let 
-		(*Sorts a falling list*)
-		fun quickSort (nil) = nil
-		|   quickSort (l') = 
-			let 
-				val IpSidepot(nr'', pl'', pot'', full'') = List.nth(l', length(l') div 2)
-		    in
-				quickSort(List.filter(fn IpSidepot(v, x, y, z) => v < nr'')(l')) @ (IpSidepot(nr'', pl'', pot'', full'') :: quickSort(List.filter(fn IpSidepot(v, x, y, z) => v > nr'')(l')))
-			end
-		
 		(*Find player*)
 		fun findPlayer(pl''', id''') =
 			let
@@ -217,15 +208,22 @@ fun mkSidepot([], _, _, _, _) = []
 			end
 			
 		(*Make new sidepot*)
-		fun mkNewSidepot(IpSidepot(nr''', pl''', pot''', full'''), m'', full'''') =
+		fun mkNewSidepot(IpSidepot(nr''', pl''', pot''', full'''), m'') =
 			let
 				fun mkNewSidepot'([], m''') = []
 				| mkNewSidepot'((id'''', h'''', m'''')::xs'''', m''') =
 					(id'''', h'''', m''''-m''')::mkNewSidepot'(xs'''', m''')
 			in
-				IpSidepot(nr'''+1, mkNewSidepot'(pl''', m''), pot'''-m'', full'''')
+				IpSidepot(nr'''+1, mkNewSidepot'(pl''', m''), pot'''-m'', false)
 			end
 		
+		fun mkFull([], _) = []
+		| mkFull(IpSidepot(nr'', pl'', pot'', full'')::xs, full') = 
+			if xs <> [] then
+				IpSidepot(nr'', pl'', pot'', full')::mkFull(xs, full')
+			else
+				IpSidepot(nr'', pl'', pot'', false)::mkFull(xs, full')
+
 			(*
 			Algoritm: 
 			1. Finns jag i n? 
@@ -234,42 +232,49 @@ fun mkSidepot([], _, _, _, _) = []
 			4. Om ja => gå till n+1
 			*)
 		
-		fun mkSidepot'([], iSp' as IpSidepot(nr', pl', pot', full'), id, h, m, full) = 
-		
-		if findPlayer(pl', id) = true then 
-			(print("1a. ");iSp'::[])
-		else
-			if m = pot' then
-				(print("2a. ");IpSidepot(nr', (id, h, m)::pl', pot', full')::[])
-			else if m > pot' then
-				(print("3a. ");IpSidepot(nr', (id, h, if pot' <> 0 then pot' else m)::pl', if pot' <> 0 then pot' else m, full')::IpSidepot(nr'+1, [(id, h, m-pot')], m-pot', full)::[])		
-			else
-				(print("4a. ");chOldSidepot(iSp', id, h, m, full)::mkNewSidepot(iSp', m, full)::[])
-		
-		| mkSidepot'(l as iSp'::xs, iSp as IpSidepot(nr', pl', pot', full'), id, h, m, full) =		
-		
-			if findPlayer(pl', id) = true then 
-				(print("1b. ");iSp::mkSidepot'(xs, iSp', id, h, m, full))
-			else
-				if m = pot' then
-					(print("2b. ");IpSidepot(nr', (id, h, m)::pl', pot', full')::xs)
-				else if m > pot' then
-					(print("3b. ");IpSidepot(nr', (id, h, if pot' <> 0 then pot' else m)::pl', if pot' <> 0 then pot' else m, full')::mkSidepot'(xs, iSp', id, h, m-pot', full))		
+		fun mkSidepot'([], iSp' as IpSidepot(nr', pl', pot', full'), id, h, m) = 
+			if full' = false then
+				if findPlayer(pl', id) = true then 
+					(print("1a. ");IpSidepot(nr', pl', pot', full')::[])
 				else
-					(print("4b. ");chOldSidepot(iSp, id, h, m, full)::mkNewSidepot(iSp, m, full)::updNr(l, nr'))
+					if m = pot' then
+						(print("2a. ");IpSidepot(nr', (id, h, m)::pl', pot', full')::[])
+					else if m > pot' then
+						if pot' <> 0 then
+							(print("3a1. ");IpSidepot(nr', (id, h, pot')::pl', pot', full')::IpSidepot(nr'+1, [(id, h, m-pot')], m-pot', false)::[])		
+						else
+							(print("3a2. ");IpSidepot(nr', (id, h, m)::pl', m, false)::[])
+					else
+						(print("4a. ");chOldSidepot(iSp', id, h, m, full')::mkNewSidepot(iSp', m)::[])
+			else
+				(print("5a. ");iSp'::[])
+				
+		| mkSidepot'(l as iSp'::xs, iSp as IpSidepot(nr', pl', pot', full'), id, h, m) =		
+			if full' = false then
+				if findPlayer(pl', id) = true then 
+					(print("1b. ");IpSidepot(nr', pl', pot', full')::mkSidepot'(xs, iSp', id, h, m))
+				else
+					if m = pot' then
+						(print("2b. ");IpSidepot(nr', (id, h, m)::pl', pot', full')::xs)
+					else if m > pot' then
+						(print("3b. ");IpSidepot(nr', (id, h, if pot' <> 0 then pot' else m)::pl', if pot' <> 0 then pot' else m, full')::mkSidepot'(xs, iSp', id, h, m-pot'))		
+					else
+						(print("4b. ");chOldSidepot(iSp, id, h, m, full')::mkNewSidepot(iSp, m)::updNr(l, nr'))
+			else
+				(print("5b. ");IpSidepot(nr', pl', pot', full')::mkSidepot'(xs, iSp', id, h, m))
 		
 	in
-		mkSidepot'(xs, iSp, id, h, m, full)
+		mkFull(mkSidepot'(xs, iSp, id, h, m), full)
 	end;
 	
-val a = mkSidepot([emptyIpSidepot], 0, 9999, 1000, false);
-val b = mkSidepot(a, 1, 9999, 500, false); 
+val a = mkSidepot([emptyIpSidepot], 0, 9999, 1000, true);
+val b = mkSidepot(a, 1, 9999, 500, true); 
 val c = mkSidepot(b, 2, 9999, 200, false); 
 val d = mkSidepot(c, 3, 9999, 1000, false); 
 val e = mkSidepot(d, 4, 9999, 1500, false); 
 val f = mkSidepot(e, 5, 9999, 1200, false); 
 val g = mkSidepot(f, 6, 9999, 1500, false); 
-val h = mkSidepot(g, 3, 9999, 500, false); 
+val h = mkSidepot(g, 3, 9999, 500, true); 
 (*
 
 0 1000 allin 
