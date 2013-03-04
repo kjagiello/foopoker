@@ -180,7 +180,7 @@ fun mkSidepot([], _, _, _, _) = []
 			let
 				fun updNr'([], _) = [] 
 				| updNr'((iSp' as IpSidepot(nr', pl', pot', full'))::xs, nr) =
-					if nr' <= nr' then
+					if nr' < nr' then
 						iSp' :: updNr'(xs, nr)
 					else
 						IpSidepot(nr'+1, pl', pot', full') :: updNr'(xs, nr)
@@ -287,14 +287,38 @@ fun mkSidepot([], _, _, _, _) = []
 			mkSidepot'(xs, iSp, id, h, m)
 	end;
 	
-val a = mkSidepot([emptyIpSidepot], 0, 9999, 1000, true);
-val b = mkSidepot(a, 1, 9999, 500, true); 
+val a = mkSidepot([emptyIpSidepot], 0, 9999, 1000, false);
+val b = mkSidepot(a, 1, 9999, 500, false); 
 val c = mkSidepot(b, 2, 9999, 200, false); 
 val d = mkSidepot(c, 3, 9999, 1000, false); 
 val e = mkSidepot(d, 4, 9999, 1500, false); 
 val f = mkSidepot(e, 5, 9999, 1200, false); 
 val g = mkSidepot(f, 6, 9999, 1500, false); 
-val h = mkSidepot(g, 3, 9999, 500, true); 
+val h = mkSidepot(g, 3, 9999, 500, true);(* *)
+
+fun updateHands([], _) = []
+| updateHands(x::xs, l') = 
+	let 
+		fun updateHands'(IpSidepot(nr, pl, pot, full), xs'', xs') = 
+			let
+				fun updateHands''([], (id'', h'')::xs''', new) = 
+					if xs''' <> [] then
+						updateHands''(new, xs''', [])
+					else
+						new
+				| updateHands''((id''', h''', m''')::xs'''', l'' as (id'', h'')::xs''', new) = 
+					if id''' = id'' then
+						updateHands''(xs'''', l'', (id''', h'', m''')::new)
+					else
+						updateHands''(xs'''', l'', (id''', h''', m''')::new)
+			in
+				IpSidepot(nr, updateHands''(pl, xs'', []), pot, full)::updateHands(xs', xs'')
+			end
+	in
+		updateHands'(x, l', xs)
+	end;
+val i = [(6, 1), (5, 1)];
+updateHands(h, i);
 (*
 
 0 1000 allin 
