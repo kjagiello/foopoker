@@ -38,11 +38,13 @@ $(function(){
 
 var app = angular.module('foopoker', []);
 
-app.factory('user', function ($rootScope) {
+app.factory('user', function ($rootScope, $location) {
     var userService = {};
 
     userService.username = '';
-    userService.roomId = null;
+    userService.isInRoom = function () {
+        $location.path().lastIndexOf('/room/', 0) === 0
+    }
 
     return userService;
 });
@@ -258,7 +260,7 @@ function BrowserController($scope, $location, socket) {
     }
 }
 
-function SeatController($scope, $attrs, $timeout, socket, user) {
+function SeatController($scope, $attrs, $timeout, $location, socket, user) {
     $scope.seatId = $attrs.seatId;
     $scope.user = null;
     $scope.timerLast = 0;

@@ -45,13 +45,13 @@
                 <chat chat-type="server">
               </div>
 
-              <div class="game-ui">
+              <div class="game-ui" ng-show="isInRoom">
                 <button>FOLD <i class="icon-remove icon-white"></i></button>
                 <button>CALL <i class="icon-ok icon-white"></i></button>
                 <button>RAISE <i class="icon-arrow-up icon-white"></i></button>
               </div>
 
-              <div class="text">Best hand: Pair of Aces</div>
+              <div class="text" ng-show="isInRoom">Best hand: Pair of Aces</div>
             </div>
           </div>
         </div>
