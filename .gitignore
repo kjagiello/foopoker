@@ -2,3 +2,4 @@ isaplib/heaps/*
 *.tmproj
 psds/
 .DS_Store
+node_modules/
