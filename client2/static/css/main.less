@@ -652,8 +652,20 @@ div {
                 top: 0;
             }
 
+            .text {
+                width: 90px;
+                font-weight: bold;
+                color: #ffeb0e;
+                position: absolute;
+                top: -24px;
+                font-size: 10px;
+                left: 0;
+                text-align: center !important;
+                .text-shadow();
+            }
+
             &.reverse {
-                .stake {
+                .stake, .text {
                     right: 0;
                     left: auto;
                     text-align: right;
