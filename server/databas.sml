@@ -10,13 +10,6 @@ use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
 
 use "../utils/json.sml";
-
-fun compareloop(L, 1) = nil |
-	compareloop(nil, X) = nil |
-	compareloop([h], X) = [h] |
-	compareloop((p, m)::(p', m')::t, X) = if m<m' then (p', m')::(compareloop((p, m)::t, X-1))
-		else (p, m)::(compareloop((p', m')::t, X-1));
-
 *)
 datatype Dbplayer = Dbplayer of string * int;
 
