@@ -1,0 +1,86 @@
+<div class="doc login-background">
+  <div class="container">
+    <div class="row">
+      <div class="span4 offset2">
+        <div class="login-wrapper">
+          <div class="logo">
+            <h1>FOOPOKER</h1>
+            <h2>Make money. Get rich. Live the dream</div>
+            <hr />
+            <div class="push-down">
+              <button class="btn btn-green btn-large btn-shadow btn-wide" data-toggle="modal" data-target="#login-modal">Login</button>
+              <span class="spacer">or</span>
+              <button class="btn btn-orange btn-large btn-shadow btn-wide" data-toggle="modal" data-target="#register-modal">Register now</button>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-modal" class="modal hide">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+      <h3>Login</h3>
+    </div>
+    <form class="form-horizontal no-margin" ng-submit="login()">
+      <div class="modal-body">
+        <div class="alert alert-error" ng-show="!!loginError">
+          {{ loginError }}
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="inputEmail">Username</label>
+          <div class="controls">
+            <input type="text" ng-model="loginData.username" name="username" placeholder="Username" required>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="inputPassword">Password</label>
+          <div class="controls">
+            <input type="password" ng-model="loginData.password" name="password" placeholder="Password" required>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="controls">
+            <label class="checkbox">
+              <input type="checkbox"> Remember me
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a href="#" class="btn" data-dismiss="modal" aria-hidden="true">Close</a>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="register-modal" class="modal hide">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+      <h3>Register</h3>
+    </div>
+    <form class="form-horizontal no-margin" ng-submit="register()">
+      <div class="modal-body">
+        <div class="alert alert-error" ng-show="!!registerError">
+          {{ registerError }}
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="inputEmail">Username</label>
+          <div class="controls">
+            <input type="text" ng-model="registerData.username" name="username" placeholder="Username" required>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="inputPassword">Password</label>
+          <div class="controls">
+            <input type="password" ng-model="registerData.password" name="password" placeholder="Password" required>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a href="#" class="btn" data-dismiss="modal" aria-hidden="true">Close</a>
+        <button type="submit" class="btn btn-primary">Register</button>
+      </div>
+    </form>
+  </div>
+</div>
