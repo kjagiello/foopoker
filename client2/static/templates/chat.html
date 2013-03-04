@@ -1,0 +1,6 @@
+<div class="chatbox-wrapper">
+  <div class="chatbox">
+    <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: <span class="text-line" ng-repeat="l in m.text">{{l}}</div>
+  </div>
+</div>
+<form class="no-margin" ng-submit="sendMessage()" ng-submit=""><input type="text" class="no-margin" placeholder="Type here..." ng-model="message" /></form>

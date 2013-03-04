@@ -1,0 +1,26 @@
+<div class="seat seat-{{ seatId }}">
+    <div class="avatar" style="background-image: url({{ avatar }});"></div>
+    <div class="cards">
+        <div class="card c2c">
+            <div class="face"></div>
+            <div class="back"></div>
+        </div>
+        <div class="card c2c">
+            <div class="face"></div>
+            <div class="back"></div>
+        </div>
+    </div>
+    <div class="table-space reverse">
+        <div class="stake">
+            <div class="chips">
+            </div>
+        </div>
+        <div class="button"></div>
+    </div>
+    <div class="progress progress-striped progress-success active">
+        <div class="info center" ng-show="!!folded">FOLDED</div>
+        <div class="bar" ng-show="!!turn" style="width: 40%;"></div>
+    </div>
+    <div class="name">{{ name }}</div>
+    <div class="stake">ALL IN</div>
+</div>

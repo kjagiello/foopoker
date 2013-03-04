@@ -13,7 +13,7 @@
   <body ng-app="foopoker" class="fullscreen" ng-controller="GameController">
     <div class="fullscreen" ng-view></div>
     
-    <div class="userbar-wrapper" ng-show="!!user">
+    <div class="userbar-wrapper" ng-show="!!user.username">
       <div class="container">
         <div class="row">
           <div class="span12">
@@ -32,27 +32,17 @@
                 Chat
               </div>
               
-              <div class="element pull-right clickable" data-toggle="panel" data-target="#table-chat">
+              <div class="element pull-right clickable" data-toggle="panel" data-target="#table-chat" ng-show="!!user.roomId">
                 Table chat
               </div>
               
 
               <div id="table-chat" class="chat panel hide" ng-controller="ChatController">
-                <div class="chatbox-wrapper">
-                  <div class="chatbox">
-                    <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: <span class="text-line" ng-repeat="l in m.text">{{l}}</div>
-                  </div>
-                </div>
-                <form class="no-margin" ng-submit="sendMessage()" ng-submit=""><input type="text" class="no-margin" placeholder="Type here..." ng-model="message" /></form>
+                <chat chat-type="table">
               </div>
 
               <div id="server-chat" class="chat panel hide" ng-controller="ChatController">
-                <div class="chatbox-wrapper">
-                  <div class="chatbox">
-                    <div class="chat-line" ng-repeat="m in messages"><span class="chat-name">{{m.username}}</span>: <span class="text-line" ng-repeat="l in m.text">{{l}}</div>
-                  </div>
-                </div>
-                <form class="no-margin" ng-submit="sendMessage()" ng-submit=""><input type="text" class="no-margin" placeholder="Type here..." ng-model="message" /></form>
+                <chat chat-type="server">
               </div>
 
               <div class="game-ui">

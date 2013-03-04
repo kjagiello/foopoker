@@ -612,8 +612,8 @@ sig
     val send                : game ref list -> string -> (game -> bool) -> JSON.T -> unit
     val sendToAll           : string -> (game -> bool) -> JSON.T -> unit
     val sendToBoard         : game ref -> string -> (game -> bool) -> JSON.T -> unit
-    val sendResponse        : string -> (game -> bool) -> JSON.T -> unit
     val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
+    val sendResponse        : string -> game ref -> JSON.T -> unit
 
     val getPlayer           : WebsocketServer.connection -> game ref option
     val getPlayerById       : int -> game ref
@@ -777,6 +777,7 @@ struct
 
     fun filterBoardPlayers (ref (Board {spectators=spectators, ...})) f =
         filterRefList (!spectators) f
+      | filterBoardPlayers (_) _ = []
 
     fun filterBoardChairs (ref (Board {chairs=chairs, ...})) f =
         filterRefList (nvectorToList (!chairs)) f
@@ -846,13 +847,6 @@ struct
             send (filterBoardPlayers b filterAll) e f d 
         end
 
-    fun sendResponse r f d =
-        let
-            val d = JSON.update ("ref", JSON.String r) d
-        in
-            sendToAll "" f d
-        end
-
     fun sendClientResponse r c d =
         let
             val d = JSON.update ("ref", JSON.String r) d
@@ -862,6 +856,9 @@ struct
         in
             WebsocketServer.send (c, 1, d)
         end
+
+    fun sendResponse r (ref (Player {connection=c, ...})) d =
+        sendClientResponse r c d
     
     fun createPlayer (connection, name) =
         let
@@ -991,6 +988,7 @@ struct
             val d = JSON.empty
                  |> JSON.add ("message", JSON.String (message))
                  |> JSON.add ("username", JSON.String "Server")
+                 |> JSON.add ("chatType", JSON.String "server")
         in
             sendToAll "server_message" (filterPlayer (!player)) d
         end
@@ -1000,6 +998,7 @@ struct
             val d = JSON.empty
                  |> JSON.add ("message", JSON.String (message))
                  |> JSON.add ("username", JSON.String "Table")
+                 |> JSON.add ("chatType", JSON.String "table")
         in
             sendToBoard board "server_message" filterAll d
         end
@@ -1606,22 +1605,26 @@ struct
               | _ => raise InvalidCommand
         end
 
-        fun handleEvent (player as (ref (Player {name=ref username, ...})), (e, r, d)) =
+        fun handleEvent (player as (ref (Player {name=ref username, board=board, ...})), (e, r, d)) =
         case e of 
             "chat" => 
                 let 
-                    val d = JSON.add ("username", JSON.String username) d
+                    val d = JSON.update ("username", JSON.String username) d
                 in
-                    if not (JSON.hasKeys (d, ["message"])) then
+                    if not (JSON.hasKeys (d, ["message", "chatType"])) then
                         raise InvalidMessage
                     else 
                         let 
                             val message = JSON.toString (JSON.get d "message")
+                            val chatType = JSON.toString (JSON.get d "chatType")
                         in
                             if size message = 0 orelse size message > 128 then
                                 raise InvalidMessage
                             else
-                                sendToAll "chat" filterAll d
+                                (case chatType of
+                                    "server" => sendToAll 
+                                  | "table" => sendToBoard board
+                                  | _ => raise InvalidMessage) "server_message" filterAll d
                         end
                 end
           | "command" =>
@@ -1632,6 +1635,65 @@ struct
                             handle InvalidCommand => ()
                     else
                         raise InvalidMessage
+                end
+          | "rooms" =>
+                let
+                    fun serializeBoard (board as ref (Board {
+                        name=name, 
+                        id=id, 
+                        smallBlind=smallBlind,
+                        bigBlind=bigBlind,
+                        chairs=ref chairs,
+                        spectators=ref spectators,
+                        ...
+                    })) =
+                    let 
+                        val playersCount = getTakenChairsCount board
+                        val spectatorsCount = length spectators - playersCount
+                        val r = JSON.empty
+                             |> JSON.add ("id", JSON.Int id)
+                             |> JSON.add ("name", JSON.String name)
+                             |> JSON.add ("sb", JSON.Int smallBlind)
+                             |> JSON.add ("bb", JSON.Int bigBlind)
+                             |> JSON.add ("maxPlayers", JSON.Int (Vector.length chairs))
+                             |> JSON.add ("players", JSON.Int playersCount)
+                             |> JSON.add ("spectators", JSON.Int spectatorsCount)
+                    in
+                        r
+                    end
+
+                    val d = JSON.empty
+                         |> JSON.add ("rooms", JSON.List (map serializeBoard (!boards)))
+                in
+                    sendResponse r player d
+                end
+          | "enter" => 
+                let
+                in
+                    if not (JSON.hasKeys (d, ["id"])) then
+                        raise InvalidMessage
+                    else
+                        let 
+                            val id = JSON.get d "id"
+                        in
+                            case id of
+                                JSON.Int id => 
+                                    let 
+                                        val (ref board) = spectateTable (player, id)
+                                    in
+                                        case board of
+                                            Board {name=name, ...} =>
+                                            let 
+                                                val d = JSON.empty
+                                                     |> JSON.add ("status", JSON.String "OK")
+                                            in
+                                                serverMessage (player, "You have joined \"" ^ name ^ "\".");
+                                                sendResponse r player d
+                                            end
+                                          | _ => raise InvalidMessage
+                                    end
+                              | _ => raise InvalidMessage
+                        end
                 end
           | _ => raise InvalidMessage
 

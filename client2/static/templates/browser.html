@@ -16,19 +16,13 @@
               </tr>
             </thead>
               <tbody>
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-                <tr> <td>Superroom</td> <td>5/10</td> <td>8/8</td> <td>150</td> <td>&raquo;</td> </tr> 
-
+                <tr ng-repeat="r in rooms" ng-click="enter(r.id)">
+                  <td>{{ r.name }}</td>
+                  <td>${{ r.sb }}/${{ r.bb }}</td>
+                  <td>{{ r.players }}/{{ r.maxPlayers }}</td>
+                  <td>{{ r.spectators }}</td>
+                  <td>&raquo;</td>
+                </tr>
               </tbody>
             </table>
           </div>

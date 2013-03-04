@@ -35,9 +35,6 @@ $(function(){
     });
 });
 
-$(function() {
-        
-});
 
 var app = angular.module('foopoker', []);
 
@@ -45,6 +42,7 @@ app.factory('user', function ($rootScope) {
     var userService = {};
 
     userService.username = '';
+    userService.roomId = null;
 
     return userService;
 });
@@ -134,6 +132,8 @@ function LoginController($scope, $location, socket, user) {
         }, function (message) {
             if (message.status == 'OK') {
                 $('.modal').modal('hide');
+                user.username = $scope.loginData.username;
+
                 $scope.$apply(function () {
                     $location.path('/browser');
                 });
@@ -165,9 +165,17 @@ function LoginController($scope, $location, socket, user) {
     }
 }
 
-function ChatController($scope, socket, user) {
+function ChatController($scope, $attrs, socket, user) {
     $scope.messages = [];
     $scope.maxLines = 50;
+    $scope.chatType = $attrs.chatType;
+
+    console.log($scope.chatType);
+
+    socket.on('server_message', function (data) {
+        if (data.chatType == $scope.chatType)
+            $scope.addLine(data.username, data.message);
+    });
 
     $scope.addLine = function (username, text) {
         if (text.length) {
@@ -184,23 +192,35 @@ function ChatController($scope, socket, user) {
             var msg = $scope.message;
             var cmd = msg.substring(1).split(' ');
 
-            // socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
+            socket.emit('command', {name: cmd[0], arguments: cmd[1] || ""});
         }
         else {
-            // socket.emit('chat', {message: $scope.message});
-            $scope.addLine ("krille", $scope.message);
+            socket.emit('chat', {message: $scope.message, chatType: $scope.chatType});
         }
         
         $scope.message = '';
     }
 }
 
+app.directive('chat', function () {
+    return {
+        templateUrl: 'static/templates/chat.html',
+        restrict: 'E',
+        scope: {
+            chatType: '@'
+        },
+        controller: ChatController
+    }
+})
+
 function GameController ($scope, user, socket) {
     $scope.user = user;
 }
 
 
-function BrowserController($scope) {
+function BrowserController($scope, $location, socket) {
+    $scope.rooms = [];
+
     $scope.$on('$viewContentLoaded', function(){
         $('.scroll-area').jScrollPane({
             horizontalGutter:15,
@@ -215,8 +235,96 @@ function BrowserController($scope) {
         $('.jspScrollable').mouseleave(function(){
             $(this).find('.jspDrag').stop(true, true).fadeOut('slow');
         });
+
+        $scope.loadRooms();
     });
+
+    $scope.loadRooms = function () {
+        socket.emit('rooms', {}, function (message) {
+            $scope.$apply(function () {
+                $scope.rooms = message.rooms;
+            });
+        });
+    }
+
+    $scope.enter = function (id) {
+        console.log('entering room: ', id);
+
+        socket.emit('enter', {'id': id}, function (message) {
+            $scope.$apply(function () {
+                $location.path('/room/' + id);
+            });
+        });
+    }
 }
+
+function SeatController($scope, $attrs, $timeout, socket, user) {
+    $scope.seatId = $attrs.seatId;
+    $scope.user = null;
+    $scope.timerLast = 0;
+    $scope.timer = 100;
+    $scope.timertimerHandle = null;
+    $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
+
+    $scope.countdown = function(){
+        var v = Math.round(100 / $scope.timerLast);
+        var v = v < 100 ? v : 100;
+
+        $scope.timer = $scope.timer + v;
+        $('.timer').trigger('change');
+    }
+
+    socket.on('user_join', function (data) {
+        if (data.seat != $scope.seatId)
+            return;
+
+        $scope.user = data.user;
+    });
+
+    socket.on('user_leave', function (data) {
+        if (data.seat != $scope.seatId)
+            return;
+
+        $scope.user = null;
+    });
+
+    socket.on('countdown', function (data) {
+        if (data.seat != $scope.seatId) {
+            $scope.timer = 100;
+            return;
+        }
+
+        $timeout.cancel($scope.timerHandle);
+
+        $scope.timer = 0;
+        $scope.timerLast = data.time;
+    });
+
+    $scope.$watch('timer', function (newValue, oldValue) {
+        if ($scope.timer < 100) {
+            $scope.timerHandle = $timeout($scope.countdown, 1000);
+
+            $('.timer').trigger('change');
+        }
+    });
+
+    $scope.sitDown = function () {
+        $scope.seatId = $attrs.seatId;
+        socket.emit('command', {name: 'sit', arguments: $scope.seatId});
+    }
+}
+
+app.directive('seat', function () {
+    return {
+        templateUrl: 'static/templates/seat.html',
+        restrict: 'E',
+        scope: {
+            seatId: '@',
+            user: '@'
+        },
+        controller: SeatController
+    }
+})
 
 function RoomController($scope) {
     $scope.$on('$viewContentLoaded', function(){
