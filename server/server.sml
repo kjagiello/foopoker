@@ -1379,7 +1379,7 @@ struct
                 *)
 
                 fun printShowDown([]) = ""
-                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t, f)::rest) = 
+                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t, a, f)::rest) = 
                     let 
                         val antPlayers = length players
                         val intStr = Int.toString
@@ -1412,7 +1412,7 @@ struct
                 val dealerChat = printShowDown ps
 
                 fun sidePotUpd([]) = () 
-                | sidePotUpd(Sidepot(nr, players, t, f)::spRest) =
+                | sidePotUpd(Sidepot(nr, players, t, a, f)::spRest) =
                     let
                         fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
                         | sidePotUpd'((p,h,m)::xs, spRest') =
@@ -1570,15 +1570,14 @@ struct
                     changeStake (player, tAmount);
 
                     if getMoney (player) <= 0 then
-                    let in
-                        setPlayerState (player, PlayerAllIn);
-                        syncPlayer player
-                    end
+	                    let in
+	                        setPlayerState (player, PlayerAllIn);
+	                        syncPlayer player;
+							sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, true, false)
+	                    end
                     else
-                        ();
-
-					sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, false);
-                    setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
+                        sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, false, false);();
+						setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
 
                 end
             else
@@ -1612,14 +1611,14 @@ struct
                     changeStake (player, maxBet);
 
                     if getMoney (player) <= 0 then
-                    let in
-                        setPlayerState (player, PlayerAllIn);
-                        syncPlayer player;
-					    sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, false)
-                    end
+	                    let in
+	                        setPlayerState (player, PlayerAllIn);
+	                        syncPlayer player;
+						    sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, true, false)
+	                    end
                     else
-                        ();
-                    setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
+                        sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, false, false);();
+                    	setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
                 end
             else
                 serverMessage (player, "Not your turn.")
