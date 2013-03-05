@@ -1383,8 +1383,8 @@ struct
                     end;*)
                 
             in
-                sidePotUpd(ps);
-                tableMessage (board, dealerChat);
+                (*sidePotUpd(ps);
+                tableMessage (board, dealerChat);*)
                 ()
                 
                 (* TODO: we need delay preflop here *)
