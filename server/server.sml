@@ -694,6 +694,7 @@ struct
             bigBlind: int,
             minBuyIn: int,
             maxBuyIn: int,
+			sidePotList: sidepot list ref,
             chairs: game ref vector ref,
             state: tableState ref,
             deck: Word32.word queue ref,
@@ -842,6 +843,7 @@ struct
     fun getPlayerName (ref (Player {name=ref name, ...})) =
         name
 
+
     fun send l e f d =
         let
             val players = filterRefList l f
@@ -910,6 +912,7 @@ struct
                 bigBlind=bb,
                 minBuyIn=minb,
                 maxBuyIn=maxb,
+				sidePotList=ref [],
                 chairs=ref (Vector.tabulate(s, fn _ => ref Null)),
                 state=ref TableIdle,
                 deck=ref empty,
@@ -1188,7 +1191,7 @@ struct
               | _ => ()
         end
       
-      | handleTableEvent (board as (ref (Board {chairs=chairs, smallBlind=smallBlind, deck=deck, cards=cards, lastBet=lastBet, ...})), StateChanged (TablePreFlop)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, smallBlind=smallBlind, sidePotList=sidePotList, deck=deck, cards=cards, lastBet=lastBet, ...})), StateChanged (TablePreFlop)) = 
             let 
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull
@@ -1199,7 +1202,7 @@ struct
                 if playersCount >= 2 then
                     let 
                         val newDeck = shuffleDeck 51
-
+						val startSidepot = [emptySidepot]
                         fun resetPlayer (p as ref (Player {cards=cards, state=state, ...})) =
                             let in
                                 setPlayerState (p, PlayerIdle);
@@ -1216,6 +1219,7 @@ struct
                         tableMessage (board, "Shuffling cards, drinking beer. Pre-flop coming.");
 
                         (* reset table *)
+						sidePotList := startSidepot;
                         deck := newDeck;
                         cards := [];
                         lastBet := 0;
@@ -1311,7 +1315,7 @@ struct
                 setTableState (board, TableBet (TableShowdown, BetNormal, 0, 0, 0))
             end
 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableShowdown)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, sidePotList=sidePotList, ...})), StateChanged (TableShowdown)) = 
             let 
                 fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, name=name, id=id, ...})) =
                     let
@@ -1327,13 +1331,14 @@ struct
                         val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
                         tableMessage (board, strToChat);
-                        (id, rank, getStake (player))
+                        (id, rank)
                     end
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterInGame
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
-                (*val ps = showDown playerList
+                val ps = showDown (updateHands((!sidePotList), playerList))
+
                 
                 (*
                     printShowDown l
@@ -1348,7 +1353,7 @@ struct
                 *)
 
                 fun printShowDown([]) = ""
-                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t)::rest) = 
+                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t, f)::rest) = 
                     let 
                         val antPlayers = length players
                         val intStr = Int.toString
@@ -1381,7 +1386,7 @@ struct
                 val dealerChat = printShowDown ps
 
                 fun sidePotUpd([]) = () 
-                | sidePotUpd(Sidepot(players, t)::spRest) =
+                | sidePotUpd(Sidepot(nr, players, t, f)::spRest) =
                     let
                         fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
                         | sidePotUpd'((p,h,m)::xs, spRest') =
@@ -1392,11 +1397,11 @@ struct
                             end
                     in
                         sidePotUpd'(players, spRest)
-                    end;*)
+                    end;
                 
             in
-                (*sidePotUpd(ps);
-                tableMessage (board, dealerChat);*)
+                sidePotUpd(ps);
+                tableMessage (board, dealerChat);
                 ();
                 
                 (* TODO: we need delay preflop here *)
@@ -1508,9 +1513,10 @@ struct
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
             betTimer=betTimer,
+			sidePotList=sidePotList,
             state=ref (TableBet (nextState, betType, startPosition, position, maxBet)),
             ...
-        })), PlayerCall (player as (ref (Player ({state=ref PlayerInGame, ...}))))) =
+        })), PlayerCall (player as (ref (Player ({state=ref PlayerInGame, id=id,...}))))) =
         let
             val amount = maxBet
             val realPosition = position mod (Vector.length (!chairs))
@@ -1536,8 +1542,10 @@ struct
                     changeMoney (player, ~tAmount);
                     changeMoney (board, tAmount);
                     changeStake (player, tAmount);
+					sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, false);
                     PolyML.print realPosition;
                     setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
+
                 end
             else
                 serverMessage (player, "Not your turn.")
