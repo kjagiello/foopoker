@@ -140,7 +140,6 @@ abstype 'a queue = Queue of 'a list * 'a list
 		INFO: 		Makes a queue out of a list. For use in the shuffled deck. 
 	*)
 	fun makeQDeck(x::xs) = Queue([x], xs);
-	
 	(*
 		shuffleDeck n
 		TYPE: 		int -> Word32.word queue

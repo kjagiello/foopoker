@@ -11,12 +11,38 @@ use "../utils/sha1.sml";
 
 use "../utils/json.sml";
 *)
+(* 
+	REPRESENTATION CONVENTION: 	Dbplayer(name, money): Represents a player
+	 							where name is the player's name and money
+								is the player's money in a database.
+								
+	REPRESENTATION INVARIANT: 	No dublicates of name. 
+								money >= 0 
+*)
 datatype Dbplayer = Dbplayer of string * int;
 
+(*
+	emptyPlayer
+	TYPE: 		Dbplayer
+	VALUE: 		An empty Dbplayer. 
+*)
 val emptyPlayer = Dbplayer("", 0);
 
+(*
+	db_Name
+	TYPE: 		string
+	VALUE: 		A file name. 
+*)
 val db_Name = "medlemsdatabas.txt";
 
+(*
+	db_readAll (h, a)
+	TYPE: 			TextIO.instream * string -> string
+	PRE:			
+	POST:			h as a string and a as start value.
+	SIDE-EFFECTS: 	
+	EXAMPLE:		
+*)
 fun db_readAll (h, acc) = 
     let
         val s = TextIO.inputLine h
@@ -26,7 +52,14 @@ fun db_readAll (h, acc) =
              | NONE       => acc
     end
 
-
+(*
+	db_renderToFile(q, n)
+	TYPE:			string * string -> unit
+	PRE:			n is a real file. 
+	POST:			()
+	SIDE-EFFECTS: 	
+	EXAMPLE:		db_renderToFile("test", "test.txt") = ()
+*)
 fun db_renderToFile(qt, name) =
 	    let
 	        val h = TextIO.openOut name
@@ -37,24 +70,20 @@ fun db_renderToFile(qt, name) =
 
 (*
 	db_chopJsonInt x
-	TYPE: 		T -> int
+	TYPE: 		JSON.T -> int
 	PRE: 		(none)
 	POST:		x as an int. 
 	EXAMPLE:	db_chopJsonInt[JSON.Int 2] = 2: int
 *)
 fun db_chopJsonInt (JSON.Int x) = x;
-
 (*
 	db_chopJsonString x
-	TYPE: 		T -> string
+	TYPE: 		JSON.T -> string
 	PRE: 		(none)
 	POST:		x as a string. 
 	EXAMPLE:	db_chopJsonString[JSON.String "hej"] = "hej": string
 *)
 fun db_chopJsonString (JSON.String x) = x; 
-
-
-
 (*
 	db_getMoney(db)
 	TYPE: 		Dbplayer -> int
@@ -63,7 +92,6 @@ fun db_chopJsonString (JSON.String x) = x;
 	EXAMPLE: 	
 *)
 fun db_getMoney(Dbplayer(pl, m)) = m;
-
 (*
 	db_findPlayer p
 	TYPE: 			string -> bool
@@ -161,7 +189,14 @@ fun db_loginPlayer(pl, pw) =
 		val db = db_readAll (x, "")
 		val db = JSONEncoder.parse(db)
 		val JSON.List users = JSON.get db "users"
-
+		
+		(*
+			db_loginPlayer' l
+			TYPE:		JSON list -> bool
+			PRE:
+			POST:
+			EXAMPLE:
+		*)
 		fun db_loginPlayer'([]) = (TextIO.closeIn x;false)
 		| db_loginPlayer'(x'::xs') = 
 			if JSON.toString(JSON.get x' "Name") = player then

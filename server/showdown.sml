@@ -267,8 +267,7 @@ fun showDown([]) = []
 						winners'(xs, bestPl, bestHa)
 			in
 				winners'(xs, [x], h)
-			end
-		
+			end	
 		(*
 			cashFromPlayers l
 			TYPE:		('a * 'b * int) list -> int

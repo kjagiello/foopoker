@@ -42,7 +42,7 @@ fun sh_removeElement ([], _) = []
 	shuffle l
 	TYPE:		''a list -> ''a list
 	PRE:		(none)
-	POST:		An ''a list with random order of elements.
+	POST:		l as an ''a list with random order of elements.
 	EXAMPLE: 	shuffle([1,2,3,4,5]) = [2,5,4,1,3]: int list
 *)
 (*
