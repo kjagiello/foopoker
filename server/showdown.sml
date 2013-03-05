@@ -12,22 +12,41 @@
 *)
 datatype sidepot = Sidepot of int * (int * int * int) list * int * bool * bool;
 (*
-	emptySidepot
+	sh_emptySidepot
 	TYPE: 		sidepot
 	VALUE: 		An empty sidepot. 
 *)
-val emptySidepot = Sidepot(0, [], 0, false, false);
+val sh_emptySidepot = Sidepot(0, [], 0, false, false);
+
 (*
-	mkSidepot l, id, h, m, full
+	sh_mkFull s, m
+	TYPE:		sidepot list * bool -> sidepot list
+	PRE:		(none)
+	POST:		A new sidepot list. 
+	EXAMPLE:	sh_mkFull([Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, false),
+	    		Sidepot (1, [(0, 1, 500)], 500, false)], true) =
+				[Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, true),
+		    	Sidepot (1, [(0, 1, 500)], 500, false)]: sidepot list
+*)		
+(*VARIANT: length s*)
+fun sh_mkFull([]) = []
+| sh_mkFull(Sidepot(nr'', pl'', pot'', allin'', full'')::xs) = 
+	if allin'' = true then
+		Sidepot(nr'', pl'', pot'', allin'', true)::sh_mkFull(xs)
+	else
+		Sidepot(nr'', pl'', pot'', allin'', full'')::sh_mkFull(xs)
+		
+(*
+	sh_mkSidepot l, id, h, m, full
 	TYPE: 		sidepot list * int * int * int * bool -> sidepot list
 	PRE:		id > 0, h > 0, m > 0
 	POST: 		A new sidepot list updated with (id, h, m) and full. 
-	EXAMPLE: 	mkSidepot([Sidepot(0, [], 0, false)], 0, 1, 500, false) = 
+	EXAMPLE: 	sh_mkSidepot([Sidepot(0, [], 0, false)], 0, 1, 500, false) = 
 				[Sidepot (0, [(0, 1, 500)], 500, false)]: sidepot list
 *)
 (*VARIANT: length l*)
-fun mkSidepot([], _, _, _, _, _) = []
-| mkSidepot(l as iSp::xs, id, h, m, allin, full) =
+fun sh_mkSidepot([], _, _, _, _, _) = []
+| sh_mkSidepot(l as iSp::xs, id, h, m, allin, full) =
 	let 
 		(*
 			findPlayer pl, id
@@ -109,23 +128,7 @@ fun mkSidepot([], _, _, _, _, _) = []
 			in
 				Sidepot(nr''+1, mkNewSidepot'(pl'', m'), pot''-m', allin'', full'')
 			end
-		(*
-			mkFull s, m
-			TYPE:		sidepot list * bool -> sidepot list
-			PRE:		(none)
-			POST:		A new sidepot list where every sidepot is updated with m. 
-			EXAMPLE:	mkFull([Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, false),
-			    		Sidepot (1, [(0, 1, 500)], 500, false)], true) =
-						[Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, true),
-				    	Sidepot (1, [(0, 1, 500)], 500, false)]: sidepot list
-		*)		
-		(*VARIANT: length s*)
-		fun mkFull([]) = []
-		| mkFull(Sidepot(nr'', pl'', pot'', allin'', full'')::xs) = 
-			if allin'' = true then
-				Sidepot(nr'', pl'', pot'', allin'', true)::mkFull(xs)
-			else
-				Sidepot(nr'', pl'', pot'', allin'', full'')::mkFull(xs)
+
 				
 		fun updPlayerMoney([], id', m') = []
 		| updPlayerMoney((id'', h'', m'')::xs'', id', m') =
@@ -141,11 +144,11 @@ fun mkSidepot([], _, _, _, _, _) = []
 			else
 				getPlayerMoney(xs'', id')
 		(*
-			mkSidepot' l, id, h, m
+			sh_mkSidepot' l, id, h, m
 			TYPE:		sidepot list * int * int * int -> sidepot list
 			PRE:		m > 0
 			POST:		A new sidepot list updated with (id, h, m). 
-			EXAMPLE:	mkSidepot'([Sidepot(0, [], 0, false)], 0, 1, 500) = 
+			EXAMPLE:	sh_mkSidepot'([Sidepot(0, [], 0, false)], 0, 1, 500) = 
 						[Sidepot (0, [(0, 1, 500)], 500, false)]: sidepot list
 		*)
 		(*VARIANT: length l*)
@@ -191,41 +194,41 @@ fun mkSidepot([], _, _, _, _, _) = []
 		Sidepot(2, [(3, 9999, 300), (2, 9999, 300)], 300, false, false) ]
 		
 		Testfall 1:
-		val a = mkSidepot([emptySidepot], 0, 9999, 50, true, false);
-		val a = mkSidepot(a, 1, 9999, 50, false, false);
-		val a = mkSidepot(a, 2, 9999, 50, false, true);
-		val a = mkSidepot(a, 1, 9999, 100, false, false);
-		val a = mkSidepot(a, 2, 9999, 200, true, false);
-		val a = mkSidepot(a, 1, 9999, 100, false, false);
+		val a = sh_mkSidepot([emptySidepot], 0, 9999, 50, true, false);
+		val a = sh_mkSidepot(a, 1, 9999, 50, false, false);
+		val a = sh_mkSidepot(a, 2, 9999, 50, false, true);
+		val a = sh_mkSidepot(a, 1, 9999, 100, false, false);
+		val a = sh_mkSidepot(a, 2, 9999, 200, true, false);
+		val a = sh_mkSidepot(a, 1, 9999, 100, false, false);
 		
 		Testfall 2: 
-		val a = mkSidepot([emptySidepot], 0, 9999, 1000, true, false);
-		val a = mkSidepot(a, 1, 9999, 500, false, false);
-		val a = mkSidepot(a, 2, 9999, 500, true, false);
-		val a = mkSidepot(a, 3, 9999, 1000, true, false);
-		val a = mkSidepot(a, 4, 9999, 100, true, false);
-		val a = mkSidepot(a, 1, 9999, 500, false, true);
+		val a = sh_mkSidepot([emptySidepot], 0, 9999, 1000, true, false);
+		val a = sh_mkSidepot(a, 1, 9999, 500, false, false);
+		val a = sh_mkSidepot(a, 2, 9999, 500, true, false);
+		val a = sh_mkSidepot(a, 3, 9999, 1000, true, false);
+		val a = sh_mkSidepot(a, 4, 9999, 100, true, false);
+		val a = sh_mkSidepot(a, 1, 9999, 500, false, true);
 		
 		Testfall 3:
 		print("Pre-Flop:\n");
-		val a = mkSidepot([emptySidepot], 0, 9999, 1000, false, false);
-		val a = mkSidepot(a, 1, 9999, 500, true, false);
-		val a = mkSidepot(a, 2, 9999, 1000, true, false);
-		val a = mkSidepot(a, 3, 9999, 1500, false, false);
-		val a = mkSidepot(a, 4, 9999, 1500, false, false);
-		val a = mkSidepot(a, 5, 9999, 3000, true, false);
-		val a = mkSidepot(a, 6, 9999, 100, true, false);
-		val a = mkSidepot(a, 0, 9999, 2000, false, false);
-		val a = mkSidepot(a, 3, 9999, 1500, false, false);
-		val a = mkSidepot(a, 4, 9999, 1500, false, true);
+		val a = sh_mkSidepot([emptySidepot], 0, 9999, 1000, false, false);
+		val a = sh_mkSidepot(a, 1, 9999, 500, true, false);
+		val a = sh_mkSidepot(a, 2, 9999, 1000, true, false);
+		val a = sh_mkSidepot(a, 3, 9999, 1500, false, false);
+		val a = sh_mkSidepot(a, 4, 9999, 1500, false, false);
+		val a = sh_mkSidepot(a, 5, 9999, 3000, true, false);
+		val a = sh_mkSidepot(a, 6, 9999, 100, true, false);
+		val a = sh_mkSidepot(a, 0, 9999, 2000, false, false);
+		val a = sh_mkSidepot(a, 3, 9999, 1500, false, false);
+		val a = sh_mkSidepot(a, 4, 9999, 1500, false, true);
 		print("Flop:\n");
-		val a = mkSidepot(a, 0, 9999, 1000, false, false);
-		val a = mkSidepot(a, 3, 9999, 1000, false, false);
-		val a = mkSidepot(a, 4, 9999, 1000, false, true);
+		val a = sh_mkSidepot(a, 0, 9999, 1000, false, false);
+		val a = sh_mkSidepot(a, 3, 9999, 1000, false, false);
+		val a = sh_mkSidepot(a, 4, 9999, 1000, false, true);
 		print("Turn:\n");
-		val a = mkSidepot(a, 0, 9999, 2000, true, false);
-		val a = mkSidepot(a, 3, 9999, 4000, false, false);
-		val a = mkSidepot(a, 4, 9999, 4000, false, true);
+		val a = sh_mkSidepot(a, 0, 9999, 2000, true, false);
+		val a = sh_mkSidepot(a, 3, 9999, 4000, false, false);
+		val a = sh_mkSidepot(a, 4, 9999, 4000, false, true);
 		
 		1. Är sidopotten öppen? Om ja, gå till 2. 
 		2. Finns spelaren i potten? Om ja, gå till 3.
@@ -237,7 +240,7 @@ fun mkSidepot([], _, _, _, _, _) = []
 		*)
 		
 		(*Sista sidopotten*)
-		fun mkSidepot'([], iSp' as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) = 
+		fun sh_mkSidepot'([], iSp' as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) = 
 			let
 				val getMoney = getPlayerMoney(pl', id)
 				val newMoney = getMoney + m
@@ -267,7 +270,7 @@ fun mkSidepot([], _, _, _, _, _) = []
 					(print("1h. ");iSp'::Sidepot(nr'+1, [(id, h, m)], m, allin, false)::[])
 			end
 				
-		| mkSidepot'(l as iSp'::xs, iSp as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) =	
+		| sh_mkSidepot'(l as iSp'::xs, iSp as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) =	
 		let
 			val getMoney = getPlayerMoney(pl', id)
 			val newMoney = getMoney + m
@@ -276,78 +279,74 @@ fun mkSidepot([], _, _, _, _, _) = []
 				if getMoney > 0 then (*Player is already in the side pot.*)
 					if getMoney < pot' then (*Player's money in sidepot is less than sidepot*)
 						if newMoney > pot' then (*Player's money is bigger than sidepot. Update player's money and try next sidepot.*)
-							(print("2a. ");Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::mkSidepot'(xs, iSp', id, h, m-pot', allin))
+							(print("2a. ");Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin))
 						else	(*Player's money is smaller than sidepot. Update player's money. *)
 							(print("2b. ");Sidepot(nr', updPlayerMoney(pl', id, newMoney), pot', allin', full')::l)
 					else (*Sidepot is full, try next sidepot*)
-						(print("2c. ");iSp::mkSidepot'(xs, iSp', id, h, m, allin))
+						(print("2c. ");iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin))
 				else (*Player isn't in the side spot*)
 					if m = pot' then (*Money is the same as pot. Add player to sidepot, change allin. Terminate.*)
 						(print("2d. ");Sidepot(nr', (id, h, m)::pl', pot', allin, full')::l)
 					else if m > pot' then (*Money is bigger than pot. Add player and try next sidepot*)
-						(print("2e. ");Sidepot(nr', (id, h, pot')::pl', pot', allin, full')::mkSidepot'(xs, iSp', id, h, m-pot', allin))
+						(print("2e. ");Sidepot(nr', (id, h, pot')::pl', pot', allin, full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin))
 					else (*Money is less than pot. Make a split.*)
 						(print("2f. ");chOldSidepot(iSp, id, h, m, allin)::mkNewSidepot(iSp, m)::updNr(l, nr'))
 				
 			else	(*Sidepot closed*)
-				(print("2g. ");iSp::mkSidepot'(xs, iSp', id, h, m, allin))
+				(print("2g. ");iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin))
 		end
 	in
-		if full = true then
-			(print("\n("^Int.toString(id)^", "^Int.toString(h)^", "^Int.toString(m)^")\n");mkFull(mkSidepot'(xs, iSp, id, h, m, allin)))
-		else
-			(print("\n("^Int.toString(id)^", "^Int.toString(h)^", "^Int.toString(m)^")\n");mkSidepot'(xs, iSp, id, h, m, allin))
+			(print("\n("^Int.toString(id)^", "^Int.toString(h)^", "^Int.toString(m)^")\n");sh_mkSidepot'(xs, iSp, id, h, m, allin))
 	end;
-	
-(*val a = mkSidepot(a, 2, 9999, 100, false, true);*)
+(*val a = sh_mkSidepot(a, 2, 9999, 100, false, true);*)
 (*
-	updateHands l m
+	sh_updateHands l m
 	TYPE: 		sidepot list * (int * int) list -> sidepot list
 	PRE: 		(none)
 	POST: 		A new sidepot list with l updated with the elements in m. 
-	EXAMPLE: 	updateHands([Sidepot (0, [(0, 1, 500)], 500, false)], [(0, 200)]) =
+	EXAMPLE: 	sh_updateHands([Sidepot (0, [(0, 1, 500)], 500, false)], [(0, 200)]) =
 				[Sidepot (0, [(0, 200, 500)], 500, false)]: sidepot list
 *)
 (*VARIANT: length l*)
-fun updateHands([], _) = []
-| updateHands(l, []) = l
-| updateHands(x::xs, l') = 
+fun sh_updateHands([], _) = []
+| sh_updateHands(l, []) = l
+| sh_updateHands(x::xs, l') = 
 	let 
 		(*
-			updateHands'(i, l)
+			sh_updateHands'(i, l)
 			TYPE: 		sidepot * (int * int) list -> sidepot 
 			PRE:		(none)
 			POST:		A new sidepot with i updated with the elements in l. 
-			EXAMPLE: 	updateHands'(Sidepot (0, [(0, 1, 500)], 500, false), [(0, 200)]) =
+			EXAMPLE: 	sh_updateHands'(Sidepot (0, [(0, 1, 500)], 500, false), [(0, 200)]) =
 						Sidepot (0, [(0, 200, 500)], 500, false): sidepot
 		*)
-		fun updateHands'(Sidepot(nr, pl, pot, allin, full), xs'') = 
+		fun sh_updateHands'(Sidepot(nr, pl, pot, allin, full), xs'') = 
 			let
 				(*
-				updateHands'' (pl, h, n)
+				sh_updateHands'' (pl, h, n)
 				TYPE: 		(int * int * int) list * (int * int) list  * (int * int * int) list -> (int * int * int) list
 				PRE: 		(none)
 				POST: 		A new (int * int * int) list n where pl is updated with h. 
-				EXAMPLE: 	updateHands''([(0, 9999, 500), (1, 9999, 500)], [(0, 1), (1, 5)], []) =
+				EXAMPLE: 	sh_updateHands''([(0, 9999, 500), (1, 9999, 500)], [(0, 1), (1, 5)], []) =
 							[(0, 1, 500), (1, 5, 500)]: (int * int * int) list
 				*)
 				(*VARIANT: length pl*)
-				fun updateHands''(_, [], _) = []
-				| updateHands''([], (id'', h'')::xs''', new) = 
+				fun sh_updateHands''(_, [], _) = []
+				| sh_updateHands''([], (id'', h'')::xs''', new) = 
 					if xs''' <> [] then
-						updateHands''(new, xs''', [])
+						sh_updateHands''(new, xs''', [])
 					else
 						new
-				| updateHands''((id''', h''', m''')::xs'''', l'' as (id'', h'')::xs''', new) = 
+				| sh_updateHands''((id''', h''', m''')::xs'''', l'' as (id'', h'')::xs''', new) = 
 					if id''' = id'' then
-						updateHands''(xs'''', l'', (id''', h'', m''')::new)
+						sh_updateHands''(xs'''', l'', (id''', h'', m''')::new)
 					else
-						updateHands''(xs'''', l'', (id''', h''', m''')::new)
+						sh_updateHands''(xs'''', l'', (id''', h''', m''')::new)
 			in
-				Sidepot(nr, updateHands''(pl, xs'', []), pot, allin, full)::updateHands(xs, xs'')
+				Sidepot(nr, sh_updateHands''(pl, xs'', []), pot, allin, full)::sh_updateHands(xs, xs'')
 			end
 	in
-		updateHands'(x, l')
+		sh_updateHands'(x, l')
 	end;
 (*
 	showDown l 
@@ -407,38 +406,38 @@ fun showDown([]) = []
 		fun cashFromPlayers([]) = 0
 		| cashFromPlayers(l as (p, h, m)::xs') = foldr (fn (x,y) => m+y) 0 l
 		(*
-			mkSidePot nr, w, t
+			sh_mkSidepot nr, w, t
 			TYPE:		int * (int * int * 'a) list * int -> sidepot
 			PRE:		t >= 0
 			POST:		A sidepot from nr, w and t. 
-			EXAMPLE:	mkSidepot(0, [(0, 1, 500), (1, 1, 500)], 1500) =
+			EXAMPLE:	sh_mkSidepot(0, [(0, 1, 500), (1, 1, 500)], 1500) =
 						Sidepot(0, [(0, 1, 750), (1, 1, 750)], 1500, true)
 		*)		
-		fun mkSidePot(nr, [], _) = emptySidepot 
-		| mkSidePot(nr, winners, tot) =
+		fun sh_mkSidepot(nr, [], _) = sh_emptySidepot 
+		| sh_mkSidepot(nr, winners, tot) =
 			let
 				val players = length winners
 				val cashEach = tot div players
 				
 				(*
-					mkSidePot'(l, c, w, t)
+					sh_mkSidepot'(l, c, w, t)
 					TYPE: 		(int * int * 'a) list * int * (int * int * int) list * int -> sidepot
 					PRE: 		c > 0, t > 0
 					POST: 		A sidepot where the sidepot's list is w and the sidepot's pot is t. 
-					EXAMPLE: 	mkSidepot'([(0, 1, 500), (1, 1, 500)], 200, [], 1400) =
+					EXAMPLE: 	sh_mkSidepot'([(0, 1, 500), (1, 1, 500)], 200, [], 1400) =
 								Sidepot(0, [(0, 1, 700), (1, 1, 700)], 1400, true): sidepot
 				*)
 				(*VARIANT: length l*)
-				fun mkSidePot'([], _, winners, tot) = Sidepot(nr, winners, tot, true, true)
-				| mkSidePot'((p, h, m)::xs, cashEach, winners, tot) =
-					mkSidePot'(xs, cashEach, (p, h, cashEach)::winners, tot)
+				fun sh_mkSidepot'([], _, winners, tot) = Sidepot(nr, winners, tot, true, true)
+				| sh_mkSidepot'((p, h, m)::xs, cashEach, winners, tot) =
+					sh_mkSidepot'(xs, cashEach, (p, h, cashEach)::winners, tot)
 			in
-				mkSidePot'(winners, cashEach, [], tot)
+				sh_mkSidepot'(winners, cashEach, [], tot)
 			end
 		
 		val winners = winners(pl)
 		val total = cashFromPlayers(pl)
-		val mkSidepot = mkSidePot(nr, winners, total)
+		val sh_mkSidepot = sh_mkSidepot(nr, winners, total)
 	in
-		mkSidepot::showDown(xs)
+		sh_mkSidepot::showDown(xs)
 	end; 

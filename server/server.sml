@@ -1264,7 +1264,7 @@ struct
                 if playersCount >= 2 then
                     let 
                         val newDeck = shuffleDeck 51
-						val startSidepot = [emptySidepot]
+						val startSidepot = [sh_emptySidepot]
                         fun resetPlayer (p as ref (Player {cards=cards, state=state, ...})) =
                             let in
                                 setPlayerState (p, PlayerIdle);
@@ -1401,7 +1401,7 @@ struct
                 val players = filterRefList chairs filterInGameAllIn
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
-                val ps = showDown (updateHands((!sidePotList), playerList))
+                val ps = showDown (sh_updateHands((!sidePotList), playerList))
 
                 
                 (*
@@ -1482,6 +1482,7 @@ struct
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
             betTimer=betTimer,
+			sidePotList=sidePotList,
             ...
         })), StateChanged (TableBet (nextState, betType, startPosition, position, maxBet))) = 
             let 
@@ -1491,7 +1492,8 @@ struct
                 if getInGamePlayersCount board = 1 then
                     setTableState (board, nextState)
                 else if position - startPosition >= Vector.length (!chairs) then
-                    setTableState (board, nextState)
+                    (sidePotList := sh_mkFull(!sidePotList);
+					setTableState (board, nextState))
                 else
                     case chair of
                         player as (ref (Player {state=ref PlayerInGame, ...})) => 
@@ -1612,10 +1614,10 @@ struct
 	                    let in
 	                        setPlayerState (player, PlayerAllIn);
 	                        syncPlayer player;
-							sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, true, false)
+							sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, true, false)
 	                    end
                     else
-                        sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, false, false);();
+                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, false, false);();
 						setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
 
                 end
@@ -1653,10 +1655,10 @@ struct
 	                    let in
 	                        setPlayerState (player, PlayerAllIn);
 	                        syncPlayer player;
-						    sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, true, false)
+						    sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, true, false)
 	                    end
                     else
-                        sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, false, false);();
+                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, false, false);();
                     	setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
                 end
             else
