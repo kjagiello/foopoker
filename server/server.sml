@@ -1321,7 +1321,7 @@ struct
                 val players = filterRefList chairs filterInGame
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
-                val ps = showDown playerList
+                (*val ps = showDown playerList
                 
                 (*
                     printShowDown l
@@ -1380,7 +1380,7 @@ struct
                             end
                     in
                         sidePotUpd'(players, spRest)
-                    end;
+                    end;*)
                 
             in
                 sidePotUpd(ps);
