@@ -605,6 +605,7 @@ sig
     val filterNull          : game -> bool
     val filterNotNull       : game -> bool
     val filterInGame        : game -> bool
+    val filterInGameAllIn   : game -> bool
     val filterAll           : game -> bool
     val filterPlayer        : game -> game -> bool
     val filterOthers        : game -> game -> bool
@@ -685,6 +686,7 @@ struct
       | PlayerInGame
       | PlayerTurn of int (* time when the turn started *)
       | PlayerFolded
+      | PlayerAllIn
 
     datatype game = 
         Board of {
@@ -772,6 +774,10 @@ struct
 
     fun filterInGame (Player {state=ref PlayerInGame, ...}) = true
       | filterInGame _ = false
+
+    fun filterInGameAllIn (Player {state=ref PlayerInGame, ...}) = true
+      | filterInGameAllIn (Player {state=ref PlayerAllIn, ...}) = true
+      | filterInGameAllIn _ = false
 
     fun filterNotNull x = not (filterNull x)
 
@@ -1034,6 +1040,9 @@ struct
             fun hasFolded (ref (Player {state=ref PlayerFolded, ...})) = true
               | hasFolded _ = false
 
+            fun isAllIn (ref (Player {state=ref PlayerAllIn, ...})) = true
+              | isAllIn _ = false
+
             val cards = map (fn x => JSON.String (eval_printCard x)) cards
             val cards = map (fn _ => JSON.String "reverse") cards
             val du = JSON.empty
@@ -1041,7 +1050,7 @@ struct
                   |> JSON.add ("username", JSON.String (getPlayerName player))
                   |> JSON.add ("avatar", JSON.String "http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png")
                   |> JSON.add ("stake", JSON.Int (getStake player))
-                  |> JSON.add ("allin", JSON.Bool false)
+                  |> JSON.add ("allin", JSON.Bool (isAllIn player))
                   |> JSON.add ("cards", JSON.List cards)
                   |> JSON.add ("folded", JSON.Bool (hasFolded player))
         in
@@ -1118,7 +1127,7 @@ struct
         let
             val chairs = nvectorToList chairs
         in
-            (length (filterRefList chairs filterInGame))
+            (length (filterRefList chairs filterInGameAllIn))
         end 
 
     fun takeCard (ref (Board {cards=cards, deck=deck, ...})) =
@@ -1227,7 +1236,6 @@ struct
 
                         (* distribute two cards to each player at the table *)
                         List.app (fn p => (cardToPlayer (p, takeCard board); cardToPlayer (p, takeCard board))) players;
-                        List.app (fn x => (PolyML.print (getPlayerName x); ())) players;
                         
                         setTableState (board, TableBet (TableFlop, BetSmallBlind, 0, 0, smallBlind))
                     end
@@ -1334,7 +1342,7 @@ struct
                         (id, rank)
                     end
                 val chairs = nvectorToList (!chairs)
-                val players = filterRefList chairs filterInGame
+                val players = filterRefList chairs filterInGameAllIn
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
                 val ps = showDown (updateHands((!sidePotList), playerList))
@@ -1541,8 +1549,16 @@ struct
                     changeMoney (player, ~tAmount);
                     changeMoney (board, tAmount);
                     changeStake (player, tAmount);
+
+                    if getMoney (player) <= 0 then
+                    let in
+                        setPlayerState (player, PlayerAllIn);
+                        syncPlayer player
+                    end
+                    else
+                        ();
+
 					sidePotList := mkSidepot((!sidePotList), id, 9999, tAmount, false);
-                    PolyML.print realPosition;
                     setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
 
                 end
@@ -1575,7 +1591,15 @@ struct
                     changeMoney (player, ~maxBet);
                     changeMoney (board, maxBet);
                     changeStake (player, maxBet);
-					sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, false);
+
+                    if getMoney (player) <= 0 then
+                    let in
+                        setPlayerState (player, PlayerAllIn);
+                        syncPlayer player;
+					    sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, false)
+                    end
+                    else
+                        ();
                     setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
                 end
             else
@@ -1583,7 +1607,7 @@ struct
         end
 
       | handleTableEvent (_, _) =
-        print "Not implemented"
+        print "Not implemented\n"
 
     and setTableState (board as (ref (Board {state=state, ...})), newState) =
         let in

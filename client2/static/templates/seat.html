@@ -18,5 +18,6 @@
         <div class="bar bet-timer" ng-show="!!bet && !!!player.folded" style="width: 100%;"></div>
     </div>
     <div class="name" ng-show="!!player">{{ player.username }}</div>
-    <div class="stake" ng-show="!!player">${{ player.stake }}</div>
+    <div class="stake" ng-show="!!player && !!!player.allin">${{ player.stake }}</div>
+    <div class="stake" ng-show="!!player && !!player.allin">ALL IN</div>
 </div>
