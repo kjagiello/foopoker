@@ -1199,13 +1199,25 @@ struct
                 if playersCount >= 2 then
                     let 
                         val newDeck = shuffleDeck 51
+
+                        fun resetPlayer (p as ref (Player {cards=cards, state=state, ...})) =
+                            let in
+                                setPlayerState (p, PlayerIdle);
+                                setStake (p, 0);
+                                cards := [];
+                                syncPlayer p
+                            end
                     in
+                        List.app resetPlayer players;
+                        sendToBoard board "cleanup" filterAll (JSON.empty |> JSON.add ("status", JSON.String "ok"));
+
                         List.app (fn (ref (Player {state=state, ...})) => state := PlayerInGame) players;
 
                         tableMessage (board, "Shuffling cards, drinking beer. Pre-flop coming.");
 
                         (* reset table *)
                         deck := newDeck;
+                        cards := [];
                         lastBet := 0;
                         setMoney (board, 0);
 
@@ -1385,10 +1397,12 @@ struct
             in
                 (*sidePotUpd(ps);
                 tableMessage (board, dealerChat);*)
-                ()
+                ();
                 
                 (* TODO: we need delay preflop here *)
-                (*setTableState (board, TablePreFlop)*)
+                (**)
+                delay (fn _ => setTableState (board, TablePreFlop)) 30;
+                ()
             end
 
       | handleTableEvent (board as (ref (Board {

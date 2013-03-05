@@ -222,6 +222,12 @@ function GameController ($scope, $element, user, socket) {
     $scope.bestHand = null;
     $scope.raise = false;
 
+    socket.on('cleanup', function (data) {    
+        $scope.betAmount = 0;
+        $scope.bestHand = null;
+        $scope.raise = false;
+    });
+
     socket.on('update_money', function (data) {
         user.wallet = data.money;
     });
@@ -308,7 +314,6 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
     $scope.bet = false;
 
     // $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
-    
     socket.on('user_join', function (data) {
         if (data.seat != $scope.seatId)
             return;
@@ -498,6 +503,10 @@ function RoomController($scope, socket, user) {
 
     socket.on('new_card', function (data) {
         $scope.cards.push(data);
+    });
+
+    socket.on('cleanup', function (data) {    
+        $scope.cards = [];
     });
 }
 
