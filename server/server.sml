@@ -590,6 +590,7 @@ sig
     val cancelTimer         : timer -> unit
 
     val samePlayer          : game ref * game ref -> bool
+    val samePlayerC         : game ref -> game ref -> bool
 
     val getFreeId           : game ref vector -> int option
     val getFreePlayerId     : unit -> int option
@@ -768,6 +769,9 @@ struct
     fun samePlayer (ref (Player {connection=c1, ...}), ref (Player {connection=c2, ...})) =
         WebsocketServer.sameConnection (c1, c2)
       | samePlayer (_, _) = false
+
+    fun samePlayerC p1 p2 =
+        samePlayer (p1, p2)
 
     fun filterNull Null = true
       | filterNull _ = false
@@ -1090,29 +1094,34 @@ struct
             sendSerializedPlayer board player
         end
 
-    fun spectateTable (player as (ref (Player {board=board, ...})), id) =
-        let
-            val b = Vector.sub (!boardIndex, id)
-        in
-            board := (!b);
-
-            case board of
-                (ref (Board {spectators=spectators, ...})) =>
-                let in
-                    spectators := player::(!spectators);
-                    syncBoard player
-                end
-              | _ => ();
-
-            board
-        end
-
     fun unspectateTable (player as (ref (Player {board=board, ...}))) =
         let in
             case board of
                 ref (Board {spectators=spectators, ...}) =>
                     spectators := filterBoardPlayers board (filterOthers (!player))
               | _ => ()
+        end
+
+    fun spectateTable (player as (ref (Player {board=board, ...})), id) =
+        let
+            val b = Vector.sub (!boardIndex, id)
+        in
+            unspectateTable player;
+            board := (!b);
+
+            case board of
+                (ref (Board {spectators=spectators, ...})) =>
+                let 
+                    val alreadySpectating = exists (samePlayerC player) (!spectators)
+                in
+                    if alreadySpectating then
+                        ()
+                    else
+                        spectators := player::(!spectators)
+                end
+              | _ => ();
+
+            board
         end
 
     fun getTakenChairsCount (ref (Board {chairs=ref chairs, ...})) =
@@ -1816,6 +1825,10 @@ struct
                               | _ => raise InvalidMessage
                         end
                 end
+          | "sync_board" =>
+            let in
+                syncBoard player
+            end
           | _ => raise InvalidMessage
 
 
@@ -1919,11 +1932,15 @@ struct
     fun tick () =
         processTimers ()
 end;
-MLHoldemServer.createBoard ("Test Bord 1", 8, (5, 10), (100, 1000));
-MLHoldemServer.createBoard ("Test Bord 2", 8, (5, 10), (100, 1000));
-MLHoldemServer.createBoard ("Test Bord 3", 8, (5, 10), (100, 1000));
-MLHoldemServer.createBoard ("Test Bord 4", 8, (5, 10), (100, 1000));
-MLHoldemServer.printBoards ();
+
+MLHoldemServer.createBoard ("FooBar 1", 8, (1, 2), (100, 1000));
+MLHoldemServer.createBoard ("FooBar 2", 8, (5, 10), (100, 1000));
+MLHoldemServer.createBoard ("FooBar High Rollers 1", 8, (50, 100), (100, 1000));
+MLHoldemServer.createBoard ("FooBar High Rollers 2", 8, (50, 100), (100, 1000));
+MLHoldemServer.createBoard ("FooBar High Rollers 3", 8, (50, 100), (100, 1000));
+MLHoldemServer.createBoard ("FooBar High Rollers 4", 8, (50, 100), (100, 1000));
+MLHoldemServer.createBoard ("FooBar V.I.P. only", 8, (500, 1000), (100, 1000));
+MLHoldemServer.createBoard ("FooBar V.I.P. only", 8, (500, 1000), (100, 1000));
+
 val s = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage, MLHoldemServer.tick);
 PolyML.exception_trace(fn () => WebsocketServer.run s);
-(*WebsocketServer.run s handle Interrupt => WebsocketServer.shutdown s;*)

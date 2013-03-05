@@ -299,8 +299,8 @@ function BrowserController($scope, $location, socket, user) {
 
         socket.emit('enter', {'id': id}, function (message) {
             $scope.$apply(function () {
-                $location.path('/room/' + id);
                 user.room = id;
+                $location.path('/room/' + id);
             });
         });
     }
@@ -488,6 +488,8 @@ function RoomController($scope, socket, user) {
 
             arrangeChips($(this), x);
         })
+
+        socket.emit('sync_board', {});
     });
 
     socket.on('new_card', function (data) {

@@ -8,7 +8,7 @@
             <table class="table table-hover table-bordered no-margin ">
               <thead>
               <tr>
-                <th>Name</th>
+                <th width="40%">Name</th>
                 <th>Stakes</th>
                 <th>Players</th>
                 <th>Spectators</th>
@@ -16,7 +16,7 @@
               </tr>
             </thead>
               <tbody>
-                <tr ng-repeat="r in rooms" ng-click="enter(r.id)">
+                <tr ng-repeat="r in rooms|orderBy:'id'" ng-click="enter(r.id)">
                   <td>{{ r.name }}</td>
                   <td>${{ r.sb }}/${{ r.bb }}</td>
                   <td>{{ r.players }}/{{ r.maxPlayers }}</td>
