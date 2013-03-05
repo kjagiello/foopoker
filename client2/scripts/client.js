@@ -321,6 +321,16 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
     $scope.bet = false;
     $scope.user = user;
 
+    socket.on('cleanup', function (data) {
+        if ($scope.player == null)
+            return;
+
+        $scope.player.cards = [];
+        $scope.player.stake = 0;
+        $scope.player.allin = false;
+        $scope.bet = false;
+    })
+
     // $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
     socket.on('user_join', function (data) {
         if (data.seat != $scope.seatId)
@@ -344,6 +354,7 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
         }
 
         $scope.player = null;
+        $scope.bet = false;
     });
 
     socket.on('bet', function (data) {

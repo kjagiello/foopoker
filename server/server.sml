@@ -712,7 +712,7 @@ struct
       | Player of {
             id: int,
             name: string ref,
-            board: game ref,
+            board: game ref ref,
             connection: WebsocketServer.connection,
             state: playerState ref,
             cards: Word32.word list ref,
@@ -899,7 +899,7 @@ struct
                     val player = (ref (Player {
                         id=valOf id, 
                         name=ref name, 
-                        board=ref Null, 
+                        board=ref (ref Null), 
                         connection=connection, 
                         state=ref PlayerIdle,
                         cards=ref [],
@@ -984,7 +984,7 @@ struct
     fun getName (player as ref (Player {name=ref name, ...})) =
         name
 
-    fun setStake (player as ref (Player {stake=stake, board=board, ...}), amount) =
+    fun setStake (player as ref (Player {stake=stake, board=ref board, ...}), amount) =
         let
             val chairIndex = valOf (getChairIndexByPlayer board player)
             
@@ -1071,7 +1071,7 @@ struct
             JSON.add ("user", du) d
         end
 
-    fun syncBoard (player as (ref (Player {board=board, ...}))) =
+    fun syncBoard (player as (ref (Player {board=ref board, ...}))) =
         let
             fun sendSerializedPlayer u (i, ref Null) = ()
               | sendSerializedPlayer u (i, p) =
@@ -1089,10 +1089,9 @@ struct
               | _ => ()
         end
 
-    fun syncPlayer (player as (ref (Player {board=board, ...}))) =
+    fun syncPlayer (player as (ref (Player {board=ref board, ...}))) =
         let 
-            fun sendSerializedPlayer board (ref Null) = ()
-              | sendSerializedPlayer board p =
+            fun sendSerializedPlayer board p =
                 let
                     val d = JSON.empty
                          |> JSON.add ("seat", JSON.Int (valOf (getChairIndexByPlayer board p)))
@@ -1104,17 +1103,17 @@ struct
             sendSerializedPlayer board player
         end
 
-    fun isInRoom (ref (Player {board=ref (Board _), ...})) = true
+    fun isInRoom (ref (Player {board=ref (ref (Board _)), ...})) = true
       | isInRoom _ = false
 
     fun unspectateTable (player as (ref (Player {board=board, ...}))) =
         let in
             case board of
-                ref (Board {spectators=spectators, ...}) =>
+                ref (ref (Board {spectators=spectators, ...})) =>
                     if not (filterInGameAllIn (!player)) then
                     let in
-                        spectators := filterBoardPlayers board (filterOthers (!player));
-                        board := Null
+                        spectators := filterBoardPlayers (!board) (filterOthers (!player));
+                        board := ref Null
                     end
                     else
                         ()
@@ -1126,10 +1125,10 @@ struct
             val b = Vector.sub (!boardIndex, id)
         in
             unspectateTable player;
-            board := (!b);
+            board := ref (!b);
 
             case board of
-                (ref (Board {spectators=spectators, ...})) =>
+                ref (ref (Board {spectators=spectators, ...})) =>
                 let 
                     val alreadySpectating = exists (samePlayerC player) (!spectators)
                 in
@@ -1140,7 +1139,7 @@ struct
                 end
               | _ => ();
 
-            board
+            (!board)
         end
 
     fun getTakenChairsCount (ref (Board {chairs=ref chairs, ...})) =
@@ -1176,7 +1175,7 @@ struct
             sendToBoard board "new_card" filterAll d1
         end
 
-    fun cardToPlayer (player as ref (Player {cards=cards, board=board, ...}), card) =
+    fun cardToPlayer (player as ref (Player {cards=cards, board=ref board, ...}), card) =
         let 
             val chairIndex = valOf (getChairIndexByPlayer board player)
             
@@ -1197,7 +1196,27 @@ struct
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
-    fun handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, startTimer=startTimer, ...})), PlayerJoined (player, chairId)) =
+
+    fun leaveTable (player as (ref (Player {board=board as ref (ref (Board {chairs=chairs, ...})), ...}))) =
+        let
+            val index = getChairIndexByPlayer (!board) player
+        in
+            case index of
+                SOME index => 
+                    let in
+                        if not (filterInGameAllIn (!player)) then
+                        let in
+                            handleTableEvent (!board, PlayerLeaving (player, index));
+                            chairs := Vector.update (!chairs, index, ref Null)
+                        end
+                        else
+                            ()
+                    end
+              | _ => ()
+        end
+      | leaveTable (_) = ()
+
+    and handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, startTimer=startTimer, ...})), PlayerJoined (player, chairId)) =
         let
             val playersCount = getTakenChairsCount board
             val ref (Player {state=playerState, ...}) = player
@@ -1228,8 +1247,14 @@ struct
               | _ => ()
         end
       
-      | handleTableEvent (board as (ref (Board {chairs=chairs, smallBlind=smallBlind, sidePotList=sidePotList, deck=deck, cards=cards, lastBet=lastBet, ...})), StateChanged (TablePreFlop)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, smallBlind=smallBlind, sidePotList=sidePotList, deck=deck, cards=cards, lastBet=lastBet, ...})), StateChanged (TablePreFlop)) = 
             let 
+                val tmpChairs = nvectorToList (!chairs)
+                val players = filterRefList tmpChairs filterNotNull
+
+                (* kick people who can't afford playing *)
+                val _ = List.app (fn p => if (getMoney p >= bigBlind) then () else leaveTable p) players
+
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull
 
@@ -1269,7 +1294,10 @@ struct
                     end
                 else
                     setTableState (board, TableIdle)
-            end                
+            end
+
+      | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableIdle)) = 
+        sendToBoard board "cleanup" filterAll (JSON.empty |> JSON.add ("status", JSON.String "ok"))
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, ...})), StateChanged (TableFlop)) = 
             let 
@@ -1657,44 +1685,31 @@ struct
         ((SOME (Vector.sub (!chairs, id))) handle Subscript => NONE)
       | getChair (_, _) = NONE
 
-    fun joinTable (player, board as (ref (Board {chairs=chairs, spectators=spectators, ...})), id) =
+    fun joinTable (player, board as (ref (Board {chairs=chairs, spectators=spectators, bigBlind=bigBlind, ...})), id) =
         let
             val (ref s) = Vector.sub (!chairs, id)
         in
-            case s of
-                Null => 
-                    let in
-                        chairs := Vector.update (!chairs, id, player);
-                        handleTableEvent (board, PlayerJoined (player, id));
-                        SOME id
-                    end
-              | _ => NONE
-        end
-
-    fun leaveTable (player as (ref (Player {board=board as ref (Board {chairs=chairs, ...}), ...}))) =
-        let
-            val index = getChairIndexByPlayer board player
-        in
-            case index of
-                SOME index => 
-                    let in
-                        if not (filterInGameAllIn (!player)) then
+            if (getMoney player) >= bigBlind then
+                case s of
+                    Null => 
                         let in
-                            handleTableEvent (board, PlayerLeaving (player, index));
-                            chairs := Vector.update (!chairs, index, ref Null)
+                            chairs := Vector.update (!chairs, id, player);
+                            handleTableEvent (board, PlayerJoined (player, id));
+                            SOME id
                         end
-                        else
-                            ()
-                    end
-              | _ => ()
+                  | _ => NONE
+            else
+            let in
+                tableMessage (player, "Not enough money");
+                NONE
+            end
         end
-      | leaveTable (_) = ()
-
 
     fun handleCommand (player, command, arguments) =
         let in
             case command of
                 "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
+              | "gimmemoney" => changeMoney (player, 10000)
               | "rooms" => 
                 let 
                     val boards = map (fn (ref (Board {name=name, id=id, ...})) => "+ " ^ name ^ " (ID: " ^ Int.toString (id) ^ ")") (!boards);
@@ -1706,7 +1721,7 @@ struct
                 if validateArguments "d" arguments then
                     let
                         val id = Int.fromString arguments
-                        val ref (Player {board=board, ...}) = player
+                        val ref (Player {board=ref board, ...}) = player
                         val chair = getChair (board, valOf id)
                     in
                         case board of
@@ -1730,7 +1745,7 @@ struct
                     end 
               | "fold" =>
                     let
-                        val ref (Player {board=board, ...}) = player
+                        val ref (Player {board=ref board, ...}) = player
                     in
                         handleTableEvent (board, PlayerFold player)
                     end
@@ -1739,7 +1754,7 @@ struct
                     if validateArguments "d" arguments then
                         let
                             val amount = Int.fromString arguments
-                            val ref (Player {board=board, ...}) = player
+                            val ref (Player {board=ref board, ...}) = player
                         in
                             handleTableEvent (board, PlayerRaise (player, valOf amount))
                         end
@@ -1748,14 +1763,14 @@ struct
                 end
               | "call" =>
                     let
-                        val ref (Player {board=board, ...}) = player
+                        val ref (Player {board=ref board, ...}) = player
                     in
                         handleTableEvent (board, PlayerCall player)
                     end
               | _ => raise InvalidCommand
         end
 
-        fun handleEvent (player as (ref (Player {name=ref username, board=board, ...})), (e, r, d)) =
+        fun handleEvent (player as (ref (Player {name=ref username, board=ref board, ...})), (e, r, d)) =
         case e of 
             "chat" => 
                 let 
