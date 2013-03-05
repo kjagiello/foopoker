@@ -5,14 +5,14 @@
 
     <link rel="icon" href="favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
     <link type="text/css" href="static/css/jquery.jscrollpane.css" rel="stylesheet" media="all" />
     <link href="static/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <link href="static/css/main.less" rel="stylesheet/less" type="text/css">
   </head>
   <body ng-app="foopoker" class="fullscreen" ng-controller="GameController">
     <div class="fullscreen" ng-view></div>
-    
     <div class="userbar-wrapper" ng-show="!!user.username">
       <div class="container">
         <div class="row">
@@ -22,17 +22,17 @@
                 <div class="avatar">
                   <img src="https://en.gravatar.com/avatar/38255e36b16377ee52dec1ba04fa4e2f?s=16&r=x">
                 </div>
-                krille
+                {{ user.username }}
               </div>
               <div class="element">
-                <strong>Money:</strong> $1000
+                <strong>Money:</strong> ${{ user.wallet }}
               </div>
               
               <div class="element pull-right clickable" data-toggle="panel" data-target="#server-chat">
                 Chat
               </div>
               
-              <div class="element pull-right clickable" data-toggle="panel" data-target="#table-chat" ng-show="!!user.roomId">
+              <div class="element pull-right clickable" data-toggle="panel" data-target="#table-chat" ng-show="!!user.room">
                 Table chat
               </div>
               
@@ -45,13 +45,21 @@
                 <chat chat-type="server">
               </div>
 
-              <div class="game-ui" ng-show="isInRoom">
-                <button>FOLD <i class="icon-remove icon-white"></i></button>
-                <button>CALL <i class="icon-ok icon-white"></i></button>
-                <button>RAISE <i class="icon-arrow-up icon-white"></i></button>
+              <div class="game-ui-secondary" ng-class="{show: !!user.bet && raise}">
+                <div>
+                  <div class="slider"></div>
+                  <div class="amount">${{ betAmount }}</div>
+                  <div class="btn btn-success btn-mini" ng-click="betRaiseDo()"><i class="icon-arrow-up icon-white"></i></div>
+                </div>
               </div>
 
-              <div class="text" ng-show="isInRoom">Best hand: Pair of Aces</div>
+              <div class="game-ui" ng-class="{show: !!user.bet}">
+                <button ng-click="betFold()">FOLD <i class="icon-remove icon-white"></i></button>
+                <button ng-click="betCall()">CALL <i class="icon-ok icon-white"></i></button>
+                <button ng-click="betRaise()">RAISE <i class="icon-arrow-up icon-white"></i></button>
+              </div>
+
+              <div class="text" ng-show="!!user.room">Best hand: {{ bestHand }}</div>
             </div>
           </div>
         </div>
@@ -71,5 +79,9 @@
     <script src="static/js/angular.min.js"></script>
 
     <script src="scripts/client.js"></script>
+
+    <script type="text/javascript">
+    $('.slider').slider();
+    </script>
   </body>
 </html>

@@ -1,26 +1,22 @@
-<div class="seat seat-{{ seatId }}">
-    <div class="avatar" style="background-image: url({{ avatar }});"></div>
-    <div class="cards">
-        <div class="card c2c">
-            <div class="face"></div>
-            <div class="back"></div>
-        </div>
-        <div class="card c2c">
+<div class="seat seat-{{ seatId }} {{ extraClasses }}" ng-class="{folded: !!player.folded, active: !!bet}" ng-click="sitDown()">
+    <div class="avatar" style="background-image: url({{ player.avatar }});" ng-show="!!player"></div>
+    <div class="cards" ng-show="!!player">
+        <div class="card c{{ c.id }}" ng-repeat="c in player.cards">
             <div class="face"></div>
             <div class="back"></div>
         </div>
     </div>
-    <div class="table-space reverse">
+    <div class="table-space reverse" ng-show="!!player">
         <div class="stake">
-            <div class="chips">
-            </div>
+            <div class="chips"></div>
         </div>
         <div class="button"></div>
     </div>
     <div class="progress progress-striped progress-success active">
-        <div class="info center" ng-show="!!folded">FOLDED</div>
-        <div class="bar" ng-show="!!turn" style="width: 40%;"></div>
+        <div class="info center" ng-show="!!player.folded">FOLDED</div>
+        <div class="info center" ng-show="!player">SIT DOWN</div>
+        <div class="bar bet-timer" ng-show="!!bet && !!player.folded" style="width: 100%;"></div>
     </div>
-    <div class="name">{{ name }}</div>
-    <div class="stake">ALL IN</div>
+    <div class="name" ng-show="!!player">{{ player.username }}</div>
+    <div class="stake" ng-show="!!player">${{ player.stake }}</div>
 </div>

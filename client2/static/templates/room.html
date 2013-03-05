@@ -4,25 +4,9 @@
       <div class="span12 relative full-height">
         <div class="poker-table">
             <div class="table-cards">
-                <div class="card c2c flip highlight">
+                <div class="card c{{ card.id }} flip" ng-repeat="card in cards">
                     <div class="face"></div>
-                    <div class="back"></div>
-                </div>
-                <div class="card c2c flip highlight">
-                    <div class="face"></div>
-                    <div class="back"></div>
-                </div>
-                <div class="card c2c flip">
-                    <div class="face"></div>
-                    <div class="back"></div>
-                </div>
-                <div class="card c2c flip highlight">
-                    <div class="face"></div>
-                    <div class="back"></div>
-                </div>
-                <div class="card c2c flip">
-                    <div class="face"></div>
-                    <div class="back"></div>
+                    <!-- <div class="back"></div> -->
                 </div>
             </div>
             <div class="seats">

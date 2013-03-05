@@ -135,6 +135,7 @@ function LoginController($scope, $location, socket, user) {
             if (message.status == 'OK') {
                 $('.modal').modal('hide');
                 user.username = $scope.loginData.username;
+                user.id = message.id;
 
                 $scope.$apply(function () {
                     $location.path('/browser');
@@ -215,12 +216,51 @@ app.directive('chat', function () {
     }
 })
 
-function GameController ($scope, user, socket) {
+function GameController ($scope, $element, user, socket) {
     $scope.user = user;
+    $scope.betAmount = 0;
+    $scope.bestHand = null;
+    $scope.raise = false;
+
+    socket.on('update_money', function (data) {
+        user.wallet = data.money;
+    });
+
+    socket.on('best_hand', function (data) {
+        $scope.bestHand = data.hand;
+    })
+
+    $scope.$on('$viewContentLoaded', function(){
+        $($element).find('.slider').slider({
+            slide: function (event, ui) {
+                $scope.$apply(function (){
+                    $scope.betAmount = ui.value;
+                });
+            }
+        });
+    });
+
+    $scope.betFold = function () {
+        socket.emit('command', {name: 'fold', arguments: ""});
+    }
+
+    $scope.betCall = function () {
+        socket.emit('command', {name: 'call', arguments: ""});
+    }
+
+    $scope.betRaise = function () {
+        $scope.raise = !$scope.raise;
+        $($element).find('.slider').slider("option", "min", user.betData.min);
+        $($element).find('.slider').slider("option", "max", user.wallet);
+    }
+
+    $scope.betRaiseDo = function () {
+        socket.emit('command', {name: 'raise', arguments: "" + $scope.betAmount});
+    }
 }
 
 
-function BrowserController($scope, $location, socket) {
+function BrowserController($scope, $location, socket, user) {
     $scope.rooms = [];
 
     $scope.$on('$viewContentLoaded', function(){
@@ -255,41 +295,74 @@ function BrowserController($scope, $location, socket) {
         socket.emit('enter', {'id': id}, function (message) {
             $scope.$apply(function () {
                 $location.path('/room/' + id);
+                user.room = id;
             });
         });
     }
 }
 
-function SeatController($scope, $attrs, $timeout, $location, socket, user) {
+function SeatController($scope, $attrs, $timeout, $location, $element, socket, user) {
     $scope.seatId = $attrs.seatId;
-    $scope.user = null;
-    $scope.timerLast = 0;
-    $scope.timer = 100;
-    $scope.timertimerHandle = null;
-    $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
+    $scope.player = null;
+    $scope.extraClasses = 'empty'; 
+    $scope.bet = false;
 
-    $scope.countdown = function(){
-        var v = Math.round(100 / $scope.timerLast);
-        var v = v < 100 ? v : 100;
-
-        $scope.timer = $scope.timer + v;
-        $('.timer').trigger('change');
-    }
-
+    // $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
+    
     socket.on('user_join', function (data) {
         if (data.seat != $scope.seatId)
             return;
 
-        $scope.user = data.user;
+        $scope.player = data.user;
     });
 
     socket.on('user_leave', function (data) {
         if (data.seat != $scope.seatId)
             return;
 
-        $scope.user = null;
+        $scope.player = null;
     });
 
+    socket.on('bet', function (data) {
+        if (data.seat != $scope.seatId) {
+            $scope.bet = false;
+            return;
+        }
+
+        user.bet = user.id == $scope.player.id;
+        $scope.bet = true;
+
+        if (user.bet) {
+            user.betData = {
+                min: data.min
+            }
+        }
+
+        $('body').find('.bet-timer').stop().width('100%');
+        $($element).find('.bet-timer').width('100%');
+        $($element).find('.bet-timer').animate({
+            width: '0%'
+        }, data.time * 1000);
+    });
+
+    socket.on('new_player_card', function (data) {
+        if (data.seat != $scope.seatId)
+            return;
+
+        $scope.player.cards = $scope.player.cards || [];
+        $scope.player.cards.push(data);
+
+        console.log($scope.player);
+    });
+
+    socket.on('update_stake', function (data) {
+        if (data.seat != $scope.seatId)
+            return;
+
+        $scope.player.stake = data.stake;
+    });
+
+    /*
     socket.on('countdown', function (data) {
         if (data.seat != $scope.seatId) {
             $scope.timer = 100;
@@ -308,10 +381,9 @@ function SeatController($scope, $attrs, $timeout, $location, socket, user) {
 
             $('.timer').trigger('change');
         }
-    });
+    });*/
 
     $scope.sitDown = function () {
-        $scope.seatId = $attrs.seatId;
         socket.emit('command', {name: 'sit', arguments: $scope.seatId});
     }
 }
@@ -321,14 +393,15 @@ app.directive('seat', function () {
         templateUrl: 'static/templates/seat.html',
         restrict: 'E',
         scope: {
-            seatId: '@',
-            user: '@'
+            seatId: '@'
         },
         controller: SeatController
     }
 })
 
-function RoomController($scope) {
+function RoomController($scope, socket, user) {
+    $scope.cards = [];
+
     $scope.$on('$viewContentLoaded', function(){
         /*$('.seat').click(function () {
             var table = $(this).parents('.poker-table');
@@ -354,10 +427,6 @@ function RoomController($scope) {
 
         $('.table-cards').click(function () {
             $(this).toggleClass('showdown');
-        });
-
-        $('.game-ui button').click(function () {
-            $(this).parent().toggleClass('hide');
         });
 
         $('.chips').click(function () {
@@ -425,6 +494,10 @@ function RoomController($scope) {
 
             arrangeChips($(this), x);
         })
+    });
+
+    socket.on('new_card', function (data) {
+        $scope.cards.push(data);
     });
 }
 

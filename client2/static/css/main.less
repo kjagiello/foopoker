@@ -9,6 +9,16 @@
     font-style: normal;
 }
 
+.user-select(@string: none) {
+    -webkit-user-select: @string;  /* Chrome all / Safari all */
+    -moz-user-select: @string;     /* Firefox all */
+    -ms-user-select: @string;      /* IE 10+ */
+
+    /* No support for these yet, use at own risk */
+    -o-user-select: @string;
+    user-select: @string; 
+}
+
 .gradient(@color: #F5F5F5, @start: #EEE, @stop: #FFF) {
   background: @color;
   background: -webkit-gradient(linear,
@@ -312,6 +322,55 @@ div {
         background: #20211f;
     }
 
+    .game-ui-secondary {
+        position: absolute;
+        bottom: 32px;
+        width: 276px;
+        left: 50%;
+        margin-left: -153px;
+        z-index: -1;
+        .drop-shadow();
+        .transition(bottom 0.5s);
+        display: block;
+        bottom: -50px;
+        background: #0f100f;
+        color: #b3b5b0;
+        padding: 15px;
+
+        .ui-slider.ui-slider-horizontal {
+            background: #b3b5b0;
+            border: 0;
+        }
+
+        .ui-slider-handle {
+            background: #7A7A7A;
+            border: solid 1px #5A5A5A;
+            outline: none !important;
+        }
+
+        &.show {
+            .transition(bottom 0.5s);
+            bottom: 86px;
+        }
+
+        .slider, .amount {
+            display: inline-block;
+        }
+
+        .slider {
+            width: 179px;
+        }
+
+        .amount {
+            width: 63px;
+            text-align: center;
+        }
+
+        .btn {
+            position: absolute;
+        }
+    }
+
     .game-ui {
         position: absolute;
         bottom: 32px;
@@ -320,12 +379,9 @@ div {
         margin-left: -153px;
         z-index: -1;
         .drop-shadow();
-
-        &.hide {
-            .transition(bottom 1s);
-            display: block;
-            bottom: -50px;
-        }
+        .transition(bottom 1s);
+        display: block;
+        bottom: -50px;
 
         &.show {
             .transition(bottom 1s);
@@ -524,10 +580,15 @@ div {
         background: url(../../static/img/seat-taken.png) no-repeat 50% 50%;
         position: absolute;
         .backface-visibility(hidden);
+        .user-select(none);
 
         -webkit-transition: all 0.25s linear;
         -webkit-filter: grayscale(0%) brightness(0%);
         opacity: 1;
+
+        &.empty {
+            cursor: pointer;
+        }
 
         &.seat-0 { 
             left: 750px; 
@@ -686,15 +747,25 @@ div {
             top: -25px;
             perspective: 1000;
             .backface-visibility(hidden);
+            .face { display: block; }
+            .back { display: none; }
 
             &.reverse {
-                .transform(rotateY(180deg));
+                // .transform(rotateY(180deg));
+
+                .face { display: none; }
+                .back { display: block; }
             }
 
             .card {
                 position: absolute;
                 top: -15px;
                 .box-shadow(0px 0px 8px 3px rgba(0, 0, 0, 0.2));
+
+                 &.creverse {
+                    .face { display: none; }
+                    .back { display: block; }
+                }
             }
 
             .card:first-child {
