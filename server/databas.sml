@@ -9,8 +9,8 @@ val implode = o_implode;
 use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
 
-use "../utils/json.sml";
-*)
+use "../utils/json.sml";*)
+
 (* 
 	REPRESENTATION CONVENTION: 	Dbplayer(name, money): Represents a player
 	 							where name is the player's name and money
@@ -40,7 +40,6 @@ val db_Name = "medlemsdatabas.txt";
 	TYPE: 			TextIO.instream * string -> string
 	PRE:			
 	POST:			h as a string and a as start value.
-	SIDE-EFFECTS: 	
 	EXAMPLE:		
 *)
 fun db_readAll (h, acc) = 
@@ -57,7 +56,7 @@ fun db_readAll (h, acc) =
 	TYPE:			string * string -> unit
 	PRE:			n is a real file. 
 	POST:			()
-	SIDE-EFFECTS: 	
+	SIDE-EFFECTS: 	Tömmer filen n och skriver till q till filen. 
 	EXAMPLE:		db_renderToFile("test", "test.txt") = ()
 *)
 fun db_renderToFile(qt, name) =
@@ -123,7 +122,8 @@ fun db_findPlayer(pl) =
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
-	SIDE-EFFECTS: 	-
+	SIDE-EFFECTS: 	Tar emot en sträng, gör om till JSON och sedan decodar tillbaka till en sträng o
+					denna skickas sedan till db_rendertoile. 
 	EXAMPLE: 		db_addPlayer("Joel", "12345") = ()
 *)
 
@@ -351,3 +351,5 @@ fun db_topList(0) = []
 			List.take(db, n)		
 
 	end;	
+	
+db_addPlayer("Daniel", "test");
