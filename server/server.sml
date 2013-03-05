@@ -628,6 +628,7 @@ sig
     val serializePlayer     : game ref -> JSON.T -> JSON.T
     val syncBoard           : game ref -> unit
     val syncPlayer          : game ref -> unit
+    val isInRoom            : game ref -> bool
 
     val getChairIndexByPlayer : game ref -> game ref -> int option
 
@@ -641,7 +642,7 @@ sig
     val spectateTable       : game ref * int -> game ref
     val unspectateTable     : game ref -> unit
     val joinTable           : game ref * game ref * int -> int option
-    val leaveTable          : game ref * game ref -> unit
+    val leaveTable          : game ref -> unit
     val printBoards         : unit -> unit
     val getChair            : game ref * int -> game ref option
     val getTakenChairsCount : game ref -> int
@@ -1103,11 +1104,20 @@ struct
             sendSerializedPlayer board player
         end
 
+    fun isInRoom (ref (Player {board=ref (Board _), ...})) = true
+      | isInRoom _ = false
+
     fun unspectateTable (player as (ref (Player {board=board, ...}))) =
         let in
             case board of
                 ref (Board {spectators=spectators, ...}) =>
-                    spectators := filterBoardPlayers board (filterOthers (!player))
+                    if not (filterInGameAllIn (!player)) then
+                    let in
+                        spectators := filterBoardPlayers board (filterOthers (!player));
+                        board := Null
+                    end
+                    else
+                        ()
               | _ => ()
         end
 
@@ -1428,6 +1438,7 @@ struct
             in
                 sidePotUpd(ps);
                 tableMessage (board, dealerChat);
+                List.app (fn (ref (Player {state=pstate, ...})) => pstate := PlayerIdle) players;
                 ();
                 
                 (* TODO: we need delay preflop here *)
@@ -1634,6 +1645,13 @@ struct
             PolyML.print (StateChanged (newState));
             handleTableEvent (board, StateChanged (newState))
         end
+      | setTableState (x, s) =
+        let in
+            print "unrecognized state incoming: ";
+            PolyML.print (x);
+            PolyML.print (s);
+            handleTableEvent (x, StateChanged s)
+        end
 
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         ((SOME (Vector.sub (!chairs, id))) handle Subscript => NONE)
@@ -1653,19 +1671,24 @@ struct
               | _ => NONE
         end
 
-    fun leaveTable (player, board as (ref (Board {chairs=chairs, ...}))) =
+    fun leaveTable (player as (ref (Player {board=board as ref (Board {chairs=chairs, ...}), ...}))) =
         let
             val index = getChairIndexByPlayer board player
         in
             case index of
                 SOME index => 
                     let in
-                        handleTableEvent (board, PlayerLeaving (player, index));
-                        chairs := Vector.update (!chairs, index, ref Null)
+                        if not (filterInGameAllIn (!player)) then
+                        let in
+                            handleTableEvent (board, PlayerLeaving (player, index));
+                            chairs := Vector.update (!chairs, index, ref Null)
+                        end
+                        else
+                            ()
                     end
               | _ => ()
         end
-      | leaveTable (_, _) = ()
+      | leaveTable (_) = ()
 
 
     fun handleCommand (player, command, arguments) =
@@ -1693,7 +1716,6 @@ struct
                                 case (valOf chair) of
                                     ref Null =>
                                         let in
-                                            leaveTable (player, board);
                                             joinTable (player, board, valOf id);
                                             ()
                                         end
@@ -1702,6 +1724,10 @@ struct
                     end
                 else
                     serverMessage (player, "/sit [sit id]")
+              | "getup" =>
+                    let in
+                        leaveTable player
+                    end 
               | "fold" =>
                     let
                         val ref (Player {board=board, ...}) = player
@@ -1796,6 +1822,8 @@ struct
                 in
                     if not (JSON.hasKeys (d, ["id"])) then
                         raise InvalidMessage
+                    else if (isInRoom player) then
+                        (print "already in room"; raise InvalidMessage)
                     else
                         let 
                             val id = JSON.get d "id"
@@ -1823,6 +1851,11 @@ struct
             let in
                 syncBoard player
             end
+          | "leave_room" =>
+                let in
+                    leaveTable player;
+                    unspectateTable player
+                end
           | _ => raise InvalidMessage
 
 
@@ -1912,7 +1945,7 @@ struct
             case player of 
                 SOME (player as ref (Player {id=id, board=board, ...})) => 
                     let in
-                        leaveTable (player, board);
+                        leaveTable (player);
                         unspectateTable player;
 
                         playerIndex := Vector.update (!playerIndex, id, ref Null);

@@ -263,6 +263,11 @@ function GameController ($scope, $element, user, socket) {
 
     $scope.betRaiseDo = function () {
         socket.emit('command', {name: 'raise', arguments: "" + $scope.betAmount});
+        $scope.raise = false;
+    }
+
+    $scope.getUp = function () {
+        socket.emit('command', {name: 'getup', arguments: ""});
     }
 }
 
@@ -284,6 +289,7 @@ function BrowserController($scope, $location, socket, user) {
             $(this).find('.jspDrag').stop(true, true).fadeOut('slow');
         });
 
+        socket.emit('leave_room', {});
         $scope.loadRooms();
     });
 
@@ -333,11 +339,11 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
         if (data.seat != $scope.seatId)
             return;
 
-        $scope.player = null;
-
         if (user.id == $scope.player.id) {
             user.sitting = false;
         }
+
+        $scope.player = null;
     });
 
     socket.on('bet', function (data) {

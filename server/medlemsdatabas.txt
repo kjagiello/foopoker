@@ -1,9 +1,1 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-{"primaryid":3,"users":[{"Pwd":"Éu~š»zz6°ÑlûìWÁ","Name":"egil","ID":1,"Cash":13},{"Pwd":"_Üüü2áâÔ(Í$È’5	˜Ï¦ü","Name":"krille","ID":2,"Cash":111}]}
-=======
-{"primaryid":3,"users":[{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":2,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Joel","ID":1,"Cash":1000}]}
->>>>>>> beaa45099e445bf5499c0a6de7378f7d33a0678a
-=======
-{"primaryid":9,"users":[{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":8,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":7,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":6,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":5,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":4,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Daniel","ID":3,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Krille","ID":2,"Cash":1000},{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"Joel","ID":1,"Cash":1000}]}
->>>>>>> Server sd addon
+{"primaryid":3,"users":[{"Pwd":"©JåÌ±›¦LsÓ‘é‡˜/»Ó","Name":"test","ID":1,"Cash":2126},{"Pwd":"_Üüü2áâÔ(Í$È’5	˜Ï¦ü","Name":"krille","ID":2,"Cash":-134}]}

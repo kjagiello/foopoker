@@ -27,6 +27,10 @@
               <div class="element">
                 <strong>Money:</strong> ${{ user.wallet }}
               </div>
+
+              <div class="element clickable" ng-show="user.sitting" ng-click="getUp()">
+                Get up
+              </div>
               
               <div class="element pull-right clickable" data-toggle="panel" data-target="#server-chat">
                 Chat
