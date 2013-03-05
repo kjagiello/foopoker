@@ -42,6 +42,7 @@ app.factory('user', function ($rootScope, $location) {
     var userService = {};
 
     userService.username = '';
+    userService.room = null;
     userService.isInRoom = function () {
         $location.path().lastIndexOf('/room/', 0) === 0
     }
@@ -299,8 +300,9 @@ function BrowserController($scope, $location, socket, user) {
 
         socket.emit('enter', {'id': id}, function (message) {
             $scope.$apply(function () {
-                user.room = id;
                 $location.path('/room/' + id);
+                user.room = id;
+                console.log(user);
             });
         });
     }

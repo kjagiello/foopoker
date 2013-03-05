@@ -752,7 +752,7 @@ struct
             val now = Time.now ()
             val expiredTimers = filter (fn (Timer (_, _, ex)) => now >= ex) (!timers)
         in
-            List.app (fn Timer (_, f, _) => f ()) expiredTimers;
+            List.app (fn (tt as Timer (_, f, _)) => (print "processing timer\n"; PolyML.print tt; f ())) expiredTimers;
             timers := filter (fn (t as Timer (_, _, ex)) => now < ex) (!timers)
         end
 
@@ -1029,7 +1029,7 @@ struct
             sendToAll "server_message" (filterPlayer (!player)) d
         end
 
-    fun tableMessage (board, message) =
+    fun tableMessage (board as ref (Board _), message) =
         let
             val d = JSON.empty
                  |> JSON.add ("message", JSON.String (message))
@@ -1037,6 +1037,15 @@ struct
                  |> JSON.add ("chatType", JSON.String "table")
         in
             sendToBoard board "server_message" filterAll d
+        end
+      | tableMessage (player as ref (Player _), message) =
+        let
+            val d = JSON.empty
+                 |> JSON.add ("message", JSON.String (message))
+                 |> JSON.add ("username", JSON.String "Table")
+                 |> JSON.add ("chatType", JSON.String "table")
+        in
+            send [player] "server_message" filterAll d
         end
 
     fun serializePlayer (player as ref (Player {cards=ref cards, ...})) d =
@@ -1332,7 +1341,7 @@ struct
                 setTableState (board, TableBet (TableShowdown, BetNormal, 0, 0, 0))
             end
 
-      | handleTableEvent (board as (ref (Board {chairs=chairs, sidePotList=sidePotList, ...})), StateChanged (TableShowdown)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, sidePotList=sidePotList, startTimer=startTimer, ...})), StateChanged (TableShowdown)) = 
             let 
                 fun prepareForShowdown (board as ref (Board {cards=bcards, ...}), player as ref (Player {cards=pcards, name=name, id=id, ...})) =
                     let
@@ -1423,6 +1432,7 @@ struct
                 
                 (* TODO: we need delay preflop here *)
                 (**)
+                cancelTimer (!startTimer);
                 delay (fn _ => setTableState (board, TablePreFlop)) 15;
                 ()
             end
@@ -1670,21 +1680,6 @@ struct
                 in
                     serverMessage (player, "Rooms:\n" ^ message)
                 end
-              | "join" => 
-                let
-                    val id = Int.fromString arguments
-                in
-                    case id of
-                        SOME (id) => 
-                            let 
-                                val (ref board) = spectateTable (player, id)
-                            in
-                                case board of
-                                    Board {name=name, ...} => serverMessage (player, "You have joined \"" ^ name ^ "\" table.")
-                                  | _ => serverMessage (player, "Wrong ID.")
-                            end
-                      | NONE => ()
-                end
               | "sit" =>
                 if validateArguments "d" arguments then
                     let
@@ -1817,7 +1812,7 @@ struct
                                                 val d = JSON.empty
                                                      |> JSON.add ("status", JSON.String "OK")
                                             in
-                                                serverMessage (player, "You have joined \"" ^ name ^ "\".");
+                                                tableMessage (player, "Welcome to " ^ name ^ ".");
                                                 sendResponse r player d
                                             end
                                           | _ => raise InvalidMessage
