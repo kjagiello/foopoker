@@ -1397,11 +1397,7 @@ struct
             in
                 (*sidePotUpd(ps);
                 tableMessage (board, dealerChat);*)
-                ();
-                
-                (* TODO: we need delay preflop here *)
-                (**)
-                delay (fn _ => setTableState (board, TablePreFlop)) 30;
+                delay (fn _ => setTableState (board, TablePreFlop)) 15;
                 ()
             end
 
@@ -1441,8 +1437,7 @@ struct
                             else
                                 let in
                                     betTimer := delay (fn _ => handleTableEvent (board, PlayerFold player)) 30;
-                                    sendToBoard board "bet" filterAll d1;
-                                    serverMessage (player, "Your turn to bet! /raise /call /fold")
+                                    sendToBoard board "bet" filterAll d1
                                 end
                         end
                       | _ => setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
@@ -1620,8 +1615,7 @@ struct
     fun handleCommand (player, command, arguments) =
         let in
             case command of
-                "testdelay" => (delay (fn () => print "hellloooo\n") 5; ())
-              | "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
+                "players" => serverMessage (player, "Players on-line:\n" ^ (implodeStrings "\n" (map getPlayerName (!players))))
               | "rooms" => 
                 let 
                     val boards = map (fn (ref (Board {name=name, id=id, ...})) => "+ " ^ name ^ " (ID: " ^ Int.toString (id) ^ ")") (!boards);

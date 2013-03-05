@@ -265,7 +265,6 @@ function GameController ($scope, $element, user, socket) {
     }
 }
 
-
 function BrowserController($scope, $location, socket, user) {
     $scope.rooms = [];
 
@@ -312,6 +311,7 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
     $scope.player = null;
     $scope.extraClasses = 'empty'; 
     $scope.bet = false;
+    $scope.user = user;
 
     // $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
     socket.on('user_join', function (data) {
@@ -319,6 +319,12 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
             return;
 
         $scope.player = data.user;
+
+        console.log(user.id, $scope.player.id);
+
+        if (user.id == $scope.player.id) {
+            user.sitting = true;
+        }
     });
 
     socket.on('user_leave', function (data) {
@@ -326,6 +332,10 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
             return;
 
         $scope.player = null;
+
+        if (user.id == $scope.player.id) {
+            user.sitting = false;
+        }
     });
 
     socket.on('bet', function (data) {
@@ -366,27 +376,6 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
 
         $scope.player.stake = data.stake;
     });
-
-    /*
-    socket.on('countdown', function (data) {
-        if (data.seat != $scope.seatId) {
-            $scope.timer = 100;
-            return;
-        }
-
-        $timeout.cancel($scope.timerHandle);
-
-        $scope.timer = 0;
-        $scope.timerLast = data.time;
-    });
-
-    $scope.$watch('timer', function (newValue, oldValue) {
-        if ($scope.timer < 100) {
-            $scope.timerHandle = $timeout($scope.countdown, 1000);
-
-            $('.timer').trigger('change');
-        }
-    });*/
 
     $scope.sitDown = function () {
         socket.emit('command', {name: 'sit', arguments: $scope.seatId});

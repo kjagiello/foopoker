@@ -14,7 +14,7 @@
     </div>
     <div class="progress progress-striped progress-success active">
         <div class="info center" ng-show="!!player.folded">FOLDED</div>
-        <div class="info center" ng-show="!player">SIT DOWN</div>
+        <div class="info center" ng-show="!player && !!!user.sitting">SIT DOWN</div>
         <div class="bar bet-timer" ng-show="!!bet && !!!player.folded" style="width: 100%;"></div>
     </div>
     <div class="name" ng-show="!!player">{{ player.username }}</div>
