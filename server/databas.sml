@@ -351,5 +351,3 @@ fun db_topList(0) = []
 			List.take(db, n)		
 
 	end;	
-	
-db_addPlayer("Daniel", "test");
