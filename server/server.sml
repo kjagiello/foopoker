@@ -1557,9 +1557,10 @@ struct
             bigBlind=bigBlind, 
             smallBlind=smallBlind,
             betTimer=betTimer,
+			sidePotList=sidePotList,
             state=ref (TableBet (nextState, betType, startPosition, position, maxBet)),
             ...
-        })), x as PlayerRaise (player as (ref (Player ({state=ref PlayerInGame, ...}))), raiseAmount)) = 
+        })), x as PlayerRaise (player as (ref (Player ({state=ref PlayerInGame, id=id, ...}))), raiseAmount)) = 
         let
             val realPosition = position mod (Vector.length (!chairs))
             val chair = getChair (board, realPosition)
@@ -1574,6 +1575,7 @@ struct
                     changeMoney (player, ~maxBet);
                     changeMoney (board, maxBet);
                     changeStake (player, maxBet);
+					sidePotList := mkSidepot((!sidePotList), id, 9999, maxBet, false);
                     setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
                 end
             else
