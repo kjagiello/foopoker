@@ -95,8 +95,6 @@ fun checkPairThreeFour([]) = ""
 		in
 			checkPairThreeFour'(rest, x, rest)
 		end;
-
-checkPairThreeFour([9, 2, 6, 2, 10]);
 	
 (*
 	checkStraight l

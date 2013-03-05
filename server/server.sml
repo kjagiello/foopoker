@@ -1336,13 +1336,17 @@ struct
                 *)
 
                 fun printShowDown([]) = ""
-                | printShowDown(Sidepot(players as (p, h, m)::xs, t)::rest) = 
+                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t)::rest) = 
                     let 
                         val antPlayers = length players
                         val intStr = Int.toString
                         val gamePlayer = getPlayerName(getPlayerById(p))
 
-                        fun printShowDown'([], t, rest) = "split a pot of $"^intStr(t)^".\n"^printShowDown(rest)
+                        fun printShowDown'([], t, rest) = 
+							if nr = 0 then
+								"split the main pot of $"^intStr(t)^".\n"^printShowDown(rest)
+							else
+								"split side pot "^intStr(nr)^" of $"^intStr(t)^".\n"^printShowDown(rest)
                         | printShowDown'((p', h', m')::xs, t, rest) =
                             let
                                 val gamePlayer' = getPlayerName(getPlayerById(p'))
@@ -1354,10 +1358,10 @@ struct
                             end
                     in
                         if antPlayers = 1 then
-                            if t <> 0 then
-                                gamePlayer^" won a pot of $"^intStr(t)^".\n"^printShowDown(rest)
-                            else
-                                ""
+							if nr = 0 then
+                                gamePlayer^" won the main pot ($"^intStr(t)^").\n"^printShowDown(rest)
+							else
+								gamePlayer^" won the side pot ($"^intStr(t)^").\n"^printShowDown(rest)
                         else
                             printShowDown'(players, t, rest)
                     end;
