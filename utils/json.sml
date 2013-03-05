@@ -253,9 +253,9 @@ struct
    and parseInt () =
    let
       val f =
-         if peek () = #"0" then
-            raise JSONParseError ("Invalid number", !inputPosition)
-         else if peek () = #"-" then (take (); "~")
+         (*if peek () = #"0" then
+            raise JSONParseError ("Invalid number", !inputPosition)*)
+         (*else*) if peek () = #"-" then (take (); "~")
          else String.str (take ())
    in
       f ^ parseDigits ()
