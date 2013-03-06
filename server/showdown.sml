@@ -49,16 +49,6 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 | sh_mkSidepot(l as iSp::xs, id, h, m, allin, full) =
 	let 
 		(*
-			findPlayer pl, id
-			TYPE:		(int*int*int) list * int -> bool
-			PRE:		id > 0 
-			POST:		True/false depending on if id is in pl or not. 
-			EXAMPLE:	findPlayer([(0, 1, 500)], 0) = true: bool
-		*)
-		(*VARIANT: length pl*)
-		fun findPlayer([], _) = false
-		| findPlayer(l as (id'', h'', m'')::xs, id') = List.exists(fn (x, y, z) => x = id')(l);
-		(*
 			updNr l, nr
 			TYPE:		sidepot list * int -> sidepot list
 			PRE:		(none)
@@ -129,14 +119,26 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 				Sidepot(nr''+1, mkNewSidepot'(pl'', m'), pot''-m', allin'', full'')
 			end
 
-				
+		(*
+			updPlayerMoney l id m
+			TYPE: 		(int * int * int) list * int * int -> (int * int * int) list
+			PRE:		m > 0 
+			POST:		l as a new (int * int * int) list 
+			EXAMPLE: 
+		*)	
 		fun updPlayerMoney([], id', m') = []
 		| updPlayerMoney((id'', h'', m'')::xs'', id', m') =
 			if id'' = id' then
 				(id'', h'', m')::xs''
 			else
 				(id'', h'', m'')::updPlayerMoney(xs'', id', m')
-				
+		(*
+			getPlayerMoney l id
+			TYPE: 		(int * int * int) list * int -> int
+			PRE:		(none)
+			POST:		An int.
+			EXAMPLE:	
+		*)		
 		fun getPlayerMoney([], id') = 0
 		| getPlayerMoney((id'', h'', m'')::xs'', id') =
 			if id'' = id' then
@@ -230,6 +232,15 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 		val a = sh_mkSidepot(a, 3, 9999, 4000, false, false);
 		val a = sh_mkSidepot(a, 4, 9999, 4000, false, true);
 		
+		Testfall 4: 
+		
+		val a = sh_mkSidepot([sh_emptySidepot], 0, 9999, 25, true, false);
+		val a = sh_mkSidepot(a, 1, 9999, 50, true, false);
+		val a = sh_mkSidepot(a, 2, 9999, 75, true, false);
+		val a = sh_mkSidepot(a, 3, 9999, 100, true, false);
+		val a = sh_mkSidepot(a, 4, 9999, 125, true, false);
+		val a = sh_mkSidepot(a, 5, 9999, 125, false, false);
+		
 		1. Är sidopotten öppen? Om ja, gå till 2. 
 		2. Finns spelaren i potten? Om ja, gå till 3.
 		3. Är newMoney > pottpengar? Om ja, gå till 4. 
@@ -238,13 +249,10 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 		
 		
 		*)
-		
-		(*Sista sidopotten*)
 		fun sh_mkSidepot'([], iSp' as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) = 
 			let
 				val getMoney = getPlayerMoney(pl', id)
 				val newMoney = getMoney + m
-				val intS = Int.toString
 			in
 				if full' = false then (*Sidepot opened*)
 					if allin' = false then (*Sidepot isn't an allin pot*)
@@ -298,7 +306,31 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 	in
 			(print("\n("^Int.toString(id)^", "^Int.toString(h)^", "^Int.toString(m)^")\n");sh_mkSidepot'(xs, iSp, id, h, m, allin))
 	end;
-(*val a = sh_mkSidepot(a, 2, 9999, 100, false, true);*)
+
+	
+fun sh_unCalled l = 
+	let
+		val last = List.last l
+		fun sh_unCalled'(Sidepot (_, [], _, _, _)) = (0, 0, 0)
+		| sh_unCalled'(Sidepot (nr, pl as (id, h, m)::xs, pot, allin, full)) =
+			if length pl = 1 then
+				(id, h, m)
+			else
+				(0, 0, 0)
+	in
+		sh_unCalled' last
+	end;
+
+fun sh_sumPots([]) = []
+| sh_sumPots(l) = 
+	let
+		fun sh_sumPots'([]) = []
+		| sh_sumPots'(Sidepot (_, [], _, _, _)::_) = []
+		| sh_sumPots'(Sidepot (nr, pl as (p, h, m)::xs', pot, allin, full)::xs) =
+		 	(nr, (foldr (fn (x,y) => m+y) 0 pl))::sh_sumPots'(xs)
+	in
+		sh_sumPots'(l)
+	end;
 (*
 	sh_updateHands l m
 	TYPE: 		sidepot list * (int * int) list -> sidepot list

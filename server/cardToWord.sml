@@ -86,3 +86,15 @@ fun bin2word x =
 *)
 fun cardToWord(c) = 
 	bin2word(c2bin(c));
+	
+	
+	(*
+		findPlayer pl, id
+		TYPE:		(int*int*int) list * int -> bool
+		PRE:		id > 0 
+		POST:		True/false depending on if id is in pl or not. 
+		EXAMPLE:	findPlayer([(0, 1, 500)], 0) = true: bool
+	*)
+	(*VARIANT: length pl*)
+	fun findPlayer([], _) = false
+	| findPlayer(l as (id'', h'', m'')::xs, id') = List.exists(fn (x, y, z) => x = id')(l);
