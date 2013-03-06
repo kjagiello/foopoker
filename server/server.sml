@@ -640,9 +640,9 @@ sig
     
     val createBoard         : string * int * (int * int) * (int * int) -> unit
     val spectateTable       : game ref * int -> game ref
-    val unspectateTable     : game ref -> unit
+    val unspectateTable     : game ref * bool -> unit
     val joinTable           : game ref * game ref * int -> int option
-    val leaveTable          : game ref -> unit
+    val leaveTable          : game ref * bool -> unit
     val printBoards         : unit -> unit
     val getChair            : game ref * int -> game ref option
     val getTakenChairsCount : game ref -> int
@@ -1106,11 +1106,11 @@ struct
     fun isInRoom (ref (Player {board=ref (ref (Board _)), ...})) = true
       | isInRoom _ = false
 
-    fun unspectateTable (player as (ref (Player {board=board, ...}))) =
+    fun unspectateTable (player as (ref (Player {board=board, ...})), force) =
         let in
             case board of
                 ref (ref (Board {spectators=spectators, ...})) =>
-                    if not (filterInGameAllIn (!player)) then
+                    if not (filterInGameAllIn (!player)) orelse force then
                     let in
                         spectators := filterBoardPlayers (!board) (filterOthers (!player));
                         board := ref Null
@@ -1124,7 +1124,7 @@ struct
         let
             val b = Vector.sub (!boardIndex, id)
         in
-            unspectateTable player;
+            unspectateTable (player, false);
             board := ref (!b);
 
             case board of
@@ -1197,14 +1197,14 @@ struct
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
 
-    fun leaveTable (player as (ref (Player {board=board as ref (ref (Board {chairs=chairs, ...})), ...}))) =
+    fun leaveTable (player as (ref (Player {board=board as ref (ref (Board {chairs=chairs, ...})), ...})), force) =
         let
             val index = getChairIndexByPlayer (!board) player
         in
             case index of
                 SOME index => 
                     let in
-                        if not (filterInGameAllIn (!player)) then
+                        if not (filterInGameAllIn (!player)) orelse force then
                         let in
                             handleTableEvent (!board, PlayerLeaving (player, index));
                             chairs := Vector.update (!chairs, index, ref Null)
@@ -1214,7 +1214,7 @@ struct
                     end
               | _ => ()
         end
-      | leaveTable (_) = ()
+      | leaveTable (_, _) = ()
 
     and handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, startTimer=startTimer, ...})), PlayerJoined (player, chairId)) =
         let
@@ -1253,7 +1253,7 @@ struct
                 val players = filterRefList tmpChairs filterNotNull
 
                 (* kick people who can't afford playing *)
-                val _ = List.app (fn p => if (getMoney p >= bigBlind) then () else leaveTable p) players
+                val _ = List.app (fn p => if (getMoney p >= bigBlind) then () else leaveTable (p, false)) players
 
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterNotNull
@@ -1743,7 +1743,7 @@ struct
                     serverMessage (player, "/sit [sit id]")
               | "getup" =>
                     let in
-                        leaveTable player
+                        leaveTable (player, false)
                     end 
               | "fold" =>
                     let
@@ -1870,8 +1870,8 @@ struct
             end
           | "leave_room" =>
                 let in
-                    leaveTable player;
-                    unspectateTable player
+                    leaveTable (player, false);
+                    unspectateTable (player, false)
                 end
           | _ => raise InvalidMessage
 
@@ -1962,8 +1962,8 @@ struct
             case player of 
                 SOME (player as ref (Player {id=id, board=board, ...})) => 
                     let in
-                        leaveTable (player);
-                        unspectateTable player;
+                        leaveTable (player, true);
+                        unspectateTable (player, true);
 
                         playerIndex := Vector.update (!playerIndex, id, ref Null);
                         players := filterServerPlayers (filterOthers (!player))
