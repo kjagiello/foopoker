@@ -355,6 +355,16 @@ struct
     fun toVector (final, rsv1, rsv2, rsv3, opcode, mask, payloadlen, maskkey, payload) =
         let
             (*
+                orbList l
+                TYPE: Word8.word list -> Word8.word
+                PRE: (none)
+                POST: Binary OR together all elements in l.
+                SIDE-EFFECTS: (none)
+            *)
+            fun orbList l =
+                foldr Word8.orb (Word8.fromInt 0) l
+
+            (*
                 lrb (x, n)
                 TYPE: int * int -> Word8.word
                 PRE: (none)
@@ -363,6 +373,16 @@ struct
             *)
             fun lrb (x, n) =
                 Word8.<< (Word8.fromInt x, Word.fromInt n)
+
+            (*
+                vectorToList v
+                TYPE: Word8Vector.vector -> Word8Vector.elem list
+                PRE: (none)
+                POST: v as list
+                SIDE-EFFECTS: (none)
+            *)
+            fun vectorToList v =
+                Word8Vector.foldr (fn (a, l) => a::l) [] v
 
             (*
                 arrayToList a

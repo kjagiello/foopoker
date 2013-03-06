@@ -1,4 +1,4 @@
-isaplib/heaps/*
+isaplib/heaps/*.polyml-heap
 *.tmproj
 psds/
 .DS_Store
