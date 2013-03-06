@@ -307,7 +307,6 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 			(print("\n("^Int.toString(id)^", "^Int.toString(h)^", "^Int.toString(m)^")\n");sh_mkSidepot'(xs, iSp, id, h, m, allin))
 	end;
 
-	
 fun sh_unCalled l = 
 	let
 		val last = List.last l
@@ -331,6 +330,19 @@ fun sh_sumPots([]) = []
 	in
 		sh_sumPots'(l)
 	end;
+	
+	
+fun sh_totPot l = 
+	let
+		val sumPots = sh_sumPots l 
+		fun sh_totPot'([]) = (0,0) 
+		| sh_totPot'(l' as (nr, pot)::xs) =  
+			(foldr (fn ((_, sum1), (_, sum2)) => (0, sum1 + sum2)) (0, 0) l')
+			
+	in
+		sh_totPot'(sumPots)
+	end;
+	
 (*
 	sh_updateHands l m
 	TYPE: 		sidepot list * (int * int) list -> sidepot list
