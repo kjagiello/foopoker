@@ -650,6 +650,7 @@ sig
     val takeCard            : game ref -> Word32.word
     val cardOnTable         : game ref * Word32.word -> unit
     val cardToPlayer        : game ref * Word32.word -> unit
+    val updatePots          : game ref -> unit
     val createPlayer        : WebsocketServer.connection * string -> game ref option
     val handleConnect       : WebsocketServer.connection -> unit
     val handleDisconnect    : WebsocketServer.connection -> unit
@@ -1193,6 +1194,16 @@ struct
             send [player] "new_player_card" filterAll d1
         end
 
+    fun updatePots (board as ref (Board {sidePotList=ref sidePotList, ...})) =
+        let 
+            val pots = sh_sumPots (sidePotList)
+            val pots = map (fn (nr, sum) => JSON.empty |> JSON.add ("potId", JSON.Int nr) |> JSON.add ("amount", JSON.Int sum)) pots
+            val d = JSON.empty
+                 |> JSON.add ("pots", JSON.List pots)
+        in
+            sendToBoard board "update_pots" filterAll d
+        end
+
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
@@ -1493,31 +1504,35 @@ struct
                     setTableState (board, nextState)
                 else if position - startPosition >= Vector.length (!chairs) then
                     (sidePotList := sh_mkFull(!sidePotList);
+                    updatePots board;
 					setTableState (board, nextState))
                 else
-                    case chair of
-                        player as (ref (Player {state=ref PlayerInGame, ...})) => 
-                        let 
-                            val chairIndex = valOf (getChairIndexByPlayer board player)
-                            val d1 = JSON.empty
-                                  |> JSON.add ("time", JSON.Int 30)
-                                  |> JSON.add ("seat", JSON.Int chairIndex)
-                                  |> JSON.add ("min", JSON.Int maxBet)
+                    let in
+                        updatePots board;
+                        case chair of
+                            player as (ref (Player {state=ref PlayerInGame, ...})) => 
+                            let 
+                                val chairIndex = valOf (getChairIndexByPlayer board player)
+                                val d1 = JSON.empty
+                                      |> JSON.add ("time", JSON.Int 30)
+                                      |> JSON.add ("seat", JSON.Int chairIndex)
+                                      |> JSON.add ("min", JSON.Int maxBet)
 
-                            val (amount, blind, nextBet) = case betType of
-                                BetNormal => (maxBet, false, BetNormal)
-                              | BetSmallBlind => (smallBlind, true, BetBigBlind)
-                              | BetBigBlind => (bigBlind, true, BetNormal)
-                        in
-                            if blind then
-                                handleTableEvent (board, PlayerCall player)
-                            else
-                                let in
-                                    betTimer := delay (fn _ => handleTableEvent (board, PlayerFold player)) 30;
-                                    sendToBoard board "bet" filterAll d1
-                                end
-                        end
-                      | _ => setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
+                                val (amount, blind, nextBet) = case betType of
+                                    BetNormal => (maxBet, false, BetNormal)
+                                  | BetSmallBlind => (smallBlind, true, BetBigBlind)
+                                  | BetBigBlind => (bigBlind, true, BetNormal)
+                            in
+                                if blind then
+                                    handleTableEvent (board, PlayerCall player)
+                                else
+                                    let in
+                                        betTimer := delay (fn _ => handleTableEvent (board, PlayerFold player)) 30;
+                                        sendToBoard board "bet" filterAll d1
+                                    end
+                            end
+                          | _ => setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
+                    end
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, ...})), PlayerLeaving (player, chairId)) = 
