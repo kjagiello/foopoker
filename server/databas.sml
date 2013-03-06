@@ -56,7 +56,7 @@ fun db_readAll (h, acc) =
 	TYPE:			string * string -> unit
 	PRE:			n is a real file. 
 	POST:			()
-	SIDE-EFFECTS: 	Tömmer filen n och skriver till q till filen. 
+	SIDE-EFFECTS: 	Flushes the file n and writes q to file. 
 	EXAMPLE:		db_renderToFile("test", "test.txt") = ()
 *)
 fun db_renderToFile(qt, name) =
@@ -95,8 +95,7 @@ fun db_getMoney(Dbplayer(pl, m)) = m;
 	db_findPlayer p
 	TYPE: 			string -> bool
 	PRE: 			(none)
-	POST: 			True/false. 
-	SIDE-EFFECTS: 	-
+	POST: 			True if p exists in the database.
 	EXAMPLE: 		db_findPlayer("Joel") = True: bool		
 *)
 fun db_findPlayer(pl) = 
@@ -122,7 +121,8 @@ fun db_findPlayer(pl) =
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
-	SIDE-EFFECTS: 	Tar emot en sträng, gör om till JSON och sedan decodar tillbaka till en sträng o
+	SIDE-EFFECTS: 	Inputs a string, encode it to JSON
+					and decodes it back to a string. 
 					denna skickas sedan till db_rendertoile. 
 	EXAMPLE: 		db_addPlayer("Joel", "12345") = ()
 *)
@@ -160,7 +160,7 @@ fun db_addPlayer(pl, pw) =
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
-	SIDE-EFFECTS: 	-
+	SIDE-EFFECTS: 	Inputs
 	EXAMPLE: 		db_regPlayer("Joel", "12345") = ()
 *)
 fun db_regPlayer(pl, pw) = 
@@ -299,9 +299,9 @@ fun db_deletePlayer(pl) =
 
 (*
 	db_jsonToList()
-	TYPE: 		unit -> (string * int) list
+	TYPE: 		unit -> dbplayer list
 	PRE: 		(none)
-	POST: 		A (string * int) list.
+	POST: 		A dbplayer list out of all posts in the database. 
 	EXAMPLE: 	db_jsonToList() = [("Joel", 1000), ("Krille", 1000)]: (string * int) list
 *)
 fun db_jsonToList() = 
@@ -317,7 +317,7 @@ fun db_jsonToList() =
 				val jName = db_chopJsonString(JSON.get x' "Name")
 				val jCash = db_chopJsonInt(JSON.get x' "Cash")
 			in
-				(jName, jCash)::db_jsonToList'(xs', n+1)
+				Dbplayer (jName, jCash)::db_jsonToList'(xs', n+1)
 			end
 	in 
 		db_jsonToList'(users, 1)
@@ -325,10 +325,10 @@ fun db_jsonToList() =
 
 (*
 	db_topList n 
-	TYPE:		int -> (string * int) list
+	TYPE:		int -> dbplayer list
 	PRE:		n > 0 
-	POST:		A (string * int) list.		
-	EXAMPLE: 	db_topList(10) = [("Joel", 1500), (Krille, 1000), (Jocke, 1000)]
+	POST:		A dbplayer list with n elements. 	
+	EXAMPLE: 	db_topList(10) = [Dbplayer ("Joel", 1500), Dbplayer (Krille, 1000), Dbplayer (Jocke, 1000)]
 *)
 fun db_topList(0) = []
 | db_topList(n) = 
@@ -336,9 +336,9 @@ fun db_topList(0) = []
 		fun quickSort (nil) = nil
 		|   quickSort (l) = 
 			let 
-				val (p, m) = List.nth(l, length(l) div 2)
+				val Dbplayer (p, m) = List.nth(l, length(l) div 2)
 	        in
-				quickSort(List.filter(fn (x, y) => y > m)(l)) @ ((p, m) :: quickSort(List.filter(fn (x, y) => y < m)(l)))
+				quickSort(List.filter(fn Dbplayer (x, y) => y > m)(l)) @ (Dbplayer (p, m) :: quickSort(List.filter(fn Dbplayer (x, y) => y < m)(l)))
 			end;
 		
 		(* Grab the database*)
@@ -348,6 +348,5 @@ fun db_topList(0) = []
 		if n > lDb then
 			db
 		else
-			List.take(db, n)		
-
-	end;	
+			List.take(db, n)
+	end;

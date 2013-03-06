@@ -2,7 +2,7 @@
 	random()
 	TYPE: 		unit -> int
 	PRE:		(none)
-	POST:		A random number.
+	POST:		A random int.
 	EXAMPLE: 	random() = 121191
 *)
 (*
@@ -26,7 +26,7 @@ end;
 	sh_removeElement l, e
 	TYPE:		''a list * ''a -> ''a list
 	PRE:		(none)
-	POST:		An ''a list withouth the element e.
+	POST:		l as an ''a list withouth the element e.
 	EXAMPLE:	sh_removeElement([5,4,3,2], 5) = [4,3,2]
 *)
 (*

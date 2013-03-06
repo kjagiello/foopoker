@@ -1,4 +1,4 @@
-(* 
+datatype card = Card of Word32.word;(* 
 	REPRESENTATION CONVENTION: 	the term Queue([x1,x2,...,xn],[y1,y2,...,ym])
      							represents the queue x1,x2,...,xn,ym,...,y2,y1 
 								with head x1 and tail y1
@@ -63,98 +63,111 @@ abstype 'a queue = Queue of 'a list * 'a list
 	(* TIME COMPLEXITY: Theta(1) on average *)
 	fun dequeue (Queue(h::xs,ys)) = normalise (Queue(xs,ys))
 	
-	(*
-		getPrime c
-		TYPE:		int -> int
-		PRE:		0 <= c <= 12
-		POST:		A primenumber[i] depending on c[i].
-		EXAMPLE:	getPrime(5) = 7: int
-	*)
-	(*
-		INFO: 		Every value of a card gets a prime number. 
-	*)
-	fun getPrime(c) = 
-	 	let
-			val primes = [2,3,5,7,11,13,17,19,23,29,31,37,41]
-			val cardList = Vector.fromList(primes)
-		in
-			Vector.sub(cardList, c)
-		end;
-	
-	(*	
-		bitDeck n 
-		TYPE: 		int -> Word32.word list
-		PRE: 		n = 51
-		POST: 		A Word32.word list. 
-		EXAMPLE: 	bitDeck(52) = [0wx2, 0wx3, 0wx5, 0wx7, 0wxB, 0wxD, 0wx11, 0wx13, 0wx17, 0wx1D, ...]:
-		   			Word32.word list
-	*)
-	(*
-		INFO: 		***Cactus Kev's Poker Hand Evaluator***
-					Returns a list of 52 cards which are represented by words. 
 
-	 				+--------+--------+--------+--------+
-					|xxxbbbbb|bbbbbbbb|cdhsrrrr|xxpppppp|
-					+--------+--------+--------+--------+
-
-					p = prime number of rank (deuce=2,trey=3,four=5,...,ace=41)
-					r = rank of card (deuce=0,trey=1,four=2,five=3,...,ace=12)
-					cdhs = suit of card (bit turned on based on suit of card)
-					b = bit turned on depending on rank of card
-
-					Using such a scheme, here are some bit pattern examples:
-
-					xxxAKQJT 98765432 CDHSrrrr xxPPPPPP
-					00001000 00000000 01001011 00100101    King of Diamonds
-					00000000 00001000 00010011 00000111    Five of Spades
-					00000010 00000000 10001001 00011101    Jack of Clubs
-	*)
-	fun bitDeck 0 = []
-	| bitDeck n = 
-		let 
-			val orb = Word32.orb
-			val frInt32 = Word32.fromInt
-			val wInt = Word.fromInt
-			val op << = Word32.<<
-			val op >> = Word32.>>
-			val suit = 0wx8000
-			
-			fun bitDeck' (0, _, _) = []
-			 | bitDeck' (n', j, suit) = 	
-				if j < 12 then				(*Populate a card[0-12] with the form above*)
-					orb(orb(orb(frInt32(getPrime(j)), <<(frInt32(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, j+1, suit)
-				else						(*Change suit*)
-					orb(orb(orb(frInt32(getPrime(j)), <<(frInt32(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))::bitDeck'(n'-1, 0, >>(suit, Word.fromInt(1)))	
-		in
-			bitDeck' (n, 0, suit)
-		end;
 	
 	(*
-		makeQDeck n
-		TYPE: 		'a list -> 'a queue
-		PRE: 		(none)
-		POST:		A queue n. 
-		EXAMPLE:	makeQDeck([1,2,3]) = Queue([1], [2,3]);
-	*)
-	(*
-		INFO: 		Makes a queue out of a list. For use in the shuffled deck. 
-	*)
-	fun makeQDeck(x::xs) = Queue([x], xs);
-	(*
-		shuffleDeck n
-		TYPE: 		int -> Word32.word queue
-		PRE:		n >= 0
-		POST:		A Word32.word queue. 
+		shuffleDeck ()
+		TYPE: 		unit -> card queue
+		PRE:		(none)
+		POST:		A card queue with 52 elements. 
 		EXAMPLE:	shuffleDeck(52) = Queue([0wx18002], [0wx28103, 0wx48205, 0wx88307, 
-					0wx10840B, 0wx20850D, 0wx408611, 0wx808713, 0wx1008817, ...]): Word32.word queue
+					0wx10840B, 0wx20850D, 0wx408611, 0wx808713, 0wx1008817, ...]): card queue
 	*)
 	(*
-		INFO: 		Makes a shuffled queue deck. 
+		INFO: 		Makes a shuffled queue deck with 52 cards. 
 	*)
-	fun shuffleDeck n = 
+	fun shuffleDeck () = 
 		let
-			val shuffledeck = shuffle(bitDeck(n))
+			
+			(*
+				getPrime c
+				TYPE:		int -> int
+				PRE:		0 <= c <= 12
+				POST:		A primenumber[i] depending on c[i].
+				EXAMPLE:	getPrime(5) = 7: int
+			*)
+			(*
+				INFO: 		Every value of a card gets a prime number. 
+			*)
+			fun getPrime(c) = 
+			 	let
+					val primes = [2,3,5,7,11,13,17,19,23,29,31,37,41]
+					val cardList = Vector.fromList(primes)
+				in
+					Vector.sub(cardList, c)
+				end;
+
+			(*	
+				bitDeck () 
+				TYPE: 		unit -> card list
+				PRE: 		(none)
+				POST: 		A card list with 52 elements. 
+				EXAMPLE: 	bitDeck() = [0wx18002, 0wx28103, 0wx48205, 0wx88307, 0wx10840B, 0wx20850D, 0wx408611,
+				    		0wx808713, 0wx1008817, 0wx200891D, ...]: card list
+			*)
+			(*
+				INFO: 		***Cactus Kev's Poker Hand Evaluator***
+							Returns a list of 52 cards which are represented by words. 
+
+			 				+--------+--------+--------+--------+
+							|xxxbbbbb|bbbbbbbb|cdhsrrrr|xxpppppp|
+							+--------+--------+--------+--------+
+
+							p = prime number of rank (deuce=2,trey=3,four=5,...,ace=41)
+							r = rank of card (deuce=0,trey=1,four=2,five=3,...,ace=12)
+							cdhs = suit of card (bit turned on based on suit of card)
+							b = bit turned on depending on rank of card
+
+							Using such a scheme, here are some bit pattern examples:
+
+							xxxAKQJT 98765432 CDHSrrrr xxPPPPPP
+							00001000 00000000 01001011 00100101    King of Diamonds
+							00000000 00001000 00010011 00000111    Five of Spades
+							00000010 00000000 10001001 00011101    Jack of Clubs
+			*)
+			fun bitDeck () = 
+				let 
+					val orb = Word32.orb
+					val frInt32 = Word32.fromInt
+					val wInt = Word.fromInt
+					val op << = Word32.<<
+					val op >> = Word32.>>
+					val suit = 0wx8000
+					
+					(*
+						bitDeck' n, j, s
+						TYPE:		int * int * Word32.word -> card list
+						PRE:		n > 0, 0 <= j < 12, s = 0wx8000 OR 0wx4000 OR 0wx2000 OR 0wx1000
+						POST:		A card list with n elements, where j is the number of values for each suit s. 
+						EXAMPLE: 	bitDeck(52, 0, 0wx8000) = [0wx18002, 0wx28103, 0wx48205, 
+									0wx88307, 0wx10840B, 0wx20850D, 0wx408611, 0wx808713, 0wx1008817, 0
+									wx200891D, ...]: card list
+					*)
+					fun bitDeck'(0,_,_) = []
+					| bitDeck' (n', j, suit) = 	
+						if j < 12 then				(*Populate a card[0-12] with the form above*)
+							Card (orb(orb(orb(frInt32(getPrime(j)), <<(frInt32(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j))))::bitDeck'(n'-1, j+1, suit)
+						else						(*Change suit*)
+							Card (orb(orb(orb(frInt32(getPrime(j)), <<(frInt32(j), wInt(8))), suit), <<(frInt32(1), wInt(16+j)))) ::bitDeck'(n'-1, 0, >>(suit, Word.fromInt(1)))	
+				in
+					bitDeck' (52, 0, suit)
+				end;
+			(*
+				makeQDeck n
+				TYPE: 		'a list -> 'a queue
+				PRE: 		(none)
+				POST:		A queue n. 
+				EXAMPLE:	makeQDeck([1,2,3]) = Queue([1], [2,3]);
+			*)
+			(*
+				INFO: 		Makes a queue out of a list. For use in the shuffled deck. 
+			*)
+			fun makeQDeck(x::xs) = Queue([x], xs);
+			
+			val shuffledeck = shuffle(bitDeck())
 		in
 			makeQDeck(shuffledeck)
 		end;
+		
+		
 end;

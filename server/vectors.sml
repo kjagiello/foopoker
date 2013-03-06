@@ -2,7 +2,7 @@
 	v_flushes c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 7936
-	POST:		An int. 
+	POST:		c as hand value.
 	EXAMPLE:	v_flushes(7936) = 1
 *)
 (*
@@ -438,7 +438,7 @@ fun v_flushes(c) =
 	v_unique5 c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 7936
-	POST:		An int. 
+	POST:		c as a hand value. 
 	EXAMPLE:	v_unique5(7936) = 1600
 *)
 (*
@@ -881,7 +881,7 @@ fun v_unique5(c) =
 	v_adjust c
 	TYPE:		int -> int
 	PRE:		0 <= c <= 511
-	POST:		An int. 
+	POST:		c as a hand value. 
 	EXAMPLE:	v_adjust(511) = 7006
 *)
 (*
@@ -1468,7 +1468,7 @@ fun v_values(c) =
 	v_perm6(c1, c2, c3, c4, c5, c6, c7)
 	TYPE:		'a * 'a * 'a * 'a * 'a * 'a * int -> 'a * 'a * 'a * 'a * 'a
 	PRE:		(none)
-	POST:		A vector with (a', a', a', a', a') elements. 
+	POST:		List with all the possible permutations of c1, c2, c3, c4, c5 and c6.
 	EXAMPLE: 	v_perm6(0, 1, 2, 3, 4, 5, 3) = (0, 1, 3, 4, 5)
 *)
 (*
@@ -1491,7 +1491,7 @@ fun v_perm6(c1', c2', c3', c4', c5', c6', n) =
 	v_perm7(c1, c2, c3, c4, c5, c6, c7)
 	TYPE:		'a * 'a * 'a * 'a * 'a * 'a * int -> 'a * 'a * 'a * 'a * 'a
 	PRE:		(none)
-	POST:		A vector with (a', a', a', a', a') elements. 
+	POST:		List with all the possible permutations of c1, c2, c3, c4, c5, c6 and c7.
 	EXAMPLE: 	v_perm7(0, 1, 2, 3, 4, 5, 6, 1) = (0, 1, 2, 3, 4)
 *)
 (*

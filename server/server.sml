@@ -2354,7 +2354,7 @@ struct
                 (* Enough players at the table? *)
                 if playersCount >= 2 then
                     let 
-                        val newDeck = shuffleDeck 51
+                        val newDeck = shuffleDeck()
 						val startSidepot = [sh_emptySidepot]
 
                         (*
@@ -2495,7 +2495,7 @@ struct
                         val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
                         tableMessage (board, strToChat);
-                        (id, rank)
+                        Besthand (id, rank)
                     end
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterInGame
