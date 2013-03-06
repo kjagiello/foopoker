@@ -520,6 +520,22 @@ function RoomController($scope, socket, user) {
     });
 }
 
+function PotController($scope, socket, user) {
+    $scope.$on('$viewContentLoaded', function(){
+    });
+};
+
+app.directive('pot', function () {
+    return {
+        templateUrl: 'static/templates/pot.html',
+        restrict: 'E',
+        scope: {
+            potId: '@'
+        },
+        controller: PotController
+    }
+});
+
 app.config(['$routeProvider', function($routeProvider) {
     $routeProvider.when('/', {templateUrl: 'static/templates/login.html', controller: LoginController}).
     when('/browser', {templateUrl: 'static/templates/browser.html', controller: BrowserController}).

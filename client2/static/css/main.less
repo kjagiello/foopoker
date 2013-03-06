@@ -601,79 +601,39 @@ div {
         &.seat-0 { 
             left: 750px; 
             top: 60px;
-
-            .table-space {
-                left: -131px;
-                top: 40px;
-            }
         }
 
         &.seat-1 { 
             left: 780px; 
             top: 204px;
-
-            .table-space {
-                left: -126px;
-                top: 11px;
-            }
         }
         &.seat-2 { 
             left: 750px; 
             top: 350px;
-
-            .table-space {
-                left: -136px;
-                top: -34px;
-            }
         }
 
         &.seat-3 { 
             left: 520px; 
             top: 430px;
-
-            .table-space {
-                left: -47px;
-                top: -105px;
-            }
         }
         &.seat-4 { 
             left: 218px;
             top: 430px;
-
-            .table-space {
-                left: 72px;
-                top: -105px;
-            }
         }
 
         &.seat-5 { 
             left: -10px;
             top: 350px;
-
-            .table-space {
-                left: 159px;
-                top: -34px;
-            }
         }
 
         &.seat-6 { 
             left: -38px;
             top: 204px;
-
-            .table-space {
-                left: 173px;
-                top: 11px;
-            }
         }
 
         &.seat-7 { 
             left: -10px;
             top: 60px;
-
-            .table-space {
-                left: 172px;
-                top: 43px;
-            }
         }
 
         &.folded {
@@ -696,55 +656,6 @@ div {
             top: -25px;
             -webkit-transition: all 0.25s linear;
             background-color: #e2e2e2;
-        }
-
-        .table-space {
-            position: absolute;
-            left: 170px;
-            top: 50px;
-            width: 116px;
-            height: 70px;
-
-            .stake {
-                position: absolute;
-                width: 90px;
-                height: 70px;
-                left: 0;
-                top: 0;
-                text-align: left;
-            }
-
-            .button {
-                position: absolute;
-                width: 26px;
-                right: 0;
-                top: 0;
-            }
-
-            .text {
-                width: 90px;
-                font-weight: bold;
-                color: #ffeb0e;
-                position: absolute;
-                top: -24px;
-                font-size: 10px;
-                left: 0;
-                text-align: center !important;
-                .text-shadow();
-            }
-
-            &.reverse {
-                .stake, .text {
-                    right: 0;
-                    left: auto;
-                    text-align: right;
-                }
-
-                .button {
-                    left: 0;
-                    right: auto;
-                }
-            }
         }
 
         .cards {
@@ -971,6 +882,65 @@ div {
 
         .chip {
             margin-top: -17px;
+        }
+    }
+}
+
+.table-space {
+    position: absolute;
+    left: 170px;
+    top: 50px;
+    width: 116px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.3);
+
+    &.table-space0 { left: -131px; top: 40px; }
+    &.table-space1 { left: -126px; top: 11px; }
+    &.table-space2 { left: -136px; top: -34px; }
+    &.table-space3 { left: -47px; top: -105px; }
+    &.table-space4 { left: 72px; top: -105px; }
+    &.table-space5 { left: 159px; top: -34px; }
+    &.table-space6 { left: 173px; top: 11px; }
+    &.table-space7 { left: 172px; top: 43px; }
+
+    .stake {
+        position: absolute;
+        width: 90px;
+        height: 70px;
+        left: 0;
+        top: 0;
+        text-align: left;
+    }
+
+    .button {
+        position: absolute;
+        width: 26px;
+        right: 0;
+        top: 0;
+    }
+
+    .text {
+        width: 90px;
+        font-weight: bold;
+        color: #ffeb0e;
+        position: absolute;
+        top: -24px;
+        font-size: 10px;
+        left: 0;
+        text-align: center !important;
+        .text-shadow();
+    }
+
+    &.reverse {
+        .stake, .text {
+            right: 0;
+            left: auto;
+            text-align: right;
+        }
+
+        .button {
+            left: 0;
+            right: auto;
         }
     }
 }
