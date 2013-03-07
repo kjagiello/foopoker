@@ -11,4 +11,5 @@ MLHoldemServer.createBoard ("FooBar V.I.P. only", 8, (500, 1000), (100, 1000));
 MLHoldemServer.createBoard ("FooBar V.I.P. only", 8, (500, 1000), (100, 1000));
 
 (* lets run it! *)
+val fooServer = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage, MLHoldemServer.tick);
 PolyML.exception_trace(fn () => WebsocketServer.run fooServer);

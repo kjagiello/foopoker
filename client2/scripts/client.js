@@ -456,6 +456,12 @@ function RoomController($scope, socket, user) {
 
 function PotController($scope, $attrs, $element, socket, user) {
     $scope.potId = $attrs.potId;
+    $scope.amount = 0;
+
+    socket.on('cleanup', function (data) {
+        $scope.amount = 0;
+        arrangeChips ($($element).find('.chips'), 0);
+    });
 
     $scope.$on('$viewContentLoaded', function(){
     });
@@ -475,16 +481,18 @@ function PotController($scope, $attrs, $element, socket, user) {
             while (amount > 0 )
             {
                 var chips = [
-                    ['black', 200],
-                    ['blue', 100],
-                    ['red', 50]
+                    ['black', 100],
+                    ['blue', 50],
+                    ['red', 1]
                 ];
 
                 $.each(chips, function (i, c) {
                     var name = c[0];
                     var value = c[1];
 
+                    console.log(amount, value);
                     if (amount >= value) {
+                        console.log("YEAH");
                         // create the chip
                         var chip = '<div class="chip chip-' + name + '"></div>';
 
@@ -514,6 +522,9 @@ function PotController($scope, $attrs, $element, socket, user) {
                         
                         return false;
                     }
+                    else {
+                        return true;
+                    }
                 });
             }
 
@@ -521,6 +532,7 @@ function PotController($scope, $attrs, $element, socket, user) {
                 $chips.attr('dir', 'rtl');
         }
 
+        $scope.amount = pot.amount;
         arrangeChips($($element).find('.chips'), pot.amount);
     });
 };

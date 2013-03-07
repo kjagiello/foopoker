@@ -3092,5 +3092,3 @@ struct
     fun tick () =
         processTimers ()
 end;
-
-val fooServer = WebsocketServer.create (9001, MLHoldemServer.handleConnect, MLHoldemServer.handleDisconnect, MLHoldemServer.handleMessage, MLHoldemServer.tick);
