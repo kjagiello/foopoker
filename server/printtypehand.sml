@@ -128,9 +128,9 @@ fun checkFull([]) = (Joker, Joker)
 	POST: 		c1, c2, c3, c4, c5 as a string. 
 	EXAMPLE: 	printTypeHand(Card 0wx8002B25, Card 0wx8008B25, Card 0wx8001B25, Card 0wx1002817, Card 0wx802713) = "Kings": string
 *)		
-fun printTypeHand(Card c1, Card c2, Card c3, Card c4, Card c5) =
+fun printTypeHand(Playcard c1, Playcard c2, Playcard c3, Playcard c4, Playcard c5) =
 	let 
-		val n = handValueToInt(eval_5cards(Card c1, Card c2, Card c3, Card c4, Card c5))
+		val n = handValueToInt(eval_5cards(Playcard c1, Playcard c2, Playcard c3, Playcard c4, Playcard c5))
 		val flush = c1
 		
 		val op andb = Word32.andb

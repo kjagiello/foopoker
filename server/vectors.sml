@@ -1465,7 +1465,7 @@ fun v_values(c) =
 	end;
 
 (*
-	v_perm6(c1, c2, c3, c4, c5, c6, c7)
+	v_perm6(c1, c2, c3, c4, c5, c6, n)
 	TYPE:		'a * 'a * 'a * 'a * 'a * 'a * int -> 'a * 'a * 'a * 'a * 'a
 	PRE:		(none)
 	POST:		List with all the possible permutations of c1, c2, c3, c4, c5 and c6.
@@ -1488,7 +1488,7 @@ fun v_perm6(c1', c2', c3', c4', c5', c6', n) =
 		Vector.sub(cardList, n)
 	end;
 (*
-	v_perm7(c1, c2, c3, c4, c5, c6, c7)
+	v_perm7(c1, c2, c3, c4, c5, c6, c7, n)
 	TYPE:		'a * 'a * 'a * 'a * 'a * 'a * int -> 'a * 'a * 'a * 'a * 'a
 	PRE:		(none)
 	POST:		List with all the possible permutations of c1, c2, c3, c4, c5, c6 and c7.

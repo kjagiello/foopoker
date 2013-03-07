@@ -1638,35 +1638,33 @@ K    *)
     
     (*
         takeCard b
-        TYPE: game ref -> Word32.word
+        TYPE: game ref -> playcard
         PRE: b = Board
         POST: A card from the deck of b.
         SIDE-EFFECTS: One card is removed from the deck of b.
         EXAMPLE: 
     *)
-    val takeCard            : game ref -> Word32.word
+    val takeCard            : game ref -> playcard
     
     (*
         cardOnTable (b, c)
-        TYPE: game ref * Word32.word -> unit
+        TYPE: game ref * playcard -> unit
         PRE: b = Board
         POST: (none)
         SIDE-EFFECTS: Card c is put on the table b.
         EXAMPLE: 
     *)
-    val cardOnTable         : game ref * Word32.word -> unit
+    val cardOnTable         : game ref * playcard -> unit
     
     (*
         cardToPlayer (p, c)
-        TYPE: game ref * Word32.word -> unit
+        TYPE: game ref * playcard -> unit
         PRE: p = Player
         POST: (none)
         SIDE-EFFECTS: Player p gets card c.
         EXAMPLE: 
     *)
-    val cardToPlayer        : game ref * Word32.word -> unit
-    
-    (*
+    val cardToPlayer        : game ref * playcard -> unit(*
         updatePots b
         TYPE: game ref -> unit
         PRE: b = Boards
@@ -1803,8 +1801,8 @@ struct
 			sidePotList: sidepot list ref,
             chairs: game ref vector ref,
             state: tableState ref,
-            deck: Word32.word queue ref,
-            cards: Word32.word list ref,
+            deck: playcard queue ref,
+            cards: playcard list ref,
             spectators: game ref list ref,
             pot: int ref,
             betTimer: timer ref,
@@ -1816,7 +1814,7 @@ struct
             board: game ref ref,
             connection: WebsocketServer.connection,
             state: playerState ref,
-            cards: Word32.word list ref,
+            cards: playcard list ref,
             money: int ref,
             stake: int ref
         }
@@ -2287,7 +2285,7 @@ struct
     fun updatePots (board as ref (Board {sidePotList=ref sidePotList, ...})) =
         let 
             val pots = sh_sumPots (sidePotList)
-            val pots = map (fn (nr, sum) => JSON.empty |> JSON.add ("potId", JSON.Int nr) |> JSON.add ("amount", JSON.Int sum)) pots
+            val pots = map (fn Sumpot (nr, sum) => JSON.empty |> JSON.add ("potId", JSON.Int nr) |> JSON.add ("amount", JSON.Int sum)) pots
             val d = JSON.empty
                  |> JSON.add ("pots", JSON.List pots)
         in
@@ -2415,8 +2413,8 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5] = bcards
-                        val rank = eval_5cards (c1, c2, c3, c4, c5)
-                        val rank = printHand (handRank rank)
+                        val rank = handFrHandvalue(eval_5cards (c1, c2, c3, c4, c5))
+                        val rank = handPrint (handToInt rank)
 
                         val d1 = JSON.empty
                               |> JSON.add ("hand", JSON.String rank)
@@ -2443,8 +2441,8 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6] = bcards
-                        val rank = eval_6hand (c1, c2, c3, c4, c5, c6)
-                        val rank = printHand (handRank rank)
+                        val rank = handFrHandvalue(eval_6hand (c1, c2, c3, c4, c5, c6))
+                        val rank = handPrint (handToInt rank)
 
                         val d1 = JSON.empty
                               |> JSON.add ("hand", JSON.String rank)
@@ -2469,8 +2467,8 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
-                        val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
-                        val rank = printHand (handRank rank)
+                        val rank = handFrHandvalue(eval_7hand (c1, c2, c3, c4, c5, c6, c7))
+                        val rank = handPrint (handToInt rank)
 
                         val d1 = JSON.empty
                               |> JSON.add ("hand", JSON.String rank)
@@ -2498,7 +2496,7 @@ struct
                         val ref name = name
                         val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
                         val printRank = eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
-                        val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
+                        val printRank = handPrint (handToInt rank) ^ ", "^ printTypeHand printRank
                         
                         val hand = eval_print7hand(c1, c2, c3, c4, c5, c6, c7);
                         val hand = handToString(hand);
@@ -2518,12 +2516,12 @@ struct
                     printShowDown l
                     TYPE:       sidepot list -> string
                     PRE:        (none)
-                    POST:       l in text as a string. 
-                    EXAMPLE:    showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
-                                "0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
-                *)
-                (*
-                    INFO:       Returns information of all the players involved in the sidepot. 
+                    POST:       Representation of l. 
+                    EXAMPLE:    printShowDown([Sidepot (0, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (1, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (2, [Pokerplayer (0, 1, 500)], 500, true, true)]) =
+                                "Krille won the main pot ($600).\nJocke won the side pot ($600).\nJoel won the side pot ($500).\n":
+								   string
                 *)
 
                 fun printShowDown([]) = ""
@@ -2538,7 +2536,7 @@ struct
 								"split the main pot of $"^intStr(t)^".\n"^printShowDown(rest)
 							else
 								"split side pot "^intStr(nr)^" of $"^intStr(t)^".\n"^printShowDown(rest)
-                        | printShowDown'((p', h', m')::xs, t, rest) =
+                        | printShowDown'(Pokerplayer(p', h', m')::xs, t, rest) =
                             let
                                 val gamePlayer' = getPlayerName(getPlayerById(p'))
                             in
@@ -2558,12 +2556,21 @@ struct
                     end;
                 
                 val dealerChat = printShowDown ps
-
+				
+				(*
+					sidePotUpd l
+					TYPE:		sidepot list -> ()
+					PRE:		(none)
+					POST:		()
+					EXAMPLE: 	sidePotUpd([Sidepot (0, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (1, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (2, [Pokerplayer (0, 1, 500)], 500, true, true)]) = ()
+				*)
                 fun sidePotUpd([]) = () 
                 | sidePotUpd(Sidepot(nr, players, t, a, f)::spRest) =
                     let
                         fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
-                        | sidePotUpd'((p,h,m)::xs, spRest') =
+                        | sidePotUpd'(Pokerplayer(p,h,m)::xs, spRest') =
                             let
                                 val gamePlayer = getPlayerById(p)
                             in

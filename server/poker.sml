@@ -18,10 +18,10 @@
 								00000010 00000000 10001001 00011101    Jack of Clubs
 	REPRESENTATION INVARIANT: 	(none)
 *)
-datatype card = Card of Word32.word;
+datatype playcard = Playcard of Word32.word;
 
 (*
-	REPRESENTATION CONVENTION: 	A hand represented as 5 cards which get different
+	REPRESENTATION CONVENTION: 	A hand represented as 5 playcards which get different
 								rank for special combinations all according to
 								the rules of poker. 
 								
@@ -319,6 +319,6 @@ fun Call (call, playerMoney) =
 
 use "vectors.sml";
 use "shuffledeck.sml";
-use "showdown.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
+use "showdown.sml";

@@ -1,14 +1,18 @@
+(*use "vectors.sml";
+datatype playcard = Playcard of Word32.word;
+datatype handvalue = Handvalue of int;
+fun handValueToInt(Handvalue(n)) = n; *)
 (*
 	eval_printCard n 
-	TYPE:		card -> string
+	TYPE:		playcard -> string
 	PRE:		(none)
 	POST:		Representation of n.
-	EXAMPLE:	eval_printCard(0wx8001B25) = "Ks": string
+	EXAMPLE:	eval_printCard(Playcard 0wx8001B25) = "Ks": string
 *)
 (*
 	INFO: 		***Cactus Kev's Poker Hand Evaluator***
 *)
-fun eval_printCard(Card(n)) = 
+fun eval_printCard(Playcard(n)) = 
 	let
 		val op andb = Word32.andb
 		val r = Word32.>>(n, Word.fromInt(8))
@@ -58,17 +62,17 @@ fun eval_findCard(n) =
 	
 (*
 	eval_5cards (c1, c2, c3, c4, c5)
-	TYPE: 		card * card * card * card * card -> handvalue
+	TYPE: 		playcard * playcard * playcard * playcard * playcard -> handvalue
 	PRE: 		c1-c5 must have been created by shuffleDeck().
 	POST: 		c1-c5 as a handvalue. 
-	EXAMPLE: 	eval_5cards((Card 0wx10002C29, Card 0wx1002817, Card 0wx4002A1F, Card 0wx200291D,
-	    		Card 0wx8002B25)) = Handvalue 1: handvalue
+	EXAMPLE: 	eval_5cards((Playcard 0wx10002C29, Playcard 0wx1002817, Playcard 0wx4002A1F, Playcard 0wx200291D,
+	    		Playcard 0wx8002B25)) = Handvalue 1: handvalue
 *)
 (*
 	INFO: 		***Paul D. Senzee's Optimized Hand Evaluator
 				for Cactus Kev's Poker Hand Evaluator***
 *)
-fun eval_5cards (Card(c1), Card(c2), Card(c3), Card(c4), Card(c5)) =
+fun eval_5cards (Playcard(c1), Playcard(c2), Playcard(c3), Playcard(c4), Playcard(c5)) =
 	let
 		val orb = Word32.orb
 		val frInt = Word.fromInt
@@ -95,11 +99,11 @@ fun eval_5cards (Card(c1), Card(c2), Card(c3), Card(c4), Card(c5)) =
 
 (*
 	eval_6hand (c1, c2, c3, c4, c5, c6)
-	TYPE:		card * card * card * card * card * card -> handvalue
+	TYPE:		playcard * playcard * playcard * playcard * playcard * playcard -> handvalue
 	PRE:		(none)
 	POST:		The best handvalue out of 6 cards. 
 	EXAMPLE: 	eval_6hand(Card 0wx10002C29, Card 0wx1002817, 
-				Card 0wx4002A1F, Card 0wx200291D, Card 0wx408611, Card 0wx8002B25) = Handvalue 1: handvalue
+				Playcard 0wx4002A1F, Playcard 0wx200291D, Playcard 0wx408611, Playcard 0wx8002B25) = Handvalue 1: handvalue
 *)
 fun eval_6hand(c1, c2, c3, c4, c5, c6) =
 	let
@@ -120,11 +124,11 @@ fun eval_6hand(c1, c2, c3, c4, c5, c6) =
 	
 (*
 	eval_7hand (c1, c2, c3, c4, c5, c6, c7)
-	TYPE:		card * card * card * card * card * card * card -> handvalue
+	TYPE:		playcard * playcard * playcard * playcard * playcard * playcard * playcard -> handvalue
 	PRE:		(none)
 	POST:		The best handvalue out of 7 cards.
-	EXAMPLE: 	eval_7hand(Card 0wx10002C29, Card 0wx1002817, Card 0wx4002A1F, 
-				Card 0wx200291D, Card 0wx408611, Card 0wx1001817, Card 0wx8002B25) = Handvalue 1: handvalue
+	EXAMPLE: 	eval_7hand(Playcard 0wx10002C29, Playcard 0wx1002817, Playcard 0wx4002A1F, 
+				Playcard 0wx200291D, Playcard 0wx408611, Playcard 0wx1001817, Playcard 0wx8002B25) = Handvalue 1: handvalue
 *)
 (*
 	INFO: 		***Cactus Kev's Poker Hand Evaluator***
@@ -148,8 +152,8 @@ fun eval_7hand(c1, c2, c3, c4, c5, c6, c7) =
 
 (*
 	eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
-	TYPE: 		card * card * card * card * card * card * card ->
-	     		card * card * card * card * card
+	TYPE: 		playcard * playcard * playcard * playcard * playcard * playcard * playcard ->
+	     		playcard * playcard * playcard * playcard * playcard
 	PRE:		(none)
 	POST:		The best handvalue 5 cards can get out of 7 cards.
 	EXAMPLE: 	eval_print7hand(Card 0wx10002C29, Card 0wx1002817, Card 0wx4002A1F, Card 0wx200291D, Card 0wx408611, 
@@ -171,12 +175,12 @@ fun eval_print7hand(c1, c2, c3, c4, c5, c6, c7) =
 					eval_print7hand'(c1', c2', c3', c4', c5', c6', c7', n-1, best, bestHand)
 			end
 	in
-		eval_print7hand'(c1, c2, c3, c4, c5, c6, c7, 21, 9999, (Card 0wx0, Card 0wx0, Card 0wx0, Card 0wx0, Card 0wx0))
+		eval_print7hand'(c1, c2, c3, c4, c5, c6, c7, 21, 9999, (Playcard 0wx0, Playcard 0wx0, Playcard 0wx0, Playcard 0wx0, Playcard 0wx0))
 	end;
 	
 (*
 	eval_cardsToString c1, c2, c3, c4, c5
-	TYPE:		card * card * card * card * card -> string
+	TYPE:		playcard * playcard * playcard * playcard * playcard -> string
 	PRE:		(none)
 	POST:		Representation of c1-c5. 
 	EXAMPLE: 	handToString((Card 0wx10002C29, Card 0wx1002817, Card 0wx4002A1F, Card 0wx200291D,

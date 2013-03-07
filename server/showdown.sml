@@ -1,6 +1,6 @@
 (* 
 	REPRESENTATION CONVENTION: 	Pokerplayer(id, h, m): Represents a poker player where the id is a unique 
-								id of the player, h is the player's hand value and m is the money
+								id of the player, h is the player's handvalue and m is the money
 								of the player. 
 								
 	REPRESENTATION INVARIANT: 	id >= 0
@@ -80,7 +80,7 @@ fun sh_mkFull([]) = []
 	if allin'' = true then
 		Sidepot(nr'', pl'', pot'', allin'', true)::sh_mkFull(xs)
 	else
-		Sidepot(nr'', pl'', pot'', allin'', full'')::sh_mkFull(xs)
+		Sidepot(nr'', pl'', pot'', allin'', full'')::sh_mkFull(xs);
 		
 (*
 	sh_mkSidepot l, id', h', m', allin'
@@ -92,7 +92,7 @@ fun sh_mkFull([]) = []
 				[Sidepot (0, [Pokerplayer (0, 1, 500)], 500, false, false)]: sidepot list
 *)
 (*VARIANT: length l*)
-fun sh_mkSidepot([], _, _, _, _) = []
+fun sh_mkSidepot ([], _, _, _, _) = []
 | sh_mkSidepot(l as iSp::xs, id, h, m, allin) =
 	let 
 		(*
@@ -285,7 +285,7 @@ fun sh_unCalled([]) = sh_emptyPokerplayer
 			PRE:		(none)
 			POST: 		The last element in the pokerplayer list.
 			EXAMPLE: 	sh_unCalled'(Sidepot (1, [Pokerplayer (0, 9999, 25), Pokerplayer (1, 9999, 25)], 25, true, false)) =
-						Pokerplayer (1, 9999, 25)
+						Pokerplayer (1, 9999, 25): pokerplayer
 		*)
 		fun sh_unCalled'(Sidepot (_, [], _, _, _)) = sh_emptyPokerplayer
 		| sh_unCalled'(Sidepot (nr, pl as Pokerplayer (id, h, m)::xs, pot, allin, full)) =
@@ -436,7 +436,8 @@ fun showDown([]) = []
 			TYPE:		pokerplayer list -> pokerplayer list
 			PRE:		(none)
 			POST:		l as a pokerplayer list with the smallest h in common. 
-			EXAMPLE:	winners([Pokerplayer (0, 1, 500), Pokerplayer (3, 1600, 700), Pokerplayer (7, 5068, 700)]) = [Pokerplayer (0, 1, 500)] 
+			EXAMPLE:	winners([Pokerplayer (0, 1, 500), Pokerplayer (3, 1600, 700), Pokerplayer (7, 5068, 700)]) = 
+						[Pokerplayer (0, 1, 500)]: pokerplayer list
 		*)
 		(*VARIANT: length l*)
 		fun winners [] = [] 
@@ -448,7 +449,7 @@ fun showDown([]) = []
 					PRE: 		h > 0
 					POST:		m' as a new pokerplayer list from l with the smallest common h'. 
 					EXAMPLE: 	winners'([Pokerplayer (3, 1600, 700), Pokerplayer (7, 5068, 700)], [Pokerplayer (0, 1, 500), 1]) =
-								[(0, 1, 500)] 
+								[(0, 1, 500)]: pokerplayer list
 				*)
 				(*VARIANT: length l*)
 				fun winners'([], bestPl, _) = bestPl
@@ -492,7 +493,7 @@ fun showDown([]) = []
 						except that m in the pokerplayer list is t' divided by the length of w',
 						pot = t', allin and full are both true. 
 			EXAMPLE:	sh_mkSidepot(0, [Pokerplayer (0, 1, 500), Pokerplayer (1, 1, 500)], 1500) =
-						Sidepot(0, [Pokerplayer (0, 1, 750), Pokerplayer (1, 1, 750)], 1500, true, true)
+						Sidepot(0, [Pokerplayer (0, 1, 750), Pokerplayer (1, 1, 750)], 1500, true, true): sidepot
 		*)		
 		fun sh_mkSidepot(nr, [], _) = sh_emptySidepot 
 		| sh_mkSidepot(nr, winners, tot) =
