@@ -10,35 +10,18 @@ val chr = o_chr;
 val explode = o_explode;
 val implode = o_implode;
 
-(* 3rd party libraries *)
 use "../utils/base64-sig.sml";
 use "../utils/base64.sml";
+
 use "../utils/sha1-sig.sml";
 use "../utils/sha1.sml";
+
 use "../utils/json.sml";
 
 use "../utils/utils.sml";
+
 use "databas.sml";
 
-(*
-    getBit (w, b)
-    TYPE: Word8.word * int -> bool
-    PRE: (none)
-    POST: Gets bit b of w (counting from the LSB, Big Endian).
-    SIDE-EFFECTS: (none)
-*)
-fun getBit (w, b) =
-    Word8.andb (Word8.>> (w, Word.fromInt b), Word8.fromInt 1) (* w >> b & 1 *)
-
-(*
-    mapi f l
-    TYPE: ('a * int -> 'b) -> 'a list -> 'b list
-    PRE: (none)
-    POST: New list by mapping the function f from left to right over l.
-    SIDE-EFFECTS: (none)
-    EXAMPLE: 
-        mapi (fn (x, i) => i) [5, 10, 15] = [0, 1, 2]
-*)
 fun mapi f l =
     let fun mm _ nil = nil
           | mm n (h :: t) = f (h, n) :: mm (n + 1) t
@@ -46,16 +29,6 @@ fun mapi f l =
         mm 0 l
     end
 
-(*
-    vectorToInt v
-    TYPE: Word8Vector.vector -> LargeWord.word
-    PRE: (none)
-    POST: Vector v seen as binary integer (in big-endian format).
-    SIDE-EFFECTS: (none)
-    EXAMPLE: 
-        vectorToInt (Word8Vector.fromList (map Word8.fromInt [1, 2, 3])) = 0wx10203
-
-*)
 fun vectorToInt (v) =
     let
         val l = rev (vectorToList v)
@@ -73,64 +46,30 @@ fun vectorToInt (v) =
         List.foldr (LargeWord.xorb) (LargeWord.fromInt 0) l
     end
 
-(*
-    parseHeaders d
-    TYPE: string -> string HashArray.hash
-    PRE: (none)
-    POST: HashArray containing all HTTP headers in d
-    SIDE-EFFECTS: raises Incomplete exception if there is no trailing space
-    EXAMPLE: 
-        parseHeaders("GET /Basis/vector.html HTTP/1.1\nHost:
-www.standardml.org\nConnection: keep-alive\nCache-Control: no-cache\nPragma: no-
-cache\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-\nUser-Agent: Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like
-Gecko) Chrome/24.0.1312.56 Safari/537.17\nReferer: https://www.google.se
-/\nAccept-Encoding: gzip,deflate,sdch\nAccept-Language: en,pl;q=0.8,sv;q=0.6
-\nAccept-Charset: ISO-8859-2,utf-8;q=0.7,*;q=0.3\n\n") =
-           Hash
-            {hash = ref fn, used = ref 9, entries =
-             ref
-                (fromList[Some ("Host", "www.standardml.org"),
-                      Some ("Accept-Charset", "ISO-8859-2,utf-8;q=0.7,*;q=0.3"),
-                      None, None, None,
-                      Some
-                       ("User-Agent",
-                        "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.56 Safari/537.17"),
-                      ..., ...])}
-*)
-fun parseHeaders d =
+fun parseHeaders(d) =
     let
         exception Incomplete
 
-        (*
-            parseHeaders' (h, l)
-            TYPE: strnig HashArray.hash * string list -> unit
-            PRE: type
-            POST: (none)
-            SIDE-EFFECTS: Updates h with correct headers from l. 
-                Raises Incomplete if the headers in l does not end with
-                an empty line.
-        *)
-        fun parseHeaders' (h, []) = raise Incomplete
-          | parseHeaders' (h, first::rest) = 
+        fun parseHeaders'(h, []) = raise Incomplete
+          | parseHeaders'(h, first::rest) = 
             let
                 val tokens = String.fields (fn c => c = #":") first
             in
                 case tokens of
                   (* we've got a header here *)
                     [key, value] => 
-                        (HashArray.update (h, key, String.substring(value, 1, size value - 1));
-                        parseHeaders' (h, rest))
+                        (HashArray.update(h, key, String.substring(value, 1, size value - 1));
+                        parseHeaders'(h, rest))
 
                   (* end of request *)
                   | [""] => ()
 
                   (* keep looking for the end of the request *)
-                  | _ => parseHeaders' (h, rest)
+                  | _ => parseHeaders'(h, rest)
             end
 
         val h = HashArray.hash 32
-        val d = implode (List.filter (fn c => not (c = #"\r")) (explode d))
+        val d = implode (List.filter (fn c => not(c = #"\r")) (explode d))
     in
         parseHeaders'(h, String.fields (fn c => c = #"\n") d);
         h
@@ -138,33 +77,9 @@ fun parseHeaders d =
 
 signature WEBSOCKET_PACKET = 
 sig
-    (*  REPRESENTATION CONVENTION: packet follows WebSocket protocol
-        specification (RFC 6455) and is therefore representing
-        almost all parts (extensions are not supported) of any WebSocket
-        packet. For more information about meaning of parts of the packet,
-        please read Section 5.2 of RFC 6455.
-        REPRESENTATION INVARIANT: (none)
-    *)
     type packet
     
-    (*
-        fromVector v
-        TYPE: Word8Vector.vector -> Word8.word list * Word8.word list * packet
-        PRE: (none)
-        POST: (original data from v, original data from v without parsed packet
-            data, parsed packet)
-        SIDE-EFFECTS: (none)
-    *)
     val fromVector      : Word8Vector.vector -> Word8.word list * Word8.word list * packet
-    
-    (*
-        toVector p
-        TYPE: bool * bool * bool * bool * int * bool * int * 
-            Word8Vector.vector * Word8Vector.vector -> Word8Vector.vector
-        PRE: (none)
-        POST: p as vector following WebSocket protocal specification.
-        SIDE-EFFECTS: (none)
-    *)
     val toVector        : (
             bool                        (* FIN *)
         *   bool                        (* RSV1 *)
@@ -176,42 +91,9 @@ sig
         *   Word8Vector.vector          (* Masking-key *)
         *   Word8Vector.vector          (* Payload Data *)
     ) -> Word8Vector.vector
-    
-    (*
-        getPayload p
-        TYPE: packet -> Word8Vector.vector
-        PRE: (none)
-        POST: The payload of the p.
-        SIDE-EFFECTS: (none)
-    *)
     val getPayload      : packet -> Word8Vector.vector
-    
-    (*
-        getOpcode p
-        TYPE: packet -> int
-        PRE: (none)
-        POST: The opcode of p.
-        SIDE-EFFECTS: (none)
-    *)
     val getOpcode       : packet -> int
-    
-    (*
-        isRSVSet
-        TYPE: packet -> bool
-        PRE: (none)
-        POST: true if any RSV flag is set, false otherwise
-        SIDE-EFFECTS: (none)
-    *)
     val isRSVSet        : packet -> bool
-    
-    (*
-        isFinal
-        TYPE: packet -> bool
-        PRE: (none)
-        POST: true if the packet is the final part of a message, 
-            false otherwise.
-        SIDE-EFFECTS: (none)
-    *)
     val isFinal         : packet -> bool
 end
 
@@ -241,6 +123,7 @@ struct
     + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
     |                     Payload Data continued ...                |
     +--------------------------------------------------------------*)
+
     type packet = (
             bool                        (* FIN *)
         *   bool                        (* RSV1 *)
@@ -255,23 +138,12 @@ struct
 
     fun fromVector v =
         let
-            (*
-                word8ToBool w
-                TYPE: Word8.word -> bool
-                PRE: (none)
-                POST: true if w = 1, false otherwise
-                SIDE-EFFECTS: (none)
-            *)
             fun word8ToBool w =
                 w = (Word8.fromInt 1)
 
-            (*
-                extract (v, s, l)
-                TYPE: Word8VectorSlice.vector * int * int -> Word8VectorSlice.vector
-                PRE: (none)
-                POST: Vector containg a part of v starting from s with length l.
-                SIDE-EFFECTS: (none)
-            *)
+            fun getBit (w, b) =
+                Word8.andb (Word8.>> (w, Word.fromInt b), Word8.fromInt 1) (* w >> b & 1 *)
+
             fun extract (v, i, j) =
                 let
                     val v = Word8VectorSlice.full v
@@ -281,24 +153,9 @@ struct
                     v
                 end
 
-            (*
-                getBytes (l, n)
-                TYPE: Word8Vector.elem list * int -> Word8Vector.elem list * Word8Vector.vector
-                PRE: (none)
-                POST: (l without first n elements, vector with first n elements
-                    of l)
-                SIDE-EFFECTS: (none)
-            *)
             fun getBytes (l, n) =
                 (List.drop (l, n), Word8Vector.fromList (List.take (l, n)))
 
-            (*
-                getByte l
-                TYPE: Word8Vector.elem list -> Word8Vector.elem list * Word8Vector.vector
-                PRE: length l > 0
-                POST: (l without first element, first element in l)
-                SIDE-EFFECTS: (none)
-            *)
             fun getByte (h::t) =
                 (t, h)
 
@@ -330,15 +187,7 @@ struct
             val (data, maskkey) = getBytes (data, 4) 
             val (data, payload) = getBytes (data, payloadlen) 
 
-            (*
-                unmask k (i, n)
-                TYPE: Word8Vector.vector -> int * Word8.word -> Word8.word
-                PRE: (none)
-                POST: Masked n at index i with masking key k, following
-                    WebSocket protocol specification (Section 5.3 in RFC6455). 
-                SIDE-EFFECTS: (none)
-            *)
-            fun unmask maskkey (i, x) =
+            fun unmask (i, x) =
                 let
                     val j = i mod 4
                     val mk = Word8Vector.sub (maskkey, j)
@@ -346,41 +195,30 @@ struct
                     Word8.xorb (x, mk)
                 end
 
-            val payload = Word8Vector.mapi (unmask maskkey) payload
+            val payload = Word8Vector.mapi unmask payload
 
         in
+
             (data, List.take (orgdata, Word8Vector.length v - length data), (final, rsv1, rsv2, rsv3, opcode, mask, payloadlen, maskkey, payload))
         end
 
     fun toVector (final, rsv1, rsv2, rsv3, opcode, mask, payloadlen, maskkey, payload) =
         let
-            (*
-                lrb (x, n)
-                TYPE: int * int -> Word8.word
-                PRE: (none)
-                POST: Binary left shift x with n positions.
-                SIDE-EFFECTS: (none)
-            *)
+            fun orbList l =
+                foldr Word8.orb (Word8.fromInt 0) l
+
             fun lrb (x, n) =
                 Word8.<< (Word8.fromInt x, Word.fromInt n)
 
-            (*
-                arrayToList a
-                TYPE: Word8Array.array -> Word8Array.elem list
-                PRE: (none)
-                POST: a as list
-                SIDE-EFFECTS: (none)
-            *)
+            fun getBit (w, b) =
+                Word8.andb (Word8.>> (w, Word.fromInt b), Word8.fromInt 1)
+
+            fun vectorToList v =
+                Word8Vector.foldr (fn (a, l) => a::l) [] v
+
             fun arrayToList v =
                 Word8Array.foldr (fn (a, l) => a::l) [] v
 
-            (*
-                boolToInt x
-                TYPE: bool -> int
-                PRE: (none)
-                POST: 1 if b = true, 0 otherwise
-                SIDE-EFFECTS: (none)
-            *)
             fun boolToInt b = if b then 1 else 0
 
             val octet1 = orbList [
@@ -428,241 +266,27 @@ end
 
 signature WEBSOCKET_SERVER = 
 sig
-    (*  REPRESENTATION CONVENTION: socket consists of 
-            - listenSocket: handles all incomming connections
-            - connections: holds all the active websocket connections
-            - connectHandler: a callback function that is called every time
-                a new connection has been estabilished
-            - disconnectHandler: a callback function that is called every time
-                some connection has been closed
-            - messageHander: a callback function that is called every time
-                a new and *complete* message has been received
-            - tickHandler: a callback function that gets called every 1000ms
-        REPRESENTATION INVARIANT: (none)
-    *)
     type server
-
-    (*  REPRESENTATION CONVENTION: A connectionState has three representations
-            describing the state of a WebSocket connection:
-            - Closed: the connection has been closed
-            - Handshake: the client has connected and sent a HTTP handshake
-            - Estabilished: the connection has been fully estabilished
-        REPRESENTATION INVARIANT: (none)
-    *)
     type connectionState
-
-    (*  REPRESENTATION CONVENTION: connection consists of:
-            - socket: a TCP socket for the client connection
-            - address: client's address
-            - buffer: buffers all incomming client data
-            - fbuffer: buffers all fragmented client packets
-            - state: holds the state of client connection
-            - fragmentOpcode: the opcode of the last fragmented packet
-        REPRESENTATION INVARIANT: (none)
-    *)
     type connection
+    type event
     
-    (*
-        create (p, ch, dh, mh, th)
-        TYPE: int * (connection -> unit) * (connection -> unit) * (connection * int * Word8Vector.vector -> unit) * (unit -> unit) -> server
-        PRE: 1024 <= p =< 65535
-        POST: initialized server with listen socket on port p and
-            connectHandler, disconnectHandler, messageHandler and tickHandler
-            from ch, dh, mh and th respectively.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val create              : int * (connection -> unit) * (connection -> unit) * (connection * int * Word8Vector.vector -> unit) * (unit -> unit) -> server
-    
-    (*
-        run s
-        TYPE: server -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: It runs server s and blocks in the server loop until
-            any abort signal is received.
-        EXAMPLE: 
-    *)
     val run                 : server -> unit
-    
-    (*
-        shutdown s
-        TYPE: server -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Deinitializes the server s, closes all the sockets and
-            performs all necessary cleanups.
-        EXAMPLE: 
-    *)
     val shutdown            : server -> unit
-    
-    (*
-        readSockets (s, scks)
-        TYPE: server * Socket.sock_desc list -> unit
-        PRE: scks must contain only sockets that are ready to read from
-        POST: (none)
-        SIDE-EFFECTS: If any of the sockets in scks is the listen socket,
-            it means that a new connection is awaiting for accepting, so
-            it gets accepted and estabilished between the client and server s.
-            For all other sockets in scks (i.e. clients), we read data from them
-            inte respective buffers.
-        EXAMPLE: 
-    *)
     val readSockets         : server * Socket.sock_desc list -> unit
-    
-    (*
-        readData (s, c)
-        TYPE: server * connection -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: It reads data from the socket s and tries to parse it as
-            soon we have enough data in the buffer. Every time we have 
-            a complete message, messageHandler of s gets called. 
-        EXAMPLE: 
-    *)
     val readData            : server * connection -> unit
-    
-    (*
-        sameConnection (c1, c2)
-        TYPE: connection * connection -> bool
-        PRE: (none)
-        POST: true if c1 and c2 are the same, false otherwise.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val sameConnection      : connection * connection -> bool
-    
-    (*
-        acceptConnection s
-        TYPE: server -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: It accepts a connection that is awaiting on
-            the listen socket of s.
-        EXAMPLE: 
-    *)
     val acceptConnection    : server -> unit
-    
-    (*
-        parseData (s, c)
-        TYPE: server * connection -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Tries to parse the data buffer in c and if it succedes,
-            further actions are performed depending on the opcode of the packet.
-        EXAMPLE: 
-    *)
     val parseData           : server * connection -> unit
-    
-    (*
-        parseHandshake (s, c)
-        TYPE: server * connection -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Parses the WebSocket handshake of c and generates
-            a response, then sends it to the client and finally accepts
-            the connection. An accepted connection is signaled to
-            the connectHandler in s.
-        EXAMPLE: 
-    *)
     val parseHandshake      : server * connection -> unit
-    
-    (*
-        handlePing (s, c, p)
-        TYPE: server * connection * WebsocketPacket.packet -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Handles a WebSocket packet with Ping opcode 
-            and takes actions conforming with the WebSocket protocol
-            specification (e.g. closes the connection in s if the packet is
-            invalid).
-        EXAMPLE: 
-    *)
     val handlePing          : server * connection * WebsocketPacket.packet -> unit
-    
-    (*
-        handlePong (s, c, p)
-        TYPE: server * connection * WebsocketPacket.packet -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Handles a WebSocket packet p with Pong opcode 
-            from the client c and takes actions conforming with 
-            the WebSocket protocol specification (e.g. closes the connection
-            in s if the packet is invalid).
-        EXAMPLE: 
-    *)
     val handlePong          : server * connection * WebsocketPacket.packet -> unit
-    
-    (*
-        handleDisconnect (s, c, p)
-        TYPE: server * connection * WebsocketPacket.packet -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Handles a WebSocket packet p with Disconnect opcode 
-            and takes actions conforming with the WebSocket protocol
-            specification, i.e. it sends back an acknowledgment and 
-            properly closes the connection in s.
-        EXAMPLE: 
-    *)
     val handleDisconnect    : server * connection * WebsocketPacket.packet -> unit
-    
-    (*
-        handleContinuation (s, c, p)
-        TYPE: server * connection * WebsocketPacket.packet -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Handles a WebSocket packet p with Continuation opcode 
-            and takes actions conforming with the WebSocket protocol
-            specification, e.g. it buffers fragmented message in c or 
-            closes connection in s if the packet is invalid.
-        EXAMPLE: 
-    *)
     val handleContinuation  : server * connection * WebsocketPacket.packet -> unit
-    
-    (*
-        handlePacket (s, c, p)
-        TYPE: server * connection * WebsocketPacket.packet -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Handles incomming message packet p from c. If the message 
-            is fragmented, we handle it separately. If the message is complete,
-            we call messageHandler in s.
-        EXAMPLE: 
-    *)
     val handlePacket        : server * connection * WebsocketPacket.packet -> unit
-    
-    (*
-        closeConnection (s, c, i, r)
-        TYPE: server * connection * int * string -> unit
-        PRE: Code c must conform with Section 7.4 of WebSocket specification
-            protocol.
-        POST: (none)
-        SIDE-EFFECTS: Closes the connection c in server s with code c and 
-            reason r.
-        EXAMPLE: 
-    *)
     val closeConnection     : server * connection * int * string -> unit
-    
-    (*
-        send (c, o, p)
-        TYPE: connection * int * Word8Vector.vector -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Sends a WebSocket packet with opcode o and payload p 
-            to client c.
-        EXAMPLE: 
-    *)
     val send                : connection * int * Word8Vector.vector -> unit
-    
-    (*
-        sendEx (s, f, o, p)
-        TYPE: server * (connection -> bool) * int * Word8Vector.vector -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Sends a WebSocket packet with opcode o and payload p 
-            to all the connections in s that pass filter function f.
-        EXAMPLE: 
-    *)
     val sendEx              : server * (connection -> bool) * int * Word8Vector.vector -> unit
 end
 
@@ -690,6 +314,8 @@ struct
         messageHandler: (connection * int * Word8Vector.vector -> unit),
         tickHandler: unit -> unit
     }
+
+    datatype event = Connect of connection
 
     fun create (port, ch, dh, mh, th) =
         let
@@ -947,809 +573,90 @@ end
 
 signature WebsocketHandler = 
 sig
-    (*  REPRESENTATION CONVENTION: 
-        game has three different representations:
-            - Player, that represents a single, connected and logged in client.
-              Each Player holds following data:
-                * id: an unique, server-side identificator of the player
-                * name: name of the player
-                * board: the Board the player is currently spectating
-                * connection: client's connection to the server
-                * state: the state of a playing (sitting at the table) player
-                * cards: player's cards in the current game
-                * money: player's money
-                * stake: player's stake in the current game
-            - Board, that represents a single room/board/table
-              (all these are the same thing). Each Board holds following data:
-                * id: an unique, server-side identificator of the board
-                * name: name of the board
-                * smallBlind: the small blind at the table
-                * bigBlind: the big blind at the table
-                * minBuyIn: the minimal buy-in at the table
-                * maxBuyIn: the maximal buy-in at the table
-                * sidePotList: a generated at the fly list of the sidepots
-                    fir the current game
-                * chairs: all the seats at the table
-                * state: the state of the game at the table
-                * deck: deck with cards for the current game
-                * cards: cards at the table for the current game
-                * spectators: players currently subscribed to the board
-                * pot: current money at the table (TODO: remove (deprecated))
-                * betTimer: a handle for the bet timer
-                * startTimer: a handle for the start timer (used to
-                    delay the start of the game)
-            - Null, that represents nothing.
-        REPRESENTATION INVARIANT: 
-            id > 0
-            size name > 0
-            money > 0
-            0 < smallBlind < bigBlind
-            0 < minBuyIn < maxBuyIn
-    *)
     type game
-
-    (*  REPRESENTATION CONVENTION:
-        time has two different representations:
-            - Timer(id, f, exipreTime), there id is an unique timer id,
-                f is the function that will get called when actual time
-                has passed expireTime.
-            - NullTimer represents an empty timer that does nothing.
-        REPRESENTATION INVARIANT:
-            (none)
-    *)
+    type tableEvent
+    type playerState
+    type parsedMessage
     type timer
 
-    (*  REPRESENTATION CONVENTION:
-        betType has two different representations that represents
-        the type of a bet:
-            - BetNormal: Normal bet, which means that it should be
-                the max bet for current round.
-            - BetSmallBlind: Small blind.
-            - BetBigBlind: Big blind.
-        REPRESENTATION INVARIANT:
-            (none)
-    *)
-    type betType
-
-    (*  REPRESENTATION CONVENTION:
-        tableState has several different representations:
-            - TableIdle: this state tells us that nothing currently happens
-                at the table.
-            - TablePreFlop: Pre flop (a poker term).
-            - TableFlop: Flop (a poker term).
-            - TableTurn: Turn (a poker term).
-            - TableRiver: River (a poker term).
-            - TableShowdown: Showdown (a poker term).
-            - TableBet (nextState, betType, startPos, curPost, maxBet):
-                This state represents a poker bet that has to be made.
-                * nextState: the next state that should be set after the
-                    last bet has been made
-                * betType: the type of the bet
-                * startPos: the position (the id of the seat at the table), 
-                    where the betting round has started. Each time somebody does
-                    any action, that requires that other seats needs to bet
-                    (i.e. a raise), this position is updated to the curPos.
-                * curPos: the current position (the id of the seat at the table)
-                * maxBet: the current max bet that has been made in either 
-                    TablePreFlop, TableFlop, TableTurn, TableRiver
-                    or TableShowdown.
-        REPRESENTATION INVARIANT:
-            TableBet (nextState, betType, startPos, curPost, maxBet):
-                maxBet > 0
-    *)
-    type tableState
-
-    (*  REPRESENTATION CONVENTION:
-        playerState has several different representations telling us
-        the in-game state of the player:
-            - PlayerIdle: the player sits at the table, but is not playing
-            - PlayerInGame: the player participates in the current game
-            - PlayerFolded: the player has folded in the current game
-            - PlayerAllIn: the player went all in in the current game
-        REPRESENTATION INVARIANT:
-            (none)
-    *)
-    type playerState
-
-    (*  REPRESENTATION CONVENTION:
-        tableEvent has several different representations used for signaling
-        different events happening at a table:
-            - PlayerJoined (player, seatId): player p has joined the table
-            (player holds info about what table it is) at the seat with
-            id seatId.
-            - PlayerLeaving (player, seatId): player p is leaving the table
-            and at the moment is sitting at the seat with id seatId.
-            - PlayerFold p: player p has folded
-            - PlayerRaise (p, i): player p has raised with i
-            - PlayerCall p: player p has called tha last bet
-            - StateChanged s: the state has been changed to s
-        REPRESENTATION INVARIANT:
-            (none)
-    *)
-    type tableEvent
-
-    (*  REPRESENTATION CONVENTION:
-        parsedMessage represents a parsed message from the client and consists
-        of the event name, the reference id and the actual body of the message.
-        REPRESENTATION INVARIANT:
-            (none)
-    *)
-    type parsedMessage
-
-    
-    (*
-        players
-        TYPE: game ref list ref
-K    *)
     val players             : game ref list ref
-    
-    (*
-        boards
-        TYPE: game ref list ref
-    *)
     val boards              : game ref list ref
-    
-    (*
-        playerIndex
-        TYPE: game ref vector ref
-    *)
     val playerIndex         : game ref vector ref
-    
-    (*
-        boardIndex
-        TYPE: game ref vector ref
-    *)
     val boardIndex          : game ref vector ref
-    
-    (*
-        timers
-        TYPE: timer list ref 
-    *)
     val timers              : timer list ref 
 
-    
-    (*
-        delay f e
-        TYPE: (unit -> unit) -> int -> timer
-        PRE: (none)
-        POST: Timer with f as function to call after expire time e has passed
-        SIDE-EFFECTS: created Timer gets inserted into timers
-        EXAMPLE: delay (fn _ => print "hello world!\n") 1000 =
-            It gets called after about 1000ms (depending on the frequency of
-            the tickHandler). 
-    *)
     val delay               : (unit -> unit) -> int -> timer
-    
-    (*
-        processTimers ()
-        TYPE: unit -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: It processes all the timers in 'timers' and check if any of
-            them has expired. If so, it calls all those expired timers and
-            removes them from 'timers'.
-        EXAMPLE: 
-    *)
     val processTimers       : unit -> unit
-    
-    (*
-        cancelTimer t
-        TYPE: timer -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: It removes timer t from 'timers'.
-        EXAMPLE: 
-    *)
     val cancelTimer         : timer -> unit
 
-    
-    (*
-        samePlayer (p1, p2)
-        TYPE: game ref * game ref -> bool
-        PRE: p1 = p2 = Player
-        POST: p1 = p2
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
-    (* WARNING: Deprecated *)
     val samePlayer          : game ref * game ref -> bool
-    
-    (*
-        samePlayerC p1 p2 
-        TYPE: game ref -> game ref -> bool
-        PRE: (none)
-        POST: p1 = p2
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
-    (* TODO: this curried version should replace the old, regular one *)
     val samePlayerC         : game ref -> game ref -> bool
-    
-    (*
-        getFreeId v
-        TYPE: game ref vector -> int option
-        PRE: (none)
-        POST: SOME id for the first empty index in v, NONE if none found
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
+
     val getFreeId           : game ref vector -> int option
-    
-    (*
-        getFreePlayerId ()
-        TYPE: unit -> int option
-        PRE: (none)
-        POST: SOME id for the first empty index in `players`, NONE if none found
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getFreePlayerId     : unit -> int option
-    
-    (*
-        getFreeBoardId
-        TYPE: unit -> int option
-        PRE: (none)
-        POST: SOME id for the first empty index in `boards`, NONE if none found
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getFreeBoardId      : unit -> int option
-    
-    (*
-        parseMessage v
-        TYPE: Word8Vector.vector -> parsedMessage
-        PRE: (none)
-        POST: parsedMessage from v
-        SIDE-EFFECTS: it raises InvalidMessage exception if the message
-            in v has incorrect format.
-        EXAMPLE: 
-    *)
+
     val parseMessage        : Word8Vector.vector -> parsedMessage
-    
-    (*
-        filterServerPlayers f
-        TYPE: (game -> bool) -> game ref list
-        PRE: (none)
-        POST: Elements in `players` that pass filter f.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
+
     val filterServerPlayers : (game -> bool) -> game ref list
-    
-    (*
-        filterBoardPlayers b f
-        TYPE: game ref -> (game -> bool) -> game ref list
-        PRE: b = Board
-        POST: Spectators in b that pass filter f.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val filterBoardPlayers  : game ref -> (game -> bool) -> game ref list
-    
-    (*
-        filterBoardChairs b f
-        TYPE: game ref -> (game -> bool) -> game ref list
-        PRE: b = Board
-        POST: Players at the table in b that pass filter f.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val filterBoardChairs   : game ref -> (game -> bool) -> game ref list
 
-    (*
-        filterNull g
-        TYPE: game -> bool
-        PRE: (none)
-        POST: true if g is Null, false otherwise
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
+    val filterINull         : int * game -> bool
     val filterNull          : game -> bool
-    
-    (*
-        filterNotNull g
-        TYPE: game -> bool
-        PRE: (none)
-        POST: false if g is Null, true otherwise
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val filterNotNull       : game -> bool
-
-    (*
-        filterInGame p
-        TYPE: game -> bool
-        PRE: (none)
-        POST: true if p is currently in in-game (sitting at a table
-            and playing), false otherwise
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
-    val filterInGame   : game -> bool
-    
-    (*
-        filterAll _
-        TYPE: game -> bool
-        PRE: (none)
-        POST: true
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
+    val filterInGame        : game -> bool
+    val filterInGameAllIn   : game -> bool
     val filterAll           : game -> bool
-    
-    (*
-        filterPlayer p1 p2
-        TYPE: game -> game -> bool
-        PRE: (none)
-        POST: true if p1 = p2, false otherwise
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val filterPlayer        : game -> game -> bool
-    
-    (*
-        filterOthers p1 p2
-        TYPE: game -> game -> bool
-        PRE: (none)
-        POST: true if p1 <> p2, false otherwise
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val filterOthers        : game -> game -> bool
-    
-    (*
-        filterConnection c p
-        TYPE: WebsocketServer.connection -> game -> bool
-        PRE: (none)
-        POST: true if connection of p = c, false otherwise 
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
-    (* INFO: Used for looking for a player by connection handle. *)
     val filterConnection    : WebsocketServer.connection -> game -> bool
-    
-    (*
-        send l e f d
-        TYPE: game ref list -> string -> (game -> bool) -> JSON.T -> unit
-        PRE: Every element in l shoud be Player.
-        POST: (none)
-        SIDE-EFFECTS: It sends message d with event e to all elements in l
-            that pass filter f.
-        EXAMPLE: 
-    *)
+
     val send                : game ref list -> string -> (game -> bool) -> JSON.T -> unit
-    
-    (*
-        sendToAll e f d
-        TYPE: string -> (game -> bool) -> JSON.T -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: It sends message d with event e to all players in 
-            `players` that pass filter f.
-        EXAMPLE: 
-    *)
     val sendToAll           : string -> (game -> bool) -> JSON.T -> unit
-    
-    (*
-        sendToBoard b e f d
-        TYPE: game ref -> string -> (game -> bool) -> JSON.T -> unit
-        PRE: b = Board
-        POST: (none)
-        SIDE-EFFECTS: It sends message d with event f to all players spectating
-            board b and pass filter function f.
-        EXAMPLE: 
-    *)
     val sendToBoard         : game ref -> string -> (game -> bool) -> JSON.T -> unit
-    
-    (*
-        sendClientResponse r c d
-        TYPE: string -> WebsocketServer.connection -> JSON.T -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Sends response d with reference id r to client c.
-        EXAMPLE: 
-    *)
     val sendClientResponse  : string -> WebsocketServer.connection -> JSON.T -> unit
-    
-    (*
-        sendResponse r p d
-        TYPE: string -> game ref -> JSON.T -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Sends response d with reference id r to player p.
-        EXAMPLE: 
-    *)
     val sendResponse        : string -> game ref -> JSON.T -> unit
 
-    
-    (*
-        setPlayerState (p, s)
-        TYPE: game ref * playerState -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Sets state of palyer p to s.
-        EXAMPLE: 
-    *)
     val setPlayerState      : game ref * playerState -> unit
-    
-    (*
-        getPlayer c
-        TYPE: WebsocketServer.connection -> game ref option
-        PRE: (none)
-        POST: SOME player in `players` there player's connection handle = c, 
-            NONE if none found.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getPlayer           : WebsocketServer.connection -> game ref option
-    
-    (*
-        getPlayerId p
-        TYPE: game ref -> int
-        PRE: p = Player
-        POST: id of player p
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getPlayerId         : game ref -> int
-    
-    (*
-        getPlayerById id
-        TYPE: int -> game ref
-        PRE: (none)
-        POST: Player in `players` with id `id`.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getPlayerById       : int -> game ref
-    
-    (*
-        getPlayerName p
-        TYPE: game ref -> string
-        PRE: p = Player
-        POST: The name of player p.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getPlayerName       : game ref -> string
-    
-    (*
-        getMoney p
-        TYPE: game ref -> int
-        PRE: (none)
-        POST: The money of player p.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getMoney            : game ref -> int
-    
-    (*
-        changeMoney (p, a)
-        TYPE: game ref * int -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Adds a to player p's money.
-        EXAMPLE: 
-    *)
     val changeMoney         : game ref * int -> unit
-    
-    (*
-        serializePlayer p d
-        TYPE: game ref -> JSON.T -> JSON.T
-        PRE: p = Player
-        POST: Serialized player p with extra data d.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val serializePlayer     : game ref -> JSON.T -> JSON.T
-    
-    (*
-        syncBoard p
-        TYPE: game ref -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Sends the state of the board to player p.
-        EXAMPLE: 
-    *)
     val syncBoard           : game ref -> unit
-    
-    (*
-        syncPlayer p
-        TYPE: game ref -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Sends the state of player p to all the other players
-            at the board he/she is at.
-        EXAMPLE: 
-    *)
     val syncPlayer          : game ref -> unit
-    
-    (*
-        isInRoom p
-        TYPE: game ref -> bool
-        PRE: p = Player
-        POST: true if p is spectating any board, false otherwise
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val isInRoom            : game ref -> bool
-    
-    (*
-        getChairIndexByPlayer b p 
-        TYPE: game ref -> game ref -> int option
-        PRE: p = Player, b = Board
-        POST: SOME id of the seat the player p is in at table b,
-            NONE if player is not sitting anywhere at table b.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
+
     val getChairIndexByPlayer : game ref -> game ref -> int option
-    
-    (*
-        setMoney (p, a)
-        TYPE: game ref * int -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Sets p's money to a, sends it to p.
-        EXAMPLE: 
-    *)
+
     val setMoney            : game ref * int -> unit
-    
-    (*
-        changeStake (p, a)
-        TYPE: game ref * int -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Adds a to p's stake.
-        EXAMPLE: 
-    *)
     val changeStake         : game ref * int -> unit
-    
-    (*
-        setStake (p, a)
-        TYPE: game ref * int -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Sets p's stake to a.
-        EXAMPLE: 
-    *)
     val setStake            : game ref * int -> unit
-    
-    (*
-        getStake p
-        TYPE: game ref -> int
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Stake of player p.
-        EXAMPLE: 
-    *)
     val getStake            : game ref -> int
-    
-    (*
-        getName p
-        TYPE: game ref -> string
-        PRE: p = Player
-        POST: Name of player p.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getName             : game ref -> string
     
-    
-    (*
-        createBoard (n, s, (sb, bb), (maxB, minB))
-        TYPE: string * int * (int * int) * (int * int) -> unit
-        PRE: (none)
-        POST: Creates a Board with name n, size s, small blind sb, big blind bb,
-            max buy-in maxB and min buy-in minB.
-        SIDE-EFFECTS: Inserts created Board into `boards`.
-        EXAMPLE: 
-    *)
     val createBoard         : string * int * (int * int) * (int * int) -> unit
-    
-    (*
-        spectateTable (p, id)
-        TYPE: game ref * int -> game ref
-        PRE: A Board with id `id` must exist in `boards`, p = Player.
-        POST: A Board player started spectating.
-        SIDE-EFFECTS: Player p starts spectaing a board with id `id`.
-        EXAMPLE: 
-    *)
     val spectateTable       : game ref * int -> game ref
-    
-    (*
-        unspectateTable (p, f)
-        TYPE: game ref * bool -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Player p gets removed from the spectators of 
-            currently spectated board, but only if he/she is not in-game 
-            (at the table and playing). If f = true, the player will be forced
-            to unspectate the table, even if currently playing.
-        EXAMPLE: 
-    *)
     val unspectateTable     : game ref * bool -> unit
-    
-    (*
-        joinTable (p, b, id)
-        TYPE: game ref * game ref * int -> int option
-        PRE: b = Board, p = Player
-        POST: SOME id there id is the id of the seat if existing,
-            NONE if none seat with id `id` was found.
-        SIDE-EFFECTS: p joins b at the seat with id `id`.
-        EXAMPLE: 
-    *)
     val joinTable           : game ref * game ref * int -> int option
-    
-    (*
-        leaveTable (p, f)
-        TYPE: game ref * bool -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Player p gets removed from the seat of 
-            currently spectated board, but only if he/she is not in-game 
-            (at the table and playing). If f = true, the player will be forced
-            to leave the table, even if currently playing.
-        EXAMPLE: 
-    *)
     val leaveTable          : game ref * bool -> unit
-    
-    (*
-        getChair (b, i)
-        TYPE: game ref * int -> game ref option
-        PRE: b = Board
-        POST: SOME Player sitting in a chair with id i at table b,
-            NONE if the seat wasn't found.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
+    val printBoards         : unit -> unit
     val getChair            : game ref * int -> game ref option
-    
-    (*
-        getTakenChairsCount b
-        TYPE: game ref -> int
-        PRE: b = Board
-        POST: Count of currently taken seats.
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getTakenChairsCount : game ref -> int
-    
-    (*
-        getInGamePlayersCount b
-        TYPE: game ref -> int
-        PRE: b = Board
-        POST: Count of currently in-game players (at the table, not idle,
-            not folded).
-        SIDE-EFFECTS: (none)
-        EXAMPLE: 
-    *)
     val getInGamePlayersCount : game ref -> int
-    
-    (*
-        takeCard b
-        TYPE: game ref -> Word32.word
-        PRE: b = Board
-        POST: A card from the deck of b.
-        SIDE-EFFECTS: One card is removed from the deck of b.
-        EXAMPLE: 
-    *)
-    val takeCard            : game ref -> Word32.word
-    
-    (*
-        cardOnTable (b, c)
-        TYPE: game ref * Word32.word -> unit
-        PRE: b = Board
-        POST: (none)
-        SIDE-EFFECTS: Card c is put on the table b.
-        EXAMPLE: 
-    *)
-    val cardOnTable         : game ref * Word32.word -> unit
-    
-    (*
-        cardToPlayer (p, c)
-        TYPE: game ref * Word32.word -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Player p gets card c.
-        EXAMPLE: 
-    *)
-    val cardToPlayer        : game ref * Word32.word -> unit
-    
-    (*
-        updatePots b
-        TYPE: game ref -> unit
-        PRE: b = Boards
-        POST: (none)
-        SIDE-EFFECTS: List of all pots at table b is sent to all
-            the spectators of b.
-        EXAMPLE: 
-    *)
-    val updatePots          : game ref -> unit
-    
-    (*
-        createPlayer (c, n)
-        TYPE: WebsocketServer.connection * string -> game ref option
-        PRE: (none)
-        POST: SOME player if an empty spot in `players` was found,
-            NONE otherwise.
-        SIDE-EFFECTS: If an empty spot in `players` was found, the player
-            gets inserted at that spot.
-        EXAMPLE: 
-    *)
+    val takeCard            : game ref -> card
+    val cardOnTable         : game ref * card -> unit
+    val cardToPlayer        : game ref * card -> unit
     val createPlayer        : WebsocketServer.connection * string -> game ref option
-    
-    (*
-        handleConnect c
-        TYPE: WebsocketServer.connection -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Connection c gets inserted into `clients`.
-        EXAMPLE: 
-    *)
     val handleConnect       : WebsocketServer.connection -> unit
-    
-    (*
-        handleDisconnect c
-        TYPE: WebsocketServer.connection -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Connection c gets removed from `clients`. We perform
-            even various cleanups, such as checkin if player was logged in
-            and if so, removing him/her from current game, saving money
-            and so on.
-        EXAMPLE: 
-    *)
     val handleDisconnect    : WebsocketServer.connection -> unit
-    
-    (*
-        handleMessage (c, o, v)
-        TYPE: WebsocketServer.connection * int * Word8Vector.vector -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Handles message v from client c depending on opcode o.
-        EXAMPLE: 
-    *)
     val handleMessage       : WebsocketServer.connection * int * Word8Vector.vector -> unit
-    
-    (*
-        handleTableEvent (b, e)
-        TYPE: game ref * tableEvent -> unit
-        PRE: b = Board
-        POST: (none)
-        SIDE-EFFECTS: Processes event e for table b.
-        EXAMPLE: 
-    *)
     val handleTableEvent    : game ref * tableEvent -> unit
-    
-    (*
-        handleEvent (p, m)
-        TYPE: game ref * parsedMessage -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Processes message m for player p.
-        EXAMPLE: 
-    *)
     val handleEvent         : game ref * parsedMessage -> unit
-    
-    (*
-        handleCommand (p, c, a)
-        TYPE: game ref * string * string -> unit
-        PRE: p = Player
-        POST: (none)
-        SIDE-EFFECTS: Processes command c with arguments a from player p.
-        EXAMPLE: 
-    *)
     val handleCommand       : game ref * string * string -> unit
-    
-    (*
-        tick
-        TYPE: unit -> unit
-        PRE: (none)
-        POST: (none)
-        SIDE-EFFECTS: Processes timers.
-        EXAMPLE: 
-    *)
     val tick                : unit -> unit
 end
 
@@ -1779,6 +686,7 @@ struct
     datatype playerState =
         PlayerIdle 
       | PlayerInGame
+      | PlayerTurn of int (* time when the turn started *)
       | PlayerFolded
       | PlayerAllIn
 
@@ -1793,8 +701,9 @@ struct
 			sidePotList: sidepot list ref,
             chairs: game ref vector ref,
             state: tableState ref,
-            deck: Word32.word queue ref,
-            cards: Word32.word list ref,
+            deck: card queue ref,
+            cards: card list ref,
+            lastBet: int ref,
             spectators: game ref list ref,
             pot: int ref,
             betTimer: timer ref,
@@ -1806,7 +715,7 @@ struct
             board: game ref ref,
             connection: WebsocketServer.connection,
             state: playerState ref,
-            cards: Word32.word list ref,
+            cards: card list ref,
             money: int ref,
             stake: int ref
         }
@@ -1869,10 +778,16 @@ struct
       | filterNull _ = false
 
     fun filterInGame (Player {state=ref PlayerInGame, ...}) = true
-      | filterInGame (Player {state=ref PlayerAllIn, ...}) = true
       | filterInGame _ = false
 
+    fun filterInGameAllIn (Player {state=ref PlayerInGame, ...}) = true
+      | filterInGameAllIn (Player {state=ref PlayerAllIn, ...}) = true
+      | filterInGameAllIn _ = false
+
     fun filterNotNull x = not (filterNull x)
+
+    fun filterINull (_, x) = 
+        filterNull x
 
     fun filterAll x = 
         true
@@ -2013,6 +928,7 @@ struct
                 state=ref TableIdle,
                 deck=ref empty,
                 cards=ref [],
+                lastBet=ref 0,
                 spectators=ref [],
                 pot=ref 0,
                 betTimer=ref NullTimer,
@@ -2022,6 +938,9 @@ struct
             boards := board::(!boards);
             boardIndex := Vector.update (!boardIndex, valOf id, board)
         end
+
+    fun printBoards () =
+        ()
 
     fun getMoney (ref (Player {money=ref money, ...})) =
         money
@@ -2191,7 +1110,7 @@ struct
         let in
             case board of
                 ref (ref (Board {spectators=spectators, ...})) =>
-                    if not (filterInGame (!player)) orelse force then
+                    if not (filterInGameAllIn (!player)) orelse force then
                     let in
                         spectators := filterBoardPlayers (!board) (filterOthers (!player));
                         board := ref Null
@@ -2235,7 +1154,7 @@ struct
         let
             val chairs = nvectorToList chairs
         in
-            (length (filterRefList chairs filterInGame))
+            (length (filterRefList chairs filterInGameAllIn))
         end 
 
     fun takeCard (ref (Board {cards=cards, deck=deck, ...})) =
@@ -2274,16 +1193,6 @@ struct
             send [player] "new_player_card" filterAll d1
         end
 
-    fun updatePots (board as ref (Board {sidePotList=ref sidePotList, ...})) =
-        let 
-            val pots = sh_sumPots (sidePotList)
-            val pots = map (fn (nr, sum) => JSON.empty |> JSON.add ("potId", JSON.Int nr) |> JSON.add ("amount", JSON.Int sum)) pots
-            val d = JSON.empty
-                 |> JSON.add ("pots", JSON.List pots)
-        in
-            sendToBoard board "update_pots" filterAll d
-        end
-
     fun getChair (ref (Board {chairs=chairs, ...}), id) =
         Vector.sub (!chairs, id) handle Subscript => ref Null
 
@@ -2295,7 +1204,7 @@ struct
             case index of
                 SOME index => 
                     let in
-                        if not (filterInGame (!player)) orelse force then
+                        if not (filterInGameAllIn (!player)) orelse force then
                         let in
                             handleTableEvent (!board, PlayerLeaving (player, index));
                             chairs := Vector.update (!chairs, index, ref Null)
@@ -2338,7 +1247,7 @@ struct
               | _ => ()
         end
       
-      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, smallBlind=smallBlind, sidePotList=sidePotList, deck=deck, cards=cards, ...})), StateChanged (TablePreFlop)) = 
+      | handleTableEvent (board as (ref (Board {chairs=chairs, bigBlind=bigBlind, smallBlind=smallBlind, sidePotList=sidePotList, deck=deck, cards=cards, lastBet=lastBet, ...})), StateChanged (TablePreFlop)) = 
             let 
                 val tmpChairs = nvectorToList (!chairs)
                 val players = filterRefList tmpChairs filterNotNull
@@ -2356,16 +1265,6 @@ struct
                     let 
                         val newDeck = shuffleDeck()
 						val startSidepot = [sh_emptySidepot]
-
-                        (*
-                            resetPlayer p
-                            TYPE: game ref -> unit
-                            PRE: p = Player
-                            POST: (none)
-                            SIDE-EFFECTS: Reset table specific data in p
-                                and resynchronizes the state of p
-                                with other players at the board p is sitting at.
-                        *)
                         fun resetPlayer (p as ref (Player {cards=cards, state=state, ...})) =
                             let in
                                 setPlayerState (p, PlayerIdle);
@@ -2385,6 +1284,7 @@ struct
 						sidePotList := startSidepot;
                         deck := newDeck;
                         cards := [];
+                        lastBet := 0;
                         setMoney (board, 0);
 
                         (* distribute two cards to each player at the table *)
@@ -2405,9 +1305,9 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5] = bcards
-                        val rank = eval_5cards (c1, c2, c3, c4, c5)
-                        val rank = printHand (handRank rank)
-
+                        val rank = handFrHandvalue(eval_5cards (c1, c2, c3, c4, c5))
+                        val rank = handPrint (handToInt(rank))
+						
                         val d1 = JSON.empty
                               |> JSON.add ("hand", JSON.String rank)
                     in
@@ -2433,8 +1333,9 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6] = bcards
-                        val rank = eval_6hand (c1, c2, c3, c4, c5, c6)
-                        val rank = printHand (handRank rank)
+                        val rank = handFrHandvalue(eval_6hand (c1, c2, c3, c4, c5, c6))
+                        val rank = handPrint (handToInt(rank))
+
 
                         val d1 = JSON.empty
                               |> JSON.add ("hand", JSON.String rank)
@@ -2459,8 +1360,8 @@ struct
                     let
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
-                        val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
-                        val rank = printHand (handRank rank)
+                        val rank = handFrHandvalue(eval_7hand (c1, c2, c3, c4, c5, c6, c7))
+                        val rank = handPrint (handToInt(rank))
 
                         val d1 = JSON.empty
                               |> JSON.add ("hand", JSON.String rank)
@@ -2486,19 +1387,19 @@ struct
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
                         val ref name = name
-                        val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+                        val rank = handFrHandvalue(eval_7hand (c1, c2, c3, c4, c5, c6, c7))
                         val printRank = eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
-                        val printRank = printHand (handRank rank) ^ ", "^ printTypeHand printRank
+                        val printRank = handPrint(handToInt(rank)) ^ ", "^ printTypeHand printRank
                         
                         val hand = eval_print7hand(c1, c2, c3, c4, c5, c6, c7);
-                        val hand = handToString(hand);
+                        val hand = eval_cardsToString(hand);
                         val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
                         tableMessage (board, strToChat);
-                        Besthand (id, rank)
+                        Besthand (id, handToInt(rank))
                     end
                 val chairs = nvectorToList (!chairs)
-                val players = filterRefList chairs filterInGame
+                val players = filterRefList chairs filterInGameAllIn
 
                 val playerList = map (fn p => prepareForShowdown (board, p)) players
                 val ps = showDown (sh_updateHands((!sidePotList), playerList))
@@ -2508,16 +1409,15 @@ struct
                     printShowDown l
                     TYPE:       sidepot list -> string
                     PRE:        (none)
-                    POST:       l in text as a string. 
-                    EXAMPLE:    showDown([(0, 1, 500), (1, 1, 700), (3, 1600, 2500), (7, 5068, 2000)]) =
-                                "0 and 1 split a pot of $1000.\n1 won a pot of $400.\n3 won a pot of $1300.\n": string
+                    POST:       Representation of l. 
+                    EXAMPLE:    showDown([Sidepot (0, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (1, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (2, [Pokerplayer (0, 1, 500)], 500, true, true)]) =
+                                "Joel won the main pot ($600).\n Krille won the side pot ($600).\nJocke won the side pot ($500).\n":
+								 string
                 *)
-                (*
-                    INFO:       Returns information of all the players involved in the sidepot. 
-                *)
-
                 fun printShowDown([]) = ""
-                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t, a, f)::rest) = 
+                | printShowDown(Sidepot(nr, players as Pokerplayer (p, h, m)::xs, t, a, f)::rest) = 
                     let 
                         val antPlayers = length players
                         val intStr = Int.toString
@@ -2528,7 +1428,7 @@ struct
 								"split the main pot of $"^intStr(t)^".\n"^printShowDown(rest)
 							else
 								"split side pot "^intStr(nr)^" of $"^intStr(t)^".\n"^printShowDown(rest)
-                        | printShowDown'((p', h', m')::xs, t, rest) =
+                        | printShowDown'(Pokerplayer (p', h', m')::xs, t, rest) =
                             let
                                 val gamePlayer' = getPlayerName(getPlayerById(p'))
                             in
@@ -2548,12 +1448,21 @@ struct
                     end;
                 
                 val dealerChat = printShowDown ps
-
+				
+				(*
+					sidePotUpd l
+					TYPE: 		sidepot list -> ()
+					PRE:		(none)
+					POST:		()
+					EXAMPLE: 	sidePotUpd(([Sidepot (0, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (1, [Pokerplayer (0, 1, 600)], 600, true, true),
+								Sidepot (2, [Pokerplayer (0, 1, 500)], 500, true, true)])) = ()
+				*)
                 fun sidePotUpd([]) = () 
                 | sidePotUpd(Sidepot(nr, players, t, a, f)::spRest) =
                     let
                         fun sidePotUpd'([], spRest') = sidePotUpd(spRest')
-                        | sidePotUpd'((p,h,m)::xs, spRest') =
+                        | sidePotUpd'(Pokerplayer (p,h,m)::xs, spRest') =
                             let
                                 val gamePlayer = getPlayerById(p)
                             in
@@ -2578,6 +1487,7 @@ struct
 
       | handleTableEvent (board as (ref (Board {
             chairs=chairs, 
+            lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
             betTimer=betTimer,
@@ -2592,35 +1502,31 @@ struct
                     setTableState (board, nextState)
                 else if position - startPosition >= Vector.length (!chairs) then
                     (sidePotList := sh_mkFull(!sidePotList);
-                    updatePots board;
 					setTableState (board, nextState))
                 else
-                    let in
-                        updatePots board;
-                        case chair of
-                            player as (ref (Player {state=ref PlayerInGame, ...})) => 
-                            let 
-                                val chairIndex = valOf (getChairIndexByPlayer board player)
-                                val d1 = JSON.empty
-                                      |> JSON.add ("time", JSON.Int 30)
-                                      |> JSON.add ("seat", JSON.Int chairIndex)
-                                      |> JSON.add ("min", JSON.Int maxBet)
+                    case chair of
+                        player as (ref (Player {state=ref PlayerInGame, ...})) => 
+                        let 
+                            val chairIndex = valOf (getChairIndexByPlayer board player)
+                            val d1 = JSON.empty
+                                  |> JSON.add ("time", JSON.Int 30)
+                                  |> JSON.add ("seat", JSON.Int chairIndex)
+                                  |> JSON.add ("min", JSON.Int maxBet)
 
-                                val (amount, blind, nextBet) = case betType of
-                                    BetNormal => (maxBet, false, BetNormal)
-                                  | BetSmallBlind => (smallBlind, true, BetBigBlind)
-                                  | BetBigBlind => (bigBlind, true, BetNormal)
-                            in
-                                if blind then
-                                    handleTableEvent (board, PlayerCall player)
-                                else
-                                    let in
-                                        betTimer := delay (fn _ => handleTableEvent (board, PlayerFold player)) 30;
-                                        sendToBoard board "bet" filterAll d1
-                                    end
-                            end
-                          | _ => setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
-                    end
+                            val (amount, blind, nextBet) = case betType of
+                                BetNormal => (maxBet, false, BetNormal)
+                              | BetSmallBlind => (smallBlind, true, BetBigBlind)
+                              | BetBigBlind => (bigBlind, true, BetNormal)
+                        in
+                            if blind then
+                                handleTableEvent (board, PlayerCall player)
+                            else
+                                let in
+                                    betTimer := delay (fn _ => handleTableEvent (board, PlayerFold player)) 30;
+                                    sendToBoard board "bet" filterAll d1
+                                end
+                        end
+                      | _ => setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
             end
 
       | handleTableEvent (board as (ref (Board {chairs=chairs, state=ref state, ...})), PlayerLeaving (player, chairId)) = 
@@ -2650,6 +1556,7 @@ struct
         (* fold *)
       | handleTableEvent (board as (ref (Board {
             chairs=chairs, 
+            lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
             betTimer=betTimer,
@@ -2678,6 +1585,7 @@ struct
         (* call *)
       | handleTableEvent (board as (ref (Board {
             chairs=chairs, 
+            lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind, 
             betTimer=betTimer,
@@ -2715,10 +1623,10 @@ struct
 	                    let in
 	                        setPlayerState (player, PlayerAllIn);
 	                        syncPlayer player;
-							sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, true, false)
+							sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, true)
 	                    end
                     else
-                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, false, false);();
+                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, false);();
 						setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
 
                 end
@@ -2729,6 +1637,7 @@ struct
         (* raise *)   
       | handleTableEvent (board as (ref (Board {
             chairs=chairs, 
+            lastBet=lastBet, 
             bigBlind=bigBlind, 
             smallBlind=smallBlind,
             betTimer=betTimer,
@@ -2755,10 +1664,10 @@ struct
 	                    let in
 	                        setPlayerState (player, PlayerAllIn);
 	                        syncPlayer player;
-						    sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, true, false)
+						    sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, true)
 	                    end
                     else
-                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, false, false);();
+                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, false);();
                     	setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
                 end
             else
