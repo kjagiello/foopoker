@@ -2494,16 +2494,16 @@ struct
                         val ref [c1, c2] = pcards
                         val ref [c3, c4, c5, c6, c7] = bcards
                         val ref name = name
-                        val rank = eval_7hand (c1, c2, c3, c4, c5, c6, c7)
+                        val rank = handFrHandvalue(eval_7hand (c1, c2, c3, c4, c5, c6, c7))
                         val printRank = eval_print7hand (c1, c2, c3, c4, c5, c6, c7)
                         val printRank = handPrint (handToInt rank) ^ ", "^ printTypeHand printRank
                         
                         val hand = eval_print7hand(c1, c2, c3, c4, c5, c6, c7);
-                        val hand = handToString(hand);
+                        val hand = eval_cardsToString(hand);
                         val strToChat = name^" shows " ^ hand ^": "^printRank^"."
                     in
                         tableMessage (board, strToChat);
-                        Besthand (id, rank)
+                        Besthand (id, handToInt(rank))
                     end
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterInGame
@@ -2525,7 +2525,7 @@ struct
                 *)
 
                 fun printShowDown([]) = ""
-                | printShowDown(Sidepot(nr, players as (p, h, m)::xs, t, a, f)::rest) = 
+                | printShowDown(Sidepot(nr, players as Pokerplayer(p, h, m)::xs, t, a, f)::rest) = 
                     let 
                         val antPlayers = length players
                         val intStr = Int.toString
@@ -2732,10 +2732,10 @@ struct
 	                    let in
 	                        setPlayerState (player, PlayerAllIn);
 	                        syncPlayer player;
-							sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, true, false)
+							sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, true)
 	                    end
                     else
-                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, false, false);();
+                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, tAmount, false);();
 						setTableState (board, TableBet (nextState, nextBet, startPosition, position + 1, amount))
 
                 end
@@ -2772,10 +2772,10 @@ struct
 	                    let in
 	                        setPlayerState (player, PlayerAllIn);
 	                        syncPlayer player;
-						    sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, true, false)
+						    sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, true)
 	                    end
                     else
-                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, false, false);();
+                        sidePotList := sh_mkSidepot((!sidePotList), id, 9999, maxBet, false);();
                     	setTableState (board, TableBet (nextState, betType, startPosition, position + 1, maxBet))
                 end
             else
