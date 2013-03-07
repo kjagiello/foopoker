@@ -1,3 +1,4 @@
+open SmlTests;
 (* 
 	REPRESENTATION CONVENTION: 	Pokerplayer(id, h, m): Represents a poker player where the id is a unique 
 								id of the player, h is the player's handvalue and m is the money
@@ -248,7 +249,7 @@ fun sh_mkSidepot ([], _, _, _, _) = []
 				if getMoney > 0 then (*Player is already in the side pot.*)
 					if getMoney < pot' then (*Player's money in sidepot is less than sidepot*)
 						if newMoney > pot' then (*Player's money is bigger than sidepot. Update player's money and try next sidepot.*)
-							Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin)
+							Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot'-getMoney, allin)
 						else	(*Player's money is smaller than sidepot. Update player's money. *)
 							Sidepot(nr', updPlayerMoney(pl', id, newMoney), pot', allin', full')::l
 					else (*Sidepot is full, try next sidepot*)
@@ -267,6 +268,21 @@ fun sh_mkSidepot ([], _, _, _, _) = []
 	in
 			sh_mkSidepot'(xs, iSp, id, h, m, allin)
 	end;
+
+	
+	
+(* Test cases for sh_mkSidepot. *)
+let
+    val x1 = sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot([sh_emptySidepot], 0, 9999, 1000, true), 1, 9999, 500, false), 2, 9999, 500, true), 3, 9999, 1000, true), 4, 9999, 100, true), 1, 9999, 500, false)
+    val x2 = [Sidepot (0, [Pokerplayer (3, 9999, 100), Pokerplayer (2, 9999, 100), Pokerplayer (0, 9999, 100), Pokerplayer (1, 9999, 100),  Pokerplayer (4, 9999, 100)], 100, true, false), Sidepot(1, [Pokerplayer (3, 9999, 400), Pokerplayer (2, 9999, 400), Pokerplayer (0, 9999, 400), Pokerplayer (1, 9999, 400)], 400, true, false), Sidepot (2, [Pokerplayer (1, 9999, 500), Pokerplayer (3, 9999, 500), Pokerplayer (0, 9999, 500)], 500, true, false)]
+
+    val x3 = sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot([sh_emptySidepot], 0, 9999, 25, true), 1, 9999, 50, true), 2, 9999, 75, true), 3, 9999, 100, true), 4, 9999, 125, true), 5, 9999, 125, false)
+    val x4 = [Sidepot (0, [Pokerplayer (5, 9999, 25), Pokerplayer (4, 9999, 25), Pokerplayer (3, 9999, 25), Pokerplayer (2, 9999, 25), Pokerplayer (1, 9999, 25), Pokerplayer (0, 9999, 25)], 25, false, false), Sidepot (1, [Pokerplayer (5, 9999, 25), Pokerplayer (4, 9999, 25), Pokerplayer (3, 9999, 25), Pokerplayer (2, 9999, 25), Pokerplayer (1, 9999, 25)], 25, false, false), Sidepot (2, [Pokerplayer (5, 9999, 25), Pokerplayer (4, 9999, 25), Pokerplayer (3, 9999, 25), Pokerplayer (2, 9999, 25)], 25, false, false), Sidepot (3, [Pokerplayer (5, 9999, 25), Pokerplayer (4, 9999, 25), Pokerplayer (3, 9999, 25)], 25, false, false), Sidepot (4, [Pokerplayer (5, 9999, 25), Pokerplayer (4, 9999, 25)], 25, true, false)]
+in
+    (test("sh_mkSidepot test 1: ", assert_equals(x1, x2));
+	test("sh_mkSidepot test 2: ", assert_equals(x1, x2)))
+end;
+
 (*
 	sh_unCalled l
 	TYPE: 		sidepot list -> pokerplayer 
@@ -524,3 +540,12 @@ fun showDown([]) = []
 	in
 		sh_mkSidepot::showDown(xs)
 	end; 
+	
+	
+(* Test cases for showDown. *)
+let
+ 	val x1 = [Sidepot (0, [Pokerplayer (3, 9999, 100), Pokerplayer (2, 9, 100), Pokerplayer (0, 1, 100), Pokerplayer (1, 9999, 100),  Pokerplayer (4, 9999, 100)], 100, true, false), Sidepot(1, [Pokerplayer (3, 9999, 400), Pokerplayer (2, 9, 400), Pokerplayer (0, 1, 400), Pokerplayer (1, 9999, 400)], 400, true, false), Sidepot (2, [Pokerplayer (1, 9999, 500), Pokerplayer (3, 9999, 500), Pokerplayer (0, 1, 500)], 500, true, false)]
+	val x2 = [Sidepot (0, [Pokerplayer (0, 1, 500)], 500, true, true), Sidepot (1, [Pokerplayer (0, 1, 1600)], 1600, true, true), Sidepot (2, [Pokerplayer (0, 1, 1500)], 1500, true, true)]
+in
+    test("showDown test 1: ", assert_equals(x1, x2))
+end;

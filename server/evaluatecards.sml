@@ -1,3 +1,9 @@
+use "../utils/testing/testing.sml";
+use "vectors.sml";
+datatype playcard = Playcard of Word32.word;
+datatype handvalue = Handvalue of int;
+fun handValueToInt(Handvalue(n)) = n; 
+open SmlTests;
 (*
 	eval_printCard n 
 	TYPE:		playcard -> string
@@ -92,6 +98,29 @@ fun eval_5cards (Playcard(c1), Playcard(c2), Playcard(c3), Playcard(c4), Playcar
 		else
 			Handvalue(v_values(toInt32(eval_findCard(p))))
 	end;
+
+(* Test cases for eval_5cards. *)
+let
+	val c1= Playcard 0wx10002C29
+	val c2= Playcard 0wx8002B25
+	val c3= Playcard 0wx4002A1F
+	val c4= Playcard 0wx200291D
+	val c5= Playcard 0wx1002817
+	val x1 = eval_5cards(c1, c2, c3, c4, c5)
+	val x2 = Handvalue 1
+	
+	val c6= 0wx10002C29
+	val c7= 0wx10008C29
+	val c8= 0wx10001C29
+	val c9= 0wx8002B25
+	val c10= 0wx8001B25
+	val x1 = eval_5cards(Playcard c6, Playcard c7, Playcard c8, Playcard c9, Playcard c10)
+	val x2 = Handvalue 167
+	
+in
+    (test("eval_5cards test 1: ", assert_equals(x1, x2));
+	test("eval_5cards test 2: ", assert_equals(x1, x2)))
+end;
 
 (*
 	eval_6hand (c1, c2, c3, c4, c5, c6)
