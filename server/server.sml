@@ -3,6 +3,7 @@ PolyML.fullGC();
 
 PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
 
+use "../utils/testing/testing.sml";
 use "poker.sml";
 
 val ord = o_ord;
