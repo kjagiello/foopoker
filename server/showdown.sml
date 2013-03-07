@@ -541,11 +541,3 @@ fun showDown([]) = []
 		sh_mkSidepot::showDown(xs)
 	end; 
 	
-	
-(* Test cases for showDown. *)
-let
- 	val x1 = [Sidepot (0, [Pokerplayer (3, 9999, 100), Pokerplayer (2, 9, 100), Pokerplayer (0, 1, 100), Pokerplayer (1, 9999, 100),  Pokerplayer (4, 9999, 100)], 100, true, false), Sidepot(1, [Pokerplayer (3, 9999, 400), Pokerplayer (2, 9, 400), Pokerplayer (0, 1, 400), Pokerplayer (1, 9999, 400)], 400, true, false), Sidepot (2, [Pokerplayer (1, 9999, 500), Pokerplayer (3, 9999, 500), Pokerplayer (0, 1, 500)], 500, true, false)]
-	val x2 = [Sidepot (0, [Pokerplayer (0, 1, 500)], 500, true, true), Sidepot (1, [Pokerplayer (0, 1, 1600)], 1600, true, true), Sidepot (2, [Pokerplayer (0, 1, 1500)], 1500, true, true)]
-in
-    test("showDown test 1: ", assert_equals(x1, x2))
-end;

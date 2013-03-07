@@ -146,4 +146,16 @@ fun validateArguments f args =
             false
         else
             validateArguments' (f, args)
-    end
+    end;
+
+(* Test cases for implodeStrings. *)
+let
+    val x1 = implodeStrings "," ["a", "b", "c", "d"]
+    val x2 = "a,b,c,d"
+
+    val x3 = implodeStrings "," []
+    val x4 = ""
+in
+    test("implodeStrings test 1", assert_equals(x1, x2));
+    test("implodeStrings test 2", assert_equals(x3, x4))
+end;
