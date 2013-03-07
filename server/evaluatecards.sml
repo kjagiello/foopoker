@@ -1,7 +1,3 @@
-(*use "vectors.sml";
-datatype playcard = Playcard of Word32.word;
-datatype handvalue = Handvalue of int;
-fun handValueToInt(Handvalue(n)) = n; *)
 (*
 	eval_printCard n 
 	TYPE:		playcard -> string

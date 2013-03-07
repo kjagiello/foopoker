@@ -1,16 +1,3 @@
-(*PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
-
-
-val ord = o_ord;
-val chr = o_chr;
-val explode = o_explode;
-val implode = o_implode;
-
-use "../utils/sha1-sig.sml";
-use "../utils/sha1.sml";
-
-use "../utils/json.sml";*)
-
 (* 
 	REPRESENTATION CONVENTION: 	Dbplayer(name, money): Represents a player
 	 							where name is the player's name and money
@@ -38,9 +25,10 @@ val db_Name = "medlemsdatabas.txt";
 (*
 	db_readAll (h, a)
 	TYPE: 			TextIO.instream * string -> string
-	PRE:			
+	PRE:			h is a real file. 
 	POST:			h as a string and a as start value.
-	EXAMPLE:		
+	SIDE-EFFECTS: 	Writes a to h. 
+	EXAMPLE:		db_readAll("medlemsdatabas.txt", "hej") = ()
 *)
 fun db_readAll (h, acc) = 
     let
@@ -121,9 +109,8 @@ fun db_findPlayer(pl) =
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
-	SIDE-EFFECTS: 	Inputs a string, encode it to JSON
-					and decodes it back to a string. 
-					denna skickas sedan till db_rendertoile. 
+	SIDE-EFFECTS: 	Reads a string, encodes it to JSON, adds pl and pw to it and outputs it
+					back to the file.
 	EXAMPLE: 		db_addPlayer("Joel", "12345") = ()
 *)
 
@@ -160,7 +147,8 @@ fun db_addPlayer(pl, pw) =
 	TYPE: 			string * string -> unit
 	PRE: 			(none)
 	POST: 			()
-	SIDE-EFFECTS: 	Inputs
+	SIDE-EFFECTS: 	If pl exists, reads a string, encodes it to JSON, adds pl and pw 
+					to it and outputs it back to the file.
 	EXAMPLE: 		db_regPlayer("Joel", "12345") = ()
 *)
 fun db_regPlayer(pl, pw) = 
@@ -177,8 +165,7 @@ fun db_regPlayer(pl, pw) =
 	db_loginPlayer pl, pw
 	TYPE: 			string * string -> bool
 	PRE: 			(none)
-	POST: 			()
-	SIDE-EFFECTS: 	-
+	POST: 			True if pl and pw is the same as in the database.
 	EXAMPLE: 		db_regPlayer("Joel", "12345") = true
 *)
 fun db_loginPlayer(pl, pw) =
@@ -217,7 +204,8 @@ fun db_loginPlayer(pl, pw) =
 	TYPE: 			string * int -> unit
 	PRE: 			(none)
 	POST: 			()
-	SIDE-EFFECTS: 	-
+	SIDE-EFFECTS: 	Reads a string, encodes it to JSON and outputs it
+					back to the file. 
 	EXAMPLE: 		db_updateMoney("Joel", 1500) = ()
 *)
 fun db_updateMoney(pl, m) = 
@@ -248,10 +236,12 @@ fun db_updateMoney(pl, m) =
 
 (*
 	db_dropTable()
-	TYPE: 		unit -> unit
-	PRE: 		(none)
-	POST: 		()
-	ExAMPLE: 	db_dropTable() = (): unit
+	TYPE: 			unit -> unit
+	PRE: 			(none)
+	POST: 			()
+	SIDE-EFFECTS: 	Reads a string, change it to a new string and outputs it
+					back to the file.
+	ExAMPLE: 		db_dropTable() = (): unit
 *)
 fun db_dropTable() = 
 	let
@@ -264,10 +254,12 @@ fun db_dropTable() =
 	
 (*
 	db_deletePlayer(pl)
-	TYPE: 		string -> unit
-	PRE: 		(none)
-	POST: 		()
-	ExAMPLE: 	db_deletePlayer("Joel") = (): unit
+	TYPE: 			string -> unit
+	PRE: 			(none)
+	POST: 			()
+	SIDE-EFFECTS: 	Reads a string, encodes it to JSON, removes pl
+					from it and outputs it back to the file.
+	EXAMPLE: 		db_deletePlayer("Joel") = (): unit
 *)
 fun db_deletePlayer(pl) = 
 	let 
@@ -302,7 +294,7 @@ fun db_deletePlayer(pl) =
 	TYPE: 		unit -> dbplayer list
 	PRE: 		(none)
 	POST: 		A dbplayer list out of all posts in the database. 
-	EXAMPLE: 	db_jsonToList() = [("Joel", 1000), ("Krille", 1000)]: (string * int) list
+	EXAMPLE: 	db_jsonToList() = [Dbplayer ("Joel", 1000), Dbplayer ("Krille", 1000)]: (string * int) list
 *)
 fun db_jsonToList() = 
 	let 

@@ -204,7 +204,7 @@ fun sh_mkSidepot ([], _, _, _, _) = []
 			TYPE:		sidepot list * int * int * int * int-> sidepot list
 			PRE:		m > 0
 			POST:		l as a sidepot list where (id', h', m') is added to
-						pl or a new pokerplayer list in a new sidepot depending if allin' is true or not.
+						pl or a new pokerplayer list in a new sidepot if allin' is true or not.
 			EXAMPLE:	sh_mkSidepot'([Sidepot(0, [], 0, false, false)], 0, 1, 500) = 
 						[Sidepot (0, [(0, 1, 500)], 500, false, false)]: sidepot list
 		*)

@@ -125,7 +125,7 @@ fun checkFull([]) = (Joker, Joker)
 	printTypeHand(c1, c2, c3, c4, c5)
 	TYPE: 		card * card * card * card * card -> string
 	PRE:		(none)
-	POST: 		c1, c2, c3, c4, c5 as a string. 
+	POST: 		Representation of c1-c5. 
 	EXAMPLE: 	printTypeHand(Card 0wx8002B25, Card 0wx8008B25, Card 0wx8001B25, Card 0wx1002817, Card 0wx802713) = "Kings": string
 *)		
 fun printTypeHand(Playcard c1, Playcard c2, Playcard c3, Playcard c4, Playcard c5) =

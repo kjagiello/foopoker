@@ -1,6 +1,6 @@
 (*
 	v_flushes c
-	TYPE:		int -> int
+	TYPE:		int -> handvalue
 	PRE:		0 <= c <= 7936
 	POST:		c as hand value.
 	EXAMPLE:	v_flushes(7936) = 1
@@ -434,6 +434,8 @@ fun v_flushes(c) =
 	in
 		Vector.sub(flushList, c)
 	end;
+	
+v_flushes(31);
 (*
 	v_unique5 c
 	TYPE:		int -> int

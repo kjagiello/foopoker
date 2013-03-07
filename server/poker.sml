@@ -70,7 +70,8 @@ datatype cardsuit = CLUB | DIAMOND | HEART | SPADE;
 datatype cardvalue = Deuce | Trey | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace | Joker;
 
 (*
-	REPRESENTATION CONVENTION: 	A hand value.
+	REPRESENTATION CONVENTION: 	A hand value for every different hand a 5-card poker hand
+								can combine. 
 	REPRESENTATION INVARIANT: 	(none)
 *)
 datatype handvalue = Handvalue of int;
@@ -143,14 +144,14 @@ fun handFrHandvalue(Handvalue(n)) =
 	EXAMPLE: 	cardValueToInt(Ace) = 12: int
 *)
 fun cardValueToInt 	Deuce = 0
-	| cardValueToInt	Trey = 1
-	| cardValueToInt	Four = 2 
-	| cardValueToInt	Five = 3 
-	| cardValueToInt	Six = 4
-	| cardValueToInt	Seven = 5 
-	| cardValueToInt	Eight = 6 
-	| cardValueToInt	Nine = 7
-	| cardValueToInt	Ten = 8
+	| cardValueToInt Trey = 1
+	| cardValueToInt Four = 2 
+	| cardValueToInt Five = 3 
+	| cardValueToInt Six = 4
+	| cardValueToInt Seven = 5 
+	| cardValueToInt Eight = 6 
+	| cardValueToInt Nine = 7
+	| cardValueToInt Ten = 8
 	| cardValueToInt Jack = 9
 	| cardValueToInt Queen = 10
 	| cardValueToInt King = 11
