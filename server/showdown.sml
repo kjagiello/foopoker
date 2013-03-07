@@ -1,32 +1,78 @@
 (* 
-	REPRESENTATION CONVENTION: 	Sidepot(nr, [(id, h, m)], pot, allin, full): Represents a side pot where
-								nr is the number in count, id is the player's id, h is the player's hand value, 
-								m is the player's money put in the pot, pot is equal to m and is the side pot's
-								default value and full represents if the sidepot is opened or closed. 
+	REPRESENTATION CONVENTION: 	Pokerplayer(id, h, m): Represents a poker player where the id is a unique 
+								id of the player, h is the player's hand value and m is the money
+								of the player. 
 								
 	REPRESENTATION INVARIANT: 	id >= 0
-								h > 0 
-								m > 0
-								nr >= 0 
+								h > 0
+								m >= 0
+*)
+datatype pokerplayer = Pokerplayer of (int * int * int);
+
+(* 
+	REPRESENTATION CONVENTION: 	Besthand(id', h'): id' is the id of the pokerplayer
+								and h' is the best h of the pokerplayer. 
+								
+	REPRESENTATION INVARIANT: 	id' >= 0
+								h' > 0
+*)
+datatype besthand = Besthand of (int * int);
+(* 
+	REPRESENTATION CONVENTION: 	Sidepot(nr, pl, pot, allin, full): Represents a side pot where
+								nr is the number in count, pl is a pokerplayer list, pot is the default
+								value of the sidepot, allin is if the sidepot is created by a pokerplayer 
+								who is all in and full represents if the sidepot is opened or closed. 
+								
+	REPRESENTATION INVARIANT: 	nr >= 0
 								pot > 0
 *)
-datatype sidepot = Sidepot of int * (int * int * int) list * int * bool * bool;
+datatype sidepot = Sidepot of int * pokerplayer list * int * bool * bool;
+(* 
+	REPRESENTATION CONVENTION: 	Sumpot(nr', sum): nr' is the nr of the sidepot, sum
+								is the sum of all m of all pokerplayers in the pokerplayer list of a sidepot. 
+								
+	REPRESENTATION INVARIANT: 	nr' >= 0 
+								sum >= 0
+*)
+datatype sumpot = Sumpot of (int * int);
+
 (*
-	sh_emptySidepot
+	sh_emptyPokerplayer
+	TYPE: 		pokerplayer
+	VALUE: 		An empty pokerplayer. 
+*)
+val sh_emptyPokerplayer = Pokerplayer (0, 0, 0);
+
+(*
+	sh_emptyBesthand
+	TYPE: 		besthand
+	VALUE: 		An empty besthand. 
+*)
+val sh_emptyBesthand = Besthand (0, 0);
+
+(*
+	sh_emptyBesthand
 	TYPE: 		sidepot
 	VALUE: 		An empty sidepot. 
 *)
-val sh_emptySidepot = Sidepot(0, [], 0, false, false);
+val sh_emptySidepot = Sidepot (0, [], 0, false, false);
 
 (*
-	sh_mkFull s, m
-	TYPE:		sidepot list * bool -> sidepot list
+	sh_emptySumpot
+	TYPE: 		sumpot
+	VALUE: 		An empty sumpot. 
+*)
+val sh_emptySumpot = Sumpot(0, 0);
+(*
+	sh_mkFull s
+	TYPE:		sidepot list -> sidepot list
 	PRE:		(none)
-	POST:		A new sidepot list. 
-	EXAMPLE:	sh_mkFull([Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, false),
-	    		Sidepot (1, [(0, 1, 500)], 500, false)], true) =
-				[Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, true),
-		    	Sidepot (1, [(0, 1, 500)], 500, false)]: sidepot list
+	POST:		s as a sidepot list where full is changed to
+	 			true if allin = true. 
+	EXAMPLE:	sh_mkFull([Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, true, false),
+	    		Sidepot (1, [(0, 1, 500)], 500, false)], true, false) =
+				[Sidepot (0, [(0, 1, 500), (1, 1, 500)], 500, true, true),
+		    	Sidepot (1, [(0, 1, 500)], 500, true, true)]: sidepot list
 *)		
 (*VARIANT: length s*)
 fun sh_mkFull([]) = []
@@ -37,24 +83,26 @@ fun sh_mkFull([]) = []
 		Sidepot(nr'', pl'', pot'', allin'', full'')::sh_mkFull(xs)
 		
 (*
-	sh_mkSidepot l, id, h, m, full
-	TYPE: 		sidepot list * int * int * int * bool -> sidepot list
-	PRE:		id > 0, h > 0, m > 0
-	POST: 		A new sidepot list updated with (id, h, m) and full. 
-	EXAMPLE: 	sh_mkSidepot([Sidepot(0, [], 0, false)], 0, 1, 500, false) = 
-				[Sidepot (0, [(0, 1, 500)], 500, false)]: sidepot list
+	sh_mkSidepot l, id', h', m', allin'
+	TYPE: 		sidepot list * int * int * int * bool * 'a -> sidepot list
+	PRE:		id' >= 0, h' > 0, m' > 0
+	POST: 		l as a sidepot list where (id', h', m') is added to
+				pl or a new pokerplayerlist in a new sidepot if allin' is true or not.
+	EXAMPLE: 	sh_mkSidepot([Sidepot(0, [], 0, false)], 0, 1, 500, false, false) = 
+				[Sidepot (0, [Pokerplayer (0, 1, 500)], 500, false, false)]: sidepot list
 *)
 (*VARIANT: length l*)
-fun sh_mkSidepot([], _, _, _, _, _) = []
-| sh_mkSidepot(l as iSp::xs, id, h, m, allin, full) =
+fun sh_mkSidepot([], _, _, _, _) = []
+| sh_mkSidepot(l as iSp::xs, id, h, m, allin) =
 	let 
 		(*
-			updNr l, nr
+			updNr l, nr'
 			TYPE:		sidepot list * int -> sidepot list
-			PRE:		(none)
-			POST:		A new sidepot list which is updated if there are insidepot numbers bigger than nr.
-			EXAMPLE:	updNr([Sidepot (1, [(0, 1, 200), (1, 1, 200), (2, 1, 200)], 200, false)], 0) = 
-						[Sidepot (2, [(0, 1, 200), (1, 1, 200), (2, 1, 200)], 200, false)
+			PRE:		nr' >= 0
+			POST:		l as a sidepot list where nr is changed to nr+1
+						if nr >= nr'.
+			EXAMPLE:	updNr([Sidepot (1, [Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 200), Pokerplayer (2, 1, 200)], 200, false)], 0) = 
+						[Sidepot (2, [Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 200), Pokerplayer (2, 1, 200)], 200, false, false)]: sidepot list
 		*)
 		(*VARIANT: length l*)
 		fun updNr([], _) = [] 
@@ -64,191 +112,104 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 			else
 				Sidepot(nr'+1, pl', pot', allin', full') :: updNr(xs, nr)
 		(*
-			chOldSidepot s, id, h, m, full
+			chOldSidepot s', id', h', m', full'
 			TYPE:		sidepot * int * int * int * bool -> sidepot
-			PRE:		id > 0, h > 0, m > 0
-			POST:		A new sidepot updated with with every element being changed to (_, _, m)
-						and also element (id, h, m) added. 
-			EXAMPLE:	chOldSidepot(Sidepot (1, [(0, 1, 200), (1, 1, 200), (2, 1, 200)], 200, false), 3, 1, 100) =
-						Sidepot (1, [(3, 1, 100), (0, 1, 100), (1, 1, 100), (2, 1, 100)], 100, false): sidepot
+			PRE:		id' > 0, h' > 0, m' > 0
+			POST:		A sidepot of s where m = m' and (id', h', m')::pl. 
+			EXAMPLE:	chOldSidepot(Sidepot (1, [Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 200), 
+						Pokerplayer (2, 1, 200)], 200, false), 3, 1, 100) =
+						Sidepot (1, [Pokerplayer (3, 1, 100), Pokerplayer (0, 1, 100), 
+						Pokerplayer (1, 1, 100), Pokerplayer (2, 1, 100)], 100, false, false): sidepot
 		*)
 		fun chOldSidepot(Sidepot(nr'', pl'', pot'', allin'', full''), id', h', m', allin') =
 			let
 				(*
-					chOldSidepot'(l, id, h, m)
-					TYPE:		(int * int * int) list * int * int * int -> (int * int * int) list
-					PRE:		m > 0 
-					POST:		An (int * int * int) list where every element is changed to (_, _, m) 
-								and updated with (id, h, m). 
-					EXAMPLE:	chOldSidepot([(0, 1, 500), (1, 1, 500)], 2, 1, 200) = 
-								[(2, 1, 200), (0, 1, 200), (1, 1, 200)]: (int * int * int) list
+					chOldSidepot'(l, id', h', m')
+					TYPE:		pokerplayer list * int * int * int -> pokerplayer list
+					PRE:		m' > 0 
+					POST:		l as a pokerplayer list where m is changed to m' if 
+								m >= m, else m is unchanged. 
+					EXAMPLE:	chOldSidepot([Pokerplayer (0, 1, 500), Pokerplayer (1, 1, 500)], 2, 1, 200) = 
+								[Pokerplayer (2, 1, 200), Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 200)]: pokerplayer list
 				*)
 				(*VARIANT: length l*)
-				fun chOldSidepot'([], id', h', m') = [(id', h', m')]
-				| chOldSidepot'((id'', h'', m'')::xs'', id', h', m') =
+				fun chOldSidepot'([], id', h', m') = [Pokerplayer (id', h', m')]
+				| chOldSidepot'(Pokerplayer (id'', h'', m'')::xs'', id', h', m') =
 					if m'' >= m' then
-						(id'', h'', m')::chOldSidepot'(xs'', id', h', m')
+						Pokerplayer (id'', h'', m')::chOldSidepot'(xs'', id', h', m')
 					else
-						(id'', h'', m'')::chOldSidepot'(xs'', id', h', m')
+						Pokerplayer (id'', h'', m'')::chOldSidepot'(xs'', id', h', m')
 			in
 				Sidepot(nr'', chOldSidepot'(pl'', id', h', m'), m', allin', full'')
 			end
 		(*
-			mkNewSidepot s, m
+			mkNewSidepot s, m'
 			TYPE:		sidepot * int -> sidepot
-			PRE:		m > 0 
-			POST:		A new sidepot where every element being changed to (_, _, m'-m). 
-			EXAMPLE:	chOldSidepot(Sidepot (1, [(0, 1, 200), (1, 1, 200), (2, 1, 200)], 200, false), 50) = 
-						Sidepot (1, [(0, 1, 50), (1, 1, 50), (2, 1, 50)], 50, false): sidepot
+			PRE:		m' > 0 
+			POST:		s as a sidepot where m is changed to m-m' for every pokerplayer
+						in the pokerplayer list.
+			EXAMPLE:	chOldSidepot(Sidepot (1, [Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 200), 
+						Pokerplayer (2, 1, 200)], 200, false, false), 50) = 
+						Sidepot (1, [Pokerplayer (0, 1, 50), Pokerplayer (1, 1, 50), Pokerplayer (2, 1, 50)], 50, false, false): sidepot
 		*)
 		fun mkNewSidepot(Sidepot(nr'', pl'', pot'', allin'', full''), m') =
 			let
 				(*
-				mkNewSidepot l m
-				TYPE: 		(int * int * int) list * int -> (int * int * int) list
-				PRE: 		m > 0
-				POST: 		A new (int * int * int) list where every element being changed to (_, _, m'-m). 
-				EXAMPLE: 	mkNewSidepot([(0, 1, 200), (1, 1, 200), (2, 1, 200)], 50) = 
-							Sidepot (1, [(0, 1, 150), (1, 1, 150), (2, 1, 150)], 150, false): (int * int * int) list
+				mkNewSidepot l m'
+				TYPE: 		pokerplayer list * int -> pokerplayer list
+				PRE: 		m' > 0
+				POST: 		l as a pokerplayer list where m is changed to m-m' for every pokerplayer
+							in the pokerplayer list.
+				EXAMPLE: 	mkNewSidepot([Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 200), Pokerplayer (2, 1, 200)], 50) = 
+							Sidepot (1, [Pokerplayer (0, 1, 150), Pokerplayer (1, 1, 150), Pokerplayer (2, 1, 150)], 150, false): pokerplayer list
 				*)
 				(*VARIANT: length l*)
 				fun mkNewSidepot'([], m''') = []
-				| mkNewSidepot'((id'', h'', m'')::xs'', m') =
-					(id'', h'', m''-m')::mkNewSidepot'(xs'', m')
+				| mkNewSidepot'(Pokerplayer (id'', h'', m'')::xs'', m') =
+					Pokerplayer (id'', h'', m''-m')::mkNewSidepot'(xs'', m')
 			in
 				Sidepot(nr''+1, mkNewSidepot'(pl'', m'), pot''-m', allin'', full'')
 			end
-
 		(*
-			updPlayerMoney l id m
-			TYPE: 		(int * int * int) list * int * int -> (int * int * int) list
+			updPlayerMoney l id' m'
+			TYPE: 		pokerplayer list * int * int -> pokerplayer list
 			PRE:		m > 0 
-			POST:		l as a new (int * int * int) list 
-			EXAMPLE: 
+			POST:		l as a pokerplayer list where m is changed to
+						m' if id = id'. 
+			EXAMPLE: updPlayerMoney([Pokerplayer (0, 1, 150), Pokerplayer (1, 1, 150), Pokerplayer (2, 1, 150)], 0, 200) =
+						[Pokerplayer (0, 1, 200), Pokerplayer (1, 1, 150), Pokerplayer (2, 1, 150)]: pokerplayer list
 		*)	
 		fun updPlayerMoney([], id', m') = []
-		| updPlayerMoney((id'', h'', m'')::xs'', id', m') =
+		| updPlayerMoney(Pokerplayer (id'', h'', m'')::xs'', id', m') =
 			if id'' = id' then
-				(id'', h'', m')::xs''
+				Pokerplayer (id'', h'', m')::xs''
 			else
-				(id'', h'', m'')::updPlayerMoney(xs'', id', m')
+				Pokerplayer (id'', h'', m'')::updPlayerMoney(xs'', id', m')
 		(*
-			getPlayerMoney l id
-			TYPE: 		(int * int * int) list * int -> int
-			PRE:		(none)
-			POST:		An int.
-			EXAMPLE:	
+			getPlayerMoney l id'
+			TYPE: 		pokerplayer list * int -> int
+			PRE:		id' >= 0
+			POST:		m in l if id = id'.
+			EXAMPLE:	getPlayerMoney([Pokerplayer (0, 1, 150), Pokerplayer (1, 1, 150), Pokerplayer (2, 1, 150)], 0) =
+						150
 		*)		
 		fun getPlayerMoney([], id') = 0
-		| getPlayerMoney((id'', h'', m'')::xs'', id') =
+		| getPlayerMoney(Pokerplayer (id'', h'', m'')::xs'', id') =
 			if id'' = id' then
 				m''
 			else
 				getPlayerMoney(xs'', id')
 		(*
-			sh_mkSidepot' l, id, h, m
-			TYPE:		sidepot list * int * int * int -> sidepot list
+			sh_mkSidepot' l, id', h', m', allin'
+			TYPE:		sidepot list * int * int * int * int-> sidepot list
 			PRE:		m > 0
-			POST:		A new sidepot list updated with (id, h, m). 
-			EXAMPLE:	sh_mkSidepot'([Sidepot(0, [], 0, false)], 0, 1, 500) = 
-						[Sidepot (0, [(0, 1, 500)], 500, false)]: sidepot list
+			POST:		l as a sidepot list where (id', h', m') is added to
+						pl or a new pokerplayer list in a new sidepot depending if allin' is true or not.
+			EXAMPLE:	sh_mkSidepot'([Sidepot(0, [], 0, false, false)], 0, 1, 500) = 
+						[Sidepot (0, [(0, 1, 500)], 500, false, false)]: sidepot list
 		*)
 		(*VARIANT: length l*)
 		
-		(*
-		
-		1. 50 allin, call, call, raise 50, call, call
-		
-		0, 50, allin, false
-		[Sidepot(0, [(0, 9999, 50)], 50, true, false)]
-		1, 50, call, false
-		[Sidepot(0, [(1, 9999, 50), (0, 9999, 50)], 50, true, false)]
-		2, 50, call, false
-		[Sidepot(0, [(2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, false)]
-		3, 100, raise, true
-		[Sidepot(0, [(3, 9999, 50), (2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(1, [(3, 9999, 50)], 50, false, false)]
-		1, 50, call, false
-		[Sidepot(0, [(3, 9999, 50), (2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(1, [(1, 9999, 50), (3, 9999, 50)], 50, false, false)]
-		2, 50, call, false
-		[Sidepot(0, [(3, 9999, 50), (2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(1, [(2, 9999, 50), (1, 9999, 50), (3, 9999, 50)], 50, false, false)]		
-		
-		2. 100 all in, 50 all in, raise to 200, raise to 400
-		
-		0, 100, allin, false
-		[Sidepot(0, [(0, 9999, 100)], 100, true, false)]
-		1, 50, allin, false
-		[Sidepot(0, [(1, 9999, 50), (0, 9999, 50)], 50, true, false), 
-		Sidepot(1, [(0, 9999, 50)], 50, true, false)]		
-		2, 200, raise, false
-		[Sidepot(0, [(2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, false), 
-		Sidepot(1, [(2, 9999, 50), (0, 9999, 50)], 50, true, false), 
-		Sidepot(2, [(2, 9999, 100)], 100, false, false) ]
-		3, 400, raise, true
-		[Sidepot(0, [(3, 9999, 50), (2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(1, [(3, 9999, 50), (2, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(2, [(3, 9999, 300), (2, 9999, 100)], 300, false, false) ]		
-		2, 200, call, true
-		[Sidepot(0, [(3, 9999, 50), (2, 9999, 50), (1, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(1, [(3, 9999, 50), (2, 9999, 50), (0, 9999, 50)], 50, true, true), 
-		Sidepot(2, [(3, 9999, 300), (2, 9999, 300)], 300, false, false) ]
-		
-		Testfall 1:
-		val a = sh_mkSidepot([emptySidepot], 0, 9999, 50, true, false);
-		val a = sh_mkSidepot(a, 1, 9999, 50, false, false);
-		val a = sh_mkSidepot(a, 2, 9999, 50, false, true);
-		val a = sh_mkSidepot(a, 1, 9999, 100, false, false);
-		val a = sh_mkSidepot(a, 2, 9999, 200, true, false);
-		val a = sh_mkSidepot(a, 1, 9999, 100, false, false);
-		
-		Testfall 2: 
-		val a = sh_mkSidepot([emptySidepot], 0, 9999, 1000, true, false);
-		val a = sh_mkSidepot(a, 1, 9999, 500, false, false);
-		val a = sh_mkSidepot(a, 2, 9999, 500, true, false);
-		val a = sh_mkSidepot(a, 3, 9999, 1000, true, false);
-		val a = sh_mkSidepot(a, 4, 9999, 100, true, false);
-		val a = sh_mkSidepot(a, 1, 9999, 500, false, true);
-		
-		Testfall 3:
-		print("Pre-Flop:\n");
-		val a = sh_mkSidepot([emptySidepot], 0, 9999, 1000, false, false);
-		val a = sh_mkSidepot(a, 1, 9999, 500, true, false);
-		val a = sh_mkSidepot(a, 2, 9999, 1000, true, false);
-		val a = sh_mkSidepot(a, 3, 9999, 1500, false, false);
-		val a = sh_mkSidepot(a, 4, 9999, 1500, false, false);
-		val a = sh_mkSidepot(a, 5, 9999, 3000, true, false);
-		val a = sh_mkSidepot(a, 6, 9999, 100, true, false);
-		val a = sh_mkSidepot(a, 0, 9999, 2000, false, false);
-		val a = sh_mkSidepot(a, 3, 9999, 1500, false, false);
-		val a = sh_mkSidepot(a, 4, 9999, 1500, false, true);
-		print("Flop:\n");
-		val a = sh_mkSidepot(a, 0, 9999, 1000, false, false);
-		val a = sh_mkSidepot(a, 3, 9999, 1000, false, false);
-		val a = sh_mkSidepot(a, 4, 9999, 1000, false, true);
-		print("Turn:\n");
-		val a = sh_mkSidepot(a, 0, 9999, 2000, true, false);
-		val a = sh_mkSidepot(a, 3, 9999, 4000, false, false);
-		val a = sh_mkSidepot(a, 4, 9999, 4000, false, true);
-		
-		Testfall 4: 
-		
-		val a = sh_mkSidepot([sh_emptySidepot], 0, 9999, 25, true, false);
-		val a = sh_mkSidepot(a, 1, 9999, 50, true, false);
-		val a = sh_mkSidepot(a, 2, 9999, 75, true, false);
-		val a = sh_mkSidepot(a, 3, 9999, 100, true, false);
-		val a = sh_mkSidepot(a, 4, 9999, 125, true, false);
-		val a = sh_mkSidepot(a, 5, 9999, 125, false, false);
-		
-		1. Är sidopotten öppen? Om ja, gå till 2. 
-		2. Finns spelaren i potten? Om ja, gå till 3.
-		3. Är newMoney > pottpengar? Om ja, gå till 4. 
-		4. Är sidopotten allin? Om ja, gå till 5. 
-		5. 
-		
-		
-		*)
 		fun sh_mkSidepot'([], iSp' as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) = 
 			let
 				val getMoney = getPlayerMoney(pl', id)
@@ -257,25 +218,25 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 				if full' = false then (*Sidepot opened*)
 					if allin' = false then (*Sidepot isn't an allin pot*)
 						if getMoney > 0 then (*Player is already in the side pot, update player's money, sidepot money and sidepot allin*)
-							(print("1a. ");Sidepot(nr', updPlayerMoney(pl', id, newMoney), newMoney, allin, full')::[])
+							Sidepot(nr', updPlayerMoney(pl', id, newMoney), newMoney, allin, full')::[]
 						else (*Player isn't in the pot. *)	
 							if allin = false then (*Player isn't allin. Add player to pot and update sidepot money.*)
-								(print("1b. ");Sidepot(nr', (id, h, m)::pl', m, allin', full')::[])
+								Sidepot(nr', Pokerplayer (id, h, m)::pl', m, allin', full')::[]
 							else (*Player is allin. Check if split pot is needed.*)
 								if m >= pot' then (*Money is the same or bigger as pot. Add player and change sidepot money and allin*)
-									(print("1c. ");Sidepot(nr', (id, h, m)::pl', m, allin, full')::[])
+									Sidepot(nr', Pokerplayer (id, h, m)::pl', m, allin, full')::[]
 								else (*Make a split*)
-									(print("1d. ");chOldSidepot(iSp', id, h, m, allin)::mkNewSidepot(iSp', m)::[])
+									chOldSidepot(iSp', id, h, m, allin)::mkNewSidepot(iSp', m)::[]
 		
 					else (*Sidepot is an allin pot*)
 						if newMoney = pot' then (*Money is the same as pot. Change money.*)
-							(print("1e. ");Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, newMoney) else (id, h, m)::pl', pot', allin', full')::[])
+							Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, newMoney) else Pokerplayer (id, h, m)::pl', pot', allin', full')::[]
 						else if newMoney > pot' then (*Money is bigger than pot. Change money and add a new pot.*)
-							(print("1f. ");Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, pot') else (id, h, pot')::pl', pot', allin', full')::Sidepot(nr'+1,  [(id, h, m-pot')], newMoney-pot', allin, full')::[])
+							Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, pot') else Pokerplayer (id, h, pot')::pl', pot', allin', full')::Sidepot(nr'+1,  [Pokerplayer (id, h, m-pot')], newMoney-pot', allin, full')::[]
 						else (*Money is smaller than pot. Make a split. *)
-							(print("1g. ");chOldSidepot(iSp', id, h, m, allin)::mkNewSidepot(iSp', m)::[])
-				else
-					(print("1h. ");iSp'::Sidepot(nr'+1, [(id, h, m)], m, allin, false)::[])
+							chOldSidepot(iSp', id, h, m, allin)::mkNewSidepot(iSp', m)::[]
+				else (*Sidepot is closed. Cons iSp' and make a new sidepot. *)
+					iSp'::Sidepot(nr'+1, [Pokerplayer (id, h, m)], m, allin, false)::[]
 			end
 				
 		| sh_mkSidepot'(l as iSp'::xs, iSp as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) =	
@@ -287,69 +248,125 @@ fun sh_mkSidepot([], _, _, _, _, _) = []
 				if getMoney > 0 then (*Player is already in the side pot.*)
 					if getMoney < pot' then (*Player's money in sidepot is less than sidepot*)
 						if newMoney > pot' then (*Player's money is bigger than sidepot. Update player's money and try next sidepot.*)
-							(print("2a. ");Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin))
+							Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin)
 						else	(*Player's money is smaller than sidepot. Update player's money. *)
-							(print("2b. ");Sidepot(nr', updPlayerMoney(pl', id, newMoney), pot', allin', full')::l)
+							Sidepot(nr', updPlayerMoney(pl', id, newMoney), pot', allin', full')::l
 					else (*Sidepot is full, try next sidepot*)
-						(print("2c. ");iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin))
+						iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin)
 				else (*Player isn't in the side spot*)
 					if m = pot' then (*Money is the same as pot. Add player to sidepot, change allin. Terminate.*)
-						(print("2d. ");Sidepot(nr', (id, h, m)::pl', pot', allin, full')::l)
+						Sidepot(nr', Pokerplayer (id, h, m)::pl', pot', allin, full')::l
 					else if m > pot' then (*Money is bigger than pot. Add player and try next sidepot*)
-						(print("2e. ");Sidepot(nr', (id, h, pot')::pl', pot', allin, full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin))
+						Sidepot(nr', Pokerplayer (id, h, pot')::pl', pot', allin, full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin)
 					else (*Money is less than pot. Make a split.*)
-						(print("2f. ");chOldSidepot(iSp, id, h, m, allin)::mkNewSidepot(iSp, m)::updNr(l, nr'))
+						chOldSidepot(iSp, id, h, m, allin)::mkNewSidepot(iSp, m)::updNr(l, nr')
 				
-			else	(*Sidepot closed*)
-				(print("2g. ");iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin))
+			else	(*Sidepot closed. Cons iSp and try next sidepot. *)
+				iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin)
 		end
 	in
-			(print("\n("^Int.toString(id)^", "^Int.toString(h)^", "^Int.toString(m)^")\n");sh_mkSidepot'(xs, iSp, id, h, m, allin))
+			sh_mkSidepot'(xs, iSp, id, h, m, allin)
 	end;
-
-fun sh_unCalled l = 
+(*
+	sh_unCalled l
+	TYPE: 		sidepot list -> pokerplayer 
+	PRE: 		(none)
+	POST: 		The last element in the pokerplayer list of the last sidepot of l. 
+	EXAMPLE: 	sh_unCalled([Sidepot (0, [Pokerplayer (1, 9999, 25), Pokerplayer (0, 9999, 25)], 25, true, false),
+	    		Sidepot (1, [Pokerplayer (1, 9999, 25)], 25, true, false)]) = Pokerplayer (1, 9999, 25): pokerplayer
+*)
+fun sh_unCalled([]) = sh_emptyPokerplayer
+| sh_unCalled l = 
 	let
 		val last = List.last l
-		fun sh_unCalled'(Sidepot (_, [], _, _, _)) = (0, 0, 0)
-		| sh_unCalled'(Sidepot (nr, pl as (id, h, m)::xs, pot, allin, full)) =
+		(*
+			sh_unCalled' last
+			TYPE: 		sidepot list -> pokerplayer
+			PRE:		(none)
+			POST: 		The last element in the pokerplayer list.
+			EXAMPLE: 	sh_unCalled'(Sidepot (1, [Pokerplayer (0, 9999, 25), Pokerplayer (1, 9999, 25)], 25, true, false)) =
+						Pokerplayer (1, 9999, 25)
+		*)
+		fun sh_unCalled'(Sidepot (_, [], _, _, _)) = sh_emptyPokerplayer
+		| sh_unCalled'(Sidepot (nr, pl as Pokerplayer (id, h, m)::xs, pot, allin, full)) =
 			if length pl = 1 then
-				(id, h, m)
+				Pokerplayer (id, h, m)
 			else
-				(0, 0, 0)
+				sh_emptyPokerplayer
 	in
 		sh_unCalled' last
 	end;
-
+(*
+	sh_sumPots l
+	TYPE:		sidepot list -> sumpot list
+	PRE:		(none)
+	POST:		l as a sumpot list.
+	EXAMPLE: 	sh_sumPots([Sidepot (0, [Pokerplayer (1, 9999, 25), Pokerplayer (0, 9999, 25)], 25, true, false),
+	    	 	Sidepot (1, [Pokerplayer (1, 9999, 25)], 25, true, false)]) = [Sumpot (0, 50), Sumpot (1, 25)]: sumpot list
+*)
 fun sh_sumPots([]) = []
 | sh_sumPots(l) = 
 	let
+		(*
+			sumFromPlayer p
+			TYPE: 		pokerplayer -> int
+			PRE: 		(none)
+			POST: 		m in p.
+			EXAMPLE: 	sumFromPlayer(Pokerplayer (0, 1, 50)) = 50: int
+		*)
+		fun sumFromPlayer(Pokerplayer (_,_,sum)) = sum
+		
+		(*
+			sh_sumPots' l
+			TYPE: 		sidepot list -> sumpot list
+			PRE:		(none)
+			POST: 		l as a sumpot list.
+			EXAMPLE: 	sh_sumPots'([Sidepot (0, [Pokerplayer (1, 9999, 25), Pokerplayer (0, 9999, 25)], 25, true, false),
+			    	 	Sidepot (1, [Pokerplayer (1, 9999, 25)], 25, true, false)]) = [Sumpot (0, 50), Sumpot (1, 25)]: sumpot list
+		*)
 		fun sh_sumPots'([]) = []
 		| sh_sumPots'(Sidepot (_, [], _, _, _)::_) = []
-		| sh_sumPots'(Sidepot (nr, pl as (p, h, m)::xs', pot, allin, full)::xs) =
-		 	(nr, (foldr (fn (x,y) => m+y) 0 pl))::sh_sumPots'(xs)
+		| sh_sumPots'(Sidepot (nr, pl as Pokerplayer (p, h, m)::xs', pot, allin, full)::xs) =
+			let
+				val cash = foldr (fn (Pokerplayer (_,_,pot1), Pokerplayer (_,_,pot2)) => Pokerplayer (0, 0, pot1+pot2)) (Pokerplayer (0, 0, 0)) pl
+			in
+		 		Sumpot (nr, sumFromPlayer(cash))::sh_sumPots'(xs)
+			end
 	in
 		sh_sumPots'(l)
 	end;
-	
-	
+(*
+	sh_totPot l 
+	TYPE: 		sidepot list -> int
+	PRE: 		(none)
+	POST: 		The sum of all m in the pokerplayer lists of all the sidepots in l.  
+	EXAMPLE: 	sh_totPot([Sidepot (0, [(1, 9999, 25), (0, 9999, 25)], 25, true, false),
+	    	 	Sidepot (1, [(1, 9999, 25)], 25, true, false)]) = 75: int
+*)
 fun sh_totPot l = 
 	let
+		(*
+			sumFromSumpot s
+			TYPE: 		sumpot -> int
+			PRE: 		(none)
+			POST: 		sum in s. 
+			EXAMPLE: 	sumFromSumpot(Sumpot (0, 50)) = 50: int
+		*)
+		fun sumFromSumpot(Sumpot (_,sum)) = sum
+		
 		val sumPots = sh_sumPots l 
-		fun sh_totPot'([]) = (0,0) 
-		| sh_totPot'(l' as (nr, pot)::xs) =  
-			(foldr (fn ((_, sum1), (_, sum2)) => (0, sum1 + sum2)) (0, 0) l')
-			
+		val cash = foldr (fn (Sumpot (_,pot1), Sumpot (_,pot2)) => Sumpot (0, pot1+pot2)) (Sumpot (0, 0)) sumPots
 	in
-		sh_totPot'(sumPots)
-	end;
-	
+		sumFromSumpot(cash)
+	end;		
 (*
-	sh_updateHands l m
-	TYPE: 		sidepot list * (int * int) list -> sidepot list
+	sh_updateHands l b
+	TYPE: 		sidepot list * besthand list -> sidepot list
 	PRE: 		(none)
-	POST: 		A new sidepot list with l updated with the elements in m. 
-	EXAMPLE: 	sh_updateHands([Sidepot (0, [(0, 1, 500)], 500, false)], [(0, 200)]) =
-				[Sidepot (0, [(0, 200, 500)], 500, false)]: sidepot list
+	POST: 		l as a sidepot list where every id and m in the pokerplayer lists
+	 			of l are changed to id' and m' in b.
+	EXAMPLE: 	sh_updateHands([Sidepot (0, [(0, 1, 500)], 500, false, false)], [(0, 200)]) =
+				[Sidepot (0, [(0, 200, 500)], 500, false, false)]: sidepot list
 *)
 (*VARIANT: length l*)
 fun sh_updateHands([], _) = []
@@ -357,52 +374,58 @@ fun sh_updateHands([], _) = []
 | sh_updateHands(x::xs, l') = 
 	let 
 		(*
-			sh_updateHands'(i, l)
-			TYPE: 		sidepot * (int * int) list -> sidepot 
+			sh_updateHands'(l, b)
+			TYPE: 		sidepot * besthand list -> sidepot 
 			PRE:		(none)
-			POST:		A new sidepot with i updated with the elements in l. 
-			EXAMPLE: 	sh_updateHands'(Sidepot (0, [(0, 1, 500)], 500, false), [(0, 200)]) =
-						Sidepot (0, [(0, 200, 500)], 500, false): sidepot
+			POST:		l as a sidepot where every id and m in the pokerplayer list
+			 			of l are changed to id' and m' in b. 
+			EXAMPLE: 	sh_updateHands'(Sidepot (0, [(0, 1, 500)], 500, false, false), [(0, 200)]) =
+						Sidepot (0, [(0, 200, 500)], 500, false, false): sidepot
 		*)
 		fun sh_updateHands'(Sidepot(nr, pl, pot, allin, full), xs'') = 
 			let
 				(*
-				sh_updateHands'' (pl, h, n)
-				TYPE: 		(int * int * int) list * (int * int) list  * (int * int * int) list -> (int * int * int) list
+				sh_updateHands'' (l, h', n)
+				TYPE: 		pokerplayer list * besthand list * pokerplayer list -> pokerplayer list
 				PRE: 		(none)
-				POST: 		A new (int * int * int) list n where pl is updated with h. 
+				POST: 		n as a pokerplayer list where every id and m in l are changed
+							to every id' and m in h'. 
 				EXAMPLE: 	sh_updateHands''([(0, 9999, 500), (1, 9999, 500)], [(0, 1), (1, 5)], []) =
-							[(0, 1, 500), (1, 5, 500)]: (int * int * int) list
+							[(0, 1, 500), (1, 5, 500)]: pokerplayer list
 				*)
 				(*VARIANT: length pl*)
 				fun sh_updateHands''(_, [], _) = []
-				| sh_updateHands''([], (id'', h'')::xs''', new) = 
+				| sh_updateHands''([], Besthand (id'', h'')::xs''', new) = 
 					if xs''' <> [] then
 						sh_updateHands''(new, xs''', [])
 					else
 						new
-				| sh_updateHands''((id''', h''', m''')::xs'''', l'' as (id'', h'')::xs''', new) = 
+				| sh_updateHands''(Pokerplayer (id''', h''', m''')::xs'''', l'' as Besthand (id'', h'')::xs''', new) = 
 					if id''' = id'' then
-						sh_updateHands''(xs'''', l'', (id''', h'', m''')::new)
+						sh_updateHands''(xs'''', l'', Pokerplayer (id''', h'', m''')::new)
 					else
-						sh_updateHands''(xs'''', l'', (id''', h''', m''')::new)
+						sh_updateHands''(xs'''', l'', Pokerplayer (id''', h''', m''')::new)
 			in
 				Sidepot(nr, sh_updateHands''(pl, xs'', []), pot, allin, full)::sh_updateHands(xs, xs'')
 			end
 	in
 		sh_updateHands'(x, l')
 	end;
+
 (*
 	showDown l 
 	TYPE: 		sidepot list -> sidepot list
 	PRE:		(none)
-	POST:		l as a new sidepot list. 
-	EXAMPLE: 	showDown([Sidepot (0, [(2, 1200, 200), (1, 5, 200), (0, 1, 200)], 200, false),
-	    		Sidepot (1, [(1, 5, 300), (0, 1, 300)], 300, false),
-	    		Sidepot (2, [(0, 1, 500)], 500, false)]) =
-				[Sidepot (0, [(0, 1, 600)], 600, true),
-				Sidepot (1, [(0, 1, 600)], 600, true),
-				Sidepot (2, [(0, 1, 500)], 500, true)]: sidepot list
+	POST:		l as a sidepot list with sidepots where pokerplayer lists only contain of the pokerplayer(s) 
+				with the minimum h (from now on reffering as w) in a sidepot. w:s m will be the sum of all m in the
+				pl divided by w. The pot will be the same as this sum. allin and full will both be true. 
+				
+	EXAMPLE: 	showDown([Sidepot (0, [Pokerplayer (2, 1200, 200), Pokerplayer (1, 5, 200), Pokerplayer (0, 1, 200)], 200, true, false),
+	    		Sidepot (1, [Pokerplayer (1, 5, 300), Pokerplayer (0, 1, 300)], 300, true, false),
+	    		Sidepot (2, [Pokerplayer (0, 1, 500)], 500, false, false)]) =
+				[Sidepot (0, [Pokerplayer (0, 1, 600)], 600, true, true),
+				Sidepot (1, [Pokerplayer (0, 1, 600)], 600, true, true),
+				Sidepot (2, [Pokerplayer (0, 1, 500)], 500, true, true)]: sidepot list
 *)	
 (*VARIANT: length l*)
 fun showDown([]) = []
@@ -410,26 +433,26 @@ fun showDown([]) = []
 	let
 		(*	
 			winners l
-			TYPE:		('a * int * 'b) list -> ('a * int * 'b) list
+			TYPE:		pokerplayer list -> pokerplayer list
 			PRE:		(none)
-			POST:		l as a new ('a * int * 'b) list. 
-			EXAMPLE:	winners([(0, 1, 500), (3, 1600, 700), (7, 5068, 700)]) = [(0, 1, 500)] 
+			POST:		l as a pokerplayer list with the smallest h in common. 
+			EXAMPLE:	winners([Pokerplayer (0, 1, 500), Pokerplayer (3, 1600, 700), Pokerplayer (7, 5068, 700)]) = [Pokerplayer (0, 1, 500)] 
 		*)
 		(*VARIANT: length l*)
 		fun winners [] = [] 
-		| winners ((x as (p, h, m))::xs) =
+		| winners ((x as Pokerplayer (p, h, m))::xs) =
 			let 
 				(*
-					winners' l, m, h
-					TYPE: 		('a * int * 'b) list * ('a * int * 'b) list * int -> ('a * int * 'b) list
+					winners' l, m', h'
+					TYPE: 		pokerplayer list * pokerplayer list * int -> pokerplayer list
 					PRE: 		h > 0
-					POST:		m as a new ('a * int * 'b) list from l with the least common h. 
-					EXAMPLE: 	winners'([(3, 1600, 700), (7, 5068, 700)], [(0, 1, 500), 1]) =
+					POST:		m' as a new pokerplayer list from l with the smallest common h'. 
+					EXAMPLE: 	winners'([Pokerplayer (3, 1600, 700), Pokerplayer (7, 5068, 700)], [Pokerplayer (0, 1, 500), 1]) =
 								[(0, 1, 500)] 
 				*)
 				(*VARIANT: length l*)
 				fun winners'([], bestPl, _) = bestPl
-				| winners'((x' as (p', h', m'))::xs, bestPl, bestHa) =
+				| winners'((x' as Pokerplayer (p', h', m'))::xs, bestPl, bestHa) =
 					if h' < bestHa then
 						winners'(xs, [x'], h')
 					else if h' = bestHa then
@@ -441,21 +464,35 @@ fun showDown([]) = []
 			end	
 		(*
 			cashFromPlayers l
-			TYPE:		('a * 'b * int) list -> int
+			TYPE:		pokerplayer list -> int
 			PRE:		(none)
-			POST:		An int. 
-			EXAMPLE:	cashFromPlayers([(0, 1, 500), (3, 1600, 700), (7, 5068, 700)]) = 1900: int
+			POST:		The sum of all m in l. 
+			EXAMPLE:	cashFromPlayers([Pokerplayer (0, 1, 500), Pokerplayer (3, 1600, 700), Pokerplayer (7, 5068, 700)]) = 1900: int
 		*)
-		(*VARIANT: lenght l*)
-		fun cashFromPlayers([]) = 0
-		| cashFromPlayers(l as (p, h, m)::xs') = foldr (fn (x,y) => m+y) 0 l
+		(*VARIANT: length l*)
+		fun cashFromPlayers(l) = 
+			let
+				val cash = foldr (fn (Pokerplayer (_,_,pot1), Pokerplayer (_,_,pot2)) => Pokerplayer (0, 0, pot1+pot2)) (Pokerplayer (0, 0, 0)) l
+				(*
+					cashFromPlayers' p
+					TYPE: 		pokerplayer -> int
+					PRE: 		(none)
+					POST: 		m in p.
+					EXAMPLE: 	cashFromPlayers'(Pokerplayer (0, 1, 50)) = 50: int
+				*)
+				fun cashFromPlayers'(Pokerplayer (_,_,sum)) = sum
+			in
+				cashFromPlayers'(cash)
+			end;
 		(*
-			sh_mkSidepot nr, w, t
-			TYPE:		int * (int * int * 'a) list * int -> sidepot
-			PRE:		t >= 0
-			POST:		A sidepot from nr, w and t. 
-			EXAMPLE:	sh_mkSidepot(0, [(0, 1, 500), (1, 1, 500)], 1500) =
-						Sidepot(0, [(0, 1, 750), (1, 1, 750)], 1500, true)
+			sh_mkSidepot nr', w', t'
+			TYPE:		int * pokerplayer list * int -> sidepot
+			PRE:		t' >= 0
+			POST:		A sidepot where nr = nr', where w' is the pokerplayer list
+						except that m in the pokerplayer list is t' divided by the length of w',
+						pot = t', allin and full are both true. 
+			EXAMPLE:	sh_mkSidepot(0, [Pokerplayer (0, 1, 500), Pokerplayer (1, 1, 500)], 1500) =
+						Sidepot(0, [Pokerplayer (0, 1, 750), Pokerplayer (1, 1, 750)], 1500, true, true)
 		*)		
 		fun sh_mkSidepot(nr, [], _) = sh_emptySidepot 
 		| sh_mkSidepot(nr, winners, tot) =
@@ -465,16 +502,17 @@ fun showDown([]) = []
 				
 				(*
 					sh_mkSidepot'(l, c, w, t)
-					TYPE: 		(int * int * 'a) list * int * (int * int * int) list * int -> sidepot
+					TYPE: 		pokerplayer list * int * pokerplayer list * int -> sidepot
 					PRE: 		c > 0, t > 0
-					POST: 		A sidepot where the sidepot's list is w and the sidepot's pot is t. 
+					POST: 		A sidepot where pl = w, pot = tot, allin and full are
+								both true. 
 					EXAMPLE: 	sh_mkSidepot'([(0, 1, 500), (1, 1, 500)], 200, [], 1400) =
-								Sidepot(0, [(0, 1, 700), (1, 1, 700)], 1400, true): sidepot
+								Sidepot(0, [(0, 1, 700), (1, 1, 700)], 1400, true, true): sidepot
 				*)
 				(*VARIANT: length l*)
 				fun sh_mkSidepot'([], _, winners, tot) = Sidepot(nr, winners, tot, true, true)
-				| sh_mkSidepot'((p, h, m)::xs, cashEach, winners, tot) =
-					sh_mkSidepot'(xs, cashEach, (p, h, cashEach)::winners, tot)
+				| sh_mkSidepot'(Pokerplayer (p, h, m)::xs, cashEach, winners, tot) =
+					sh_mkSidepot'(xs, cashEach, Pokerplayer (p, h, cashEach)::winners, tot)
 			in
 				sh_mkSidepot'(winners, cashEach, [], tot)
 			end

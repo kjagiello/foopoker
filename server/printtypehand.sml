@@ -1,64 +1,25 @@
 (*
-	dealerRank n
-	TYPE:		int -> string
-	PRE:		0 <= n <= 12
-	POST:		n as a string. 
-	EXAMPLE: 	dealerRank(12) = "Ace"
-*)
-(*
-	INFO: 		Returns the value of a card in singular. 
-*)
-fun dealerRank n =
-	let	
-		val cards = ["Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"]
-		val cardList = Vector.fromList(cards)
-	in
-		Vector.sub(cardList, n)
-	end;
-(*
-	dealerRanks n
-	TYPE:		int -> string
-	PRE:		0 <= n <= 12
-	POST:		n as a string. 
-	EXAMPLE: 	dealerRank(12) = "Aces"
-*)
-(*
-	INFO: 		Returns the value of a card in plural. 
-*)	
-fun dealerRanks n =
-	let	
-		val cards = ["Twos", "Threes", "Fours", "Fives", "Sixes", "Sevens", "Eights", "Nines", "Tens", "Jacks", "Queens", "Kings", "Aces"]
-		val cardList = Vector.fromList(cards)
-	in
-		Vector.sub(cardList, n)
-	end;
-(*
 	checkHighCard l
-	TYPE: 		int list -> string
+	TYPE: 		int list -> cardvalue
 	PRE:		(none)
-	POST: 		l represented as a string.
-	EXAMPLE: 	checkHighCard([0,1,2,3,4]) = "Six"
+	POST: 		The max integer in l as a cardvalue. 
+	EXAMPLE: 	checkHighCard([0,1,2,3,4]) = Six: cardvalue
 *)
-(*
-	INFO:		Check which card in the type HIGH_CARD is the highest.
-*)
-fun checkHighCard([]) = ""
-| checkHighCard(x::rest) = dealerRank(foldr Int.max x rest);
+fun checkHighCard([]) = Joker
+| checkHighCard(x::rest) = 
+		getCardValue(foldr Int.max x rest);
 
 (*
 	checkTwoPair l
-	TYPE: 		int list -> string
+	TYPE: 		int list -> cardvalue * cardvalue
 	PRE:		(none)
-	POST: 		l represented as a string.
-	EXAMPLE: 	checkTwoPair([1,1,2,2,4]) = "Threes and Fours"
+	POST: 		A tupel of two cardvalues where a cardvalue is two of the same integer in l. 
+	EXAMPLE: 	checkTwoPair([1,1,2,2,4]) = (Trey, Four): cardvalue * cardvalue
 *)
-(*
-	INFO:		Checks the values of TWO_PAIR
-*)
-fun checkTwoPair([]) = ""		
+fun checkTwoPair([]) = (Joker, Joker)	
 | checkTwoPair(x::y::z::rest) = 
 	let 
-		fun checkTwoPair'([], pair1, pair2) = dealerRanks(pair1)^" and "^dealerRanks(pair2)
+		fun checkTwoPair'([], pair1, pair2) = (getCardValue(pair1), getCardValue(pair2))
 		| checkTwoPair'(x::rest, pair1, pair2) =
 			if x = pair1 then
 				checkTwoPair'(rest, x, pair2)
@@ -72,44 +33,38 @@ fun checkTwoPair([]) = ""
 		else
 			checkTwoPair'(z::rest, x, y)
 	end;
-
 (*
 	checkPairThreeFour l
-	TYPE: 		int list -> string
+	TYPE: 		int list -> cardvalue
 	PRE:		(none)
-	POST: 		l represented as a string.
-	EXAMPLE: 	checkPairThreeFour([1,1,1,2,4]) = "Deuces"
+	POST: 		A cardvalue which is the integer in l that 
+				occurs more than 1 time. 
+	EXAMPLE: 	checkPairThreeFour([1,1,1,2,4]) = Trey: cardvalue
 *)
-(*
-	INFO:		Checks the values of ONE_PAIR/THREE_OF_A_KIND/FOUR_OF_A_KIND
-*)	
-fun checkPairThreeFour([]) = ""	
+fun checkPairThreeFour([]) = Joker
 | checkPairThreeFour(x::rest) = 
 		let 
 			fun checkPairThreeFour'([], _, list) = checkPairThreeFour(list)
 			| checkPairThreeFour'(x::rest, ptf, list) =
 				if x = ptf then
-					dealerRanks(ptf)
+					getCardValue(ptf)
 				else
 					checkPairThreeFour'(rest, ptf, list)
 		in
 			checkPairThreeFour'(rest, x, rest)
-		end;
-	
+		end;	
 (*
 	checkStraight l
-	TYPE: 		int list -> string
+	TYPE: 		int list -> cardvalue * cardvalue
 	PRE:		(none)
-	POST: 		l represented as a string.
-	EXAMPLE: 	checkStraight([1,1,1,2,4]) = "Deuces"
+	POST: 		A tupel of two card values, where the first is the lowest
+				integer in l and the second is the highest integer. 
+	EXAMPLE: 	checkStraight([1,2,3,4,5]) = (Trey, Seven): cardvalue * cardvalue
 *)
-(*
-	INFO:		Check the highest and lowest card in STRAIGHT
-*)		
-fun checkStraight([]) = ""		
+fun checkStraight([]) = (Joker, Joker)	
 | checkStraight(x::rest) = 
 		let 
-			fun checkStraight'([], min, max) = dealerRank(min)^ " to " ^dealerRank(max)
+			fun checkStraight'([], min, max) = (getCardValue(min), getCardValue(max))
 			| checkStraight'(x::rest, min, max) =
 				if x < min then
 					checkStraight'(rest, x, max)
@@ -122,46 +77,42 @@ fun checkStraight([]) = ""
 		end;
 (*
 	checkFlush w
-	TYPE: 		Word32.word -> string
+	TYPE: 		Word32.word -> cardsuit
 	PRE:		(none)
-	POST: 		w represented as a string.
-	EXAMPLE: 	checkFlush(0wx8008B25) = "Clubs"
-*)
-(*
-	INFO:		Check the suit of FLUSH
-*)		
+	POST: 		w represented as a cardsuit.
+	EXAMPLE: 	checkFlush(0wx8008B25) = CLUB: cardsuit
+*)	
 fun checkFlush(flush) =		
 	let
 		val op andb = Word32.andb
 		val w = Word32.fromInt(0)
 	in
 		if andb(flush, 0wx8000) > w then
-			"Clubs"
+			CLUB
 		else if andb(flush, 0wx4000) > w then
-			"Diamonds"
+			DIAMOND
 		else if andb(flush, 0wx2000) > w then
-			"Hearts"
+			HEART
 		else
-			"Spades"
+			SPADE
 	end;
 (*
 	checkFull l
-	TYPE: 		int list -> string
+	TYPE: 		int list -> cardvalue * cardvalue
 	PRE:		(none)
-	POST: 		l represented as a string.
-	EXAMPLE: 	checkFull([1,1,1,2,2]) = "Pairs over Deuces"
+	POST: 		A tupel of two cardvalues where the first cardvalue
+				occurs 3 times as an integer in l and the second
+				cardvalue occurs 2 times. 
+	EXAMPLE: 	checkFull([1,1,1,2,2]) = (Trey, Four): cardvalue * cardvalue
 *)
-(*
-	INFO:		Check which values of FULL_HOUSE
-*)
-fun checkFull([]) = ""		
+fun checkFull([]) = (Joker, Joker)	
 | checkFull(x::rest) =
 		let 
 			fun checkFull'([], cards1, cards2) = 
 				if length cards1 = 3 then
-					dealerRanks(hd(cards1))^ " over " ^dealerRanks(hd(cards2))
+					(getCardValue(hd(cards1)), getCardValue(hd(cards2)))
 				else
-					dealerRanks(hd(cards2))^ " over " ^dealerRanks(hd(cards1))
+					(getCardValue(hd(cards2)), getCardValue(hd(cards1)))
 			| checkFull'(x::rest, cards1, cards2) =
 				if x = hd(cards1) then
 					checkFull'(rest, x::cards1, cards2)
@@ -172,17 +123,14 @@ fun checkFull([]) = ""
 		end;
 (*
 	printTypeHand(c1, c2, c3, c4, c5)
-	TYPE: 		Word32.word * Word32.word * Word32.word * Word32.word * Word32.word -> string
+	TYPE: 		card * card * card * card * card -> string
 	PRE:		(none)
 	POST: 		c1, c2, c3, c4, c5 as a string. 
-	EXAMPLE: 	printTypeHand(0wx8002B25, 0wx8008B25, 0wx8001B25, 0wx1002817, 0wx802713) = "Kings"
+	EXAMPLE: 	printTypeHand(Card 0wx8002B25, Card 0wx8008B25, Card 0wx8001B25, Card 0wx1002817, Card 0wx802713) = "Kings": string
 *)		
-(*
-	INFO: 		Supplements the function printHand(n) with the types of the dominant cards. 
-*)
-fun printTypeHand(c1, c2, c3, c4, c5) =
+fun printTypeHand(Card c1, Card c2, Card c3, Card c4, Card c5) =
 	let 
-		val n = eval_5cards(c1, c2, c3, c4, c5)
+		val n = handValueToInt(eval_5cards(Card c1, Card c2, Card c3, Card c4, Card c5))
 		val flush = c1
 		
 		val op andb = Word32.andb
@@ -199,23 +147,23 @@ fun printTypeHand(c1, c2, c3, c4, c5) =
 		val hand = [c1, c2, c3, c4, c5]
 	in
 		if n > 6185 then				(*HIGH_CARD*)
-			checkHighCard(hand) 
+			dealerCardValue(checkHighCard(hand)) 
 		else if n > 3325 then			(*ONE_PAIR*)
-			checkPairThreeFour(hand)
+			dealerCardValues(checkPairThreeFour(hand))
 		else if n > 2467 then			(*TWO_PAIR*)
-			checkTwoPair(hand)
+			dealerTwoPair(checkTwoPair(hand))
 		else if n > 1609 then			(*THREE_OF_A_KIND*)
-			checkPairThreeFour(hand)
+			dealerCardValues(checkPairThreeFour(hand))
 		else if n > 1599 then			(*STRAIGHT*)
-			checkStraight(hand)
+			dealerStraight(checkStraight(hand))
 		else if n > 322 then			(*FLUSH*)
-			checkFlush(flush)
+			dealerCardSuit(checkFlush(flush))
 		else if n > 166 then			(*FULL_HOUSE*)
-			checkFull(hand)	
+			dealerFullHouse(checkFull(hand))	
 		else if n > 10 then				(*FOUR_OF_A_KIND*)
-			checkPairThreeFour(hand)	
+			dealerCardValues(checkPairThreeFour(hand))	
 		else if n > 1 then				(*STRAIGHT_FLUSH*)
-			checkStraight(hand)^" of "^checkFlush(flush)
+			dealerStraight(checkStraight(hand)) ^ dealerCardSuit(checkFlush(flush))
 		else							(*ROYAL*)
-			checkFlush(flush)
+			dealerCardSuit(checkFlush(flush))
 	end;
