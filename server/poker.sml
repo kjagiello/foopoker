@@ -289,12 +289,15 @@ fun Raise (raiseWith, playersMoney, bigBlind) =
 		exception notEnoughMoney;
 		exception toSmallRaise;
 		val totalSum = raiseWith + bigBlind;
-        val leastAcceptableRaise = raiseWith
+                val leastAcceptableRaise = raiseWith
     in
-		if (raiseWith > playersMoney) then
-	    	raise notEnoughMoney
-		else if (raiseWith < bigBlind) then
-	    	raise toSmallRaise
+		if (raiseWith > playersMoney) 
+			then
+	    			raise notEnoughMoney
+		
+		else if (raiseWith < bigBlind) 
+			then
+	    			raise toSmallRaise
 		else 
 			(totalSum, leastAcceptableRaise)
     end;
@@ -303,7 +306,7 @@ fun Raise (raiseWith, playersMoney, bigBlind) =
 	Call (call, playerMoney)
    	TYPE: 		int * int -> int
    	PRE: 		call, playerMoney >= 0
-   	POST: 		Ger call efter jämförelse med playerMoney.
+   	POST: 		Ger call, efter att call jämförts med playerMoney.
    	EXAMPLE: 	Call (60, 50) = Exception
 	    		Call (40, 50) = 40
 *)
@@ -311,8 +314,9 @@ fun Call (call, playerMoney) =
     let
 		exception notEnoughMoney;
     in
-		if (call > playerMoney) then
-	    	raise notEnoughMoney
+		if (call > playerMoney) 
+		   then
+	    		raise notEnoughMoney
 		else 
 			call
     end;
