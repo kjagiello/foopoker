@@ -4,6 +4,7 @@ PolyML.fullGC();
 PolyML.SaveState.loadState "../isaplib/heaps/all.polyml-heap";
 
 use "poker.sml";
+use "../utils/testing/testing.sml";
 
 val ord = o_ord;
 val chr = o_chr;
@@ -354,6 +355,15 @@ struct
 
     fun toVector (final, rsv1, rsv2, rsv3, opcode, mask, payloadlen, maskkey, payload) =
         let
+            fun orbList l =
+                foldr Word8.orb (Word8.fromInt 0) l
+
+            fun lrb (x, n) =
+                Word8.<< (Word8.fromInt x, Word.fromInt n)
+
+            fun getBit (w, b) =
+                Word8.andb (Word8.>> (w, Word.fromInt b), Word8.fromInt 1)
+
             (*
                 lrb (x, n)
                 TYPE: int * int -> Word8.word
