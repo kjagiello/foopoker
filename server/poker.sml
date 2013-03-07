@@ -327,12 +327,3 @@ use "shuffledeck.sml";
 use "evaluatecards.sml";
 use "printtypehand.sml";
 use "showdown.sml";
-use "cardToWord.sml"; 
-
-val c1= cardToWord("Ah");
-val c2= cardToWord("Ac");
-val c3= cardToWord("As");
-val c4= cardToWord("Kh");
-val c5= cardToWord("Ks");
-val x1 = eval_5cards(Playcard c1, Playcard c2, Playcard c3, Playcard c4, Playcard c5);
-val x2 = Handvalue 167;

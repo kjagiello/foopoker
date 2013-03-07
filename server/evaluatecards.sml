@@ -1,8 +1,3 @@
-use "../utils/testing/testing.sml";
-use "vectors.sml";
-datatype playcard = Playcard of Word32.word;
-datatype handvalue = Handvalue of int;
-fun handValueToInt(Handvalue(n)) = n; 
 open SmlTests;
 (*
 	eval_printCard n 
