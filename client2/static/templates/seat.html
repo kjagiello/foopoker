@@ -1,7 +1,7 @@
 <div class="seat seat-{{ seatId }} {{ extraClasses }}" ng-class="{folded: !!player.folded, active: !!bet}" ng-click="sitDown()">
     <div class="avatar" style="background-image: url({{ player.avatar }});" ng-show="!!player"></div>
     <div class="cards" ng-show="!!player">
-        <div class="card c{{ c.id }}" ng-repeat="c in player.cards">
+        <div class="card c{{ c }}" ng-repeat="c in player.cards">
             <div class="face"></div>
             <div class="back"></div>
         </div>

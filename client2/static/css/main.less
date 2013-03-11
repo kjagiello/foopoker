@@ -682,8 +682,8 @@ div {
                 .box-shadow(0px 0px 8px 3px rgba(0, 0, 0, 0.2));
 
                  &.creverse, &.c {
-                    .face { display: none; }
-                    .back { display: block; }
+                    .face { display: none !important; }
+                    .back { display: block !important; }
                 }
             }
 
@@ -792,7 +792,7 @@ div {
 
     .back { 
         background-position: 0px -370px; 
-        .transform(rotateY(180deg));
+        /*.transform(rotateY(180deg));*/
     }
 
     &.flip {
