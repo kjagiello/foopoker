@@ -290,6 +290,13 @@ function GameController ($scope, $element, user, socket) {
         $scope.betAmount = 0;
         $scope.bestHand = null;
         $scope.raise = false;
+        user.bet = false;
+    });
+
+    socket.on('showdown', function (data) {
+        $scope.betAmount = 0;
+        $scope.raise = false;
+        user.bet = false;
     });
 
     socket.on('update_money', function (data) {
@@ -392,7 +399,12 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
         $scope.player.stake = 0;
         $scope.player.allin = false;
         $scope.bet = false;
-    })
+    });
+
+    socket.on('showdown', function (data) {
+        $('body').find('.bet-timer').stop().width('0%');
+        $scope.bet = false;
+    });
 
     // $scope.avatar = 'http://2.bp.blogspot.com/-RatTLFiu6J4/T5l_v59jbVI/AAAAAAAAQ2A/kelVxm_vcLI/s400/blank_avatar_220.png';
     socket.on('user_join', function (data) {
@@ -447,7 +459,7 @@ function SeatController($scope, $attrs, $timeout, $location, $element, socket, u
             return;
 
         $scope.player.cards = $scope.player.cards || [];
-        $scope.player.cards.push(data);
+        $scope.player.cards.push(data.id);
 
         console.log($scope.player);
     });
