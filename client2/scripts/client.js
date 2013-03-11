@@ -2,6 +2,69 @@ var uniqueId = function () {
   return '_' + Math.random().toString(36).substr(2, 9);
 };
 
+function arrangeChips(el, amount) {
+    // round to fifties
+    // amount = Math.round(amount / 50) * 50;
+
+    $chips = $(el);
+    $chips.empty();
+
+    var limit = 0;
+
+    while (amount > 0 )
+    {
+        var chips = [
+            ['black', 100],
+            ['blue', 50],
+            ['red', 1]
+        ];
+
+        $.each(chips, function (i, c) {
+            var name = c[0];
+            var value = c[1];
+
+            console.log(amount, value);
+            if (amount >= value) {
+                console.log("YEAH");
+                // create the chip
+                var chip = '<div class="chip chip-' + name + '"></div>';
+
+                // find a stack
+                var stack = $chips.find('.stack.stack-' + name + ':not(.stack-full):first');
+
+                if (!stack.length) {
+                    // no stack, we gotta create it
+                    $chips.append('<div class="stack stack-' + name + '"></div>');
+
+                    // todo: DRY (do {} while {}?)
+                    stack = $chips.find('.stack.stack-' + name + ':not(.stack-full):first')[0];
+                }
+
+                // should always be just one element
+                stack = $(stack);
+
+                // lets put the chip into that stack
+                stack.append(chip);
+
+                // check if we exceeded the stack limit
+                if (stack.find('.chip').length > 6)
+                    stack.addClass('stack-full');
+
+                // chip created, lets create some more if needed
+                amount -= value;
+                
+                return false;
+            }
+            else {
+                return true;
+            }
+        });
+    }
+
+    if ($chips.parents('.table-space').hasClass('reverse'))
+        $chips.attr('dir', 'rtl');
+}
+
 $(function(){
     $('.modal').on('show', function() { console.log('yo'); }).on('shown', function () {
         console.log($(this));
@@ -469,71 +532,10 @@ function PotController($scope, $attrs, $element, socket, user) {
     socket.on('update_pots', function (data) {
         var pot = data.pots[$scope.potId];
 
-        function arrangeChips(el, amount) {
-            // round to fifties
-            amount = Math.round(amount / 50) * 50;
-
-            $chips = $(el);
-            $chips.empty();
-
-            var limit = 0;
-
-            while (amount > 0 )
-            {
-                var chips = [
-                    ['black', 100],
-                    ['blue', 50],
-                    ['red', 1]
-                ];
-
-                $.each(chips, function (i, c) {
-                    var name = c[0];
-                    var value = c[1];
-
-                    console.log(amount, value);
-                    if (amount >= value) {
-                        console.log("YEAH");
-                        // create the chip
-                        var chip = '<div class="chip chip-' + name + '"></div>';
-
-                        // find a stack
-                        var stack = $chips.find('.stack.stack-' + name + ':not(.stack-full):first');
-
-                        if (!stack.length) {
-                            // no stack, we gotta create it
-                            $chips.append('<div class="stack stack-' + name + '"></div>');
-
-                            // todo: DRY (do {} while {}?)
-                            stack = $chips.find('.stack.stack-' + name + ':not(.stack-full):first')[0];
-                        }
-
-                        // should always be just one element
-                        stack = $(stack);
-
-                        // lets put the chip into that stack
-                        stack.append(chip);
-
-                        // check if we exceeded the stack limit
-                        if (stack.find('.chip').length > 6)
-                            stack.addClass('stack-full');
-
-                        // chip created, lets create some more if needed
-                        amount -= value;
-                        
-                        return false;
-                    }
-                    else {
-                        return true;
-                    }
-                });
-            }
-
-            if ($chips.parents('.table-space').hasClass('reverse'))
-                $chips.attr('dir', 'rtl');
+        if (pot) {
+            $scope.amount = pot.amount;
+            arrangeChips($($element).find('.chips'), pot.amount);
         }
-
-        $scope.amount = pot.amount;
-        arrangeChips($($element).find('.chips'), pot.amount);
     });
 };
 

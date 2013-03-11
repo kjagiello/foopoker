@@ -2848,8 +2848,13 @@ struct
                             let in
                                 case (valOf chair) of
                                     ref Null =>
-                                        let in
-                                            joinTable (player, board, valOf id);
+                                        let 
+                                            val playerChair = getChairIndexByPlayer board player
+                                        in
+                                            (if isSome playerChair then
+                                                serverMessage (player, "Leave your sit first!")
+                                            else
+                                                (joinTable (player, board, valOf id); ()));
                                             ()
                                         end
                                   | _ => ()
