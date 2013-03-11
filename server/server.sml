@@ -2145,8 +2145,13 @@ struct
             fun isAllIn (ref (Player {state=ref PlayerAllIn, ...})) = true
               | isAllIn _ = false
 
-            val cards = map (fn x => JSON.String (eval_printCard x)) cards
-            val cards = map (fn _ => JSON.String "reverse") cards
+            val (ref (Player {board=ref board, ...})) = player
+            val (ref (Board {state=ref bState, ...})) = board
+
+            val cards = case bState of 
+                TableShowdown => map (fn x => JSON.String (eval_printCard x)) cards
+              | _ => map (fn _ => JSON.String "reverse") cards
+
             val du = JSON.empty
                   |> JSON.add ("id", JSON.Int (getPlayerId player))
                   |> JSON.add ("username", JSON.String (getPlayerName player))
@@ -2507,9 +2512,10 @@ struct
                 val chairs = nvectorToList (!chairs)
                 val players = filterRefList chairs filterInGame
 
-                val playerList = map (fn p => prepareForShowdown (board, p)) players
-                val ps = showDown (sh_updateHands((!sidePotList), playerList))
+                val _ = sendToBoard board "showdown" filterAll (JSON.empty |> JSON.add ("status", JSON.String "ok"))
 
+                val playerList = map (fn p => (syncPlayer p; prepareForShowdown (board, p))) players
+                val ps = showDown (sh_updateHands((!sidePotList), playerList))
                 
                 (*
                     printShowDown l
