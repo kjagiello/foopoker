@@ -1,4 +1,4 @@
-open SmlTests;
+(*open SmlTests;*)
 (* 
 	REPRESENTATION CONVENTION: 	Pokerplayer(id, h, m): Represents a poker player where the id is a unique 
 								id of the player, h is the player's handvalue and m is the money
@@ -215,29 +215,32 @@ fun sh_mkSidepot ([], _, _, _, _) = []
 			let
 				val getMoney = getPlayerMoney(pl', id)
 				val newMoney = getMoney + m
+				val chOldPot = chOldSidepot(iSp', id, h, m, allin)
+				val mkNewPot = mkNewSidepot(iSp', m)
+				
 			in
 				if full' = false then (*Sidepot opened*)
 					if allin' = false then (*Sidepot isn't an allin pot*)
-						if getMoney > 0 then (*Player is already in the side pot, update player's money, sidepot money and sidepot allin*)
-							Sidepot(nr', updPlayerMoney(pl', id, newMoney), newMoney, allin, full')::[]
+	(*===> split needed*)					if getMoney > 0 then (*Player is already in the side pot, update player's money, sidepot money and sidepot allin*)
+							(print("1a. ");Sidepot(nr', updPlayerMoney(pl', id, newMoney), newMoney, allin, full')::[])
 						else (*Player isn't in the pot. *)	
 							if allin = false then (*Player isn't allin. Add player to pot and update sidepot money.*)
-								Sidepot(nr', Pokerplayer (id, h, m)::pl', m, allin', full')::[]
+								(print("1b. ");Sidepot(nr', Pokerplayer (id, h, m)::pl', m, allin', full')::[])
 							else (*Player is allin. Check if split pot is needed.*)
 								if m >= pot' then (*Money is the same or bigger as pot. Add player and change sidepot money and allin*)
-									Sidepot(nr', Pokerplayer (id, h, m)::pl', m, allin, full')::[]
+									(print("1c. ");Sidepot(nr', Pokerplayer (id, h, m)::pl', m, allin, full')::[])
 								else (*Make a split*)
-									chOldSidepot(iSp', id, h, m, allin)::mkNewSidepot(iSp', m)::[]
+									(print("1d. ");chOldPot::mkNewPot::[])
 		
 					else (*Sidepot is an allin pot*)
 						if newMoney = pot' then (*Money is the same as pot. Change money.*)
-							Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, newMoney) else Pokerplayer (id, h, m)::pl', pot', allin', full')::[]
+							(print("1e. ");Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, newMoney) else Pokerplayer (id, h, m)::pl', pot', allin', full')::[])
 						else if newMoney > pot' then (*Money is bigger than pot. Change money and add a new pot.*)
-							Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, pot') else Pokerplayer (id, h, pot')::pl', pot', allin', full')::Sidepot(nr'+1,  [Pokerplayer (id, h, m-pot')], newMoney-pot', allin, full')::[]
+							(print("1f. ");Sidepot(nr', if getMoney > 0 then updPlayerMoney(pl', id, pot') else Pokerplayer (id, h, pot')::pl', pot', allin', full')::Sidepot(nr'+1,  [Pokerplayer (id, h, if getMoney > 0 then m-pot'-getMoney else m-pot')], if getMoney > 0 then m-pot'-getMoney else m-pot', allin, full')::[])
 						else (*Money is smaller than pot. Make a split. *)
-							chOldSidepot(iSp', id, h, m, allin)::mkNewSidepot(iSp', m)::[]
+							(print("1g. ");chOldPot::mkNewPot::[])
 				else (*Sidepot is closed. Cons iSp' and make a new sidepot. *)
-					iSp'::Sidepot(nr'+1, [Pokerplayer (id, h, m)], m, allin, false)::[]
+					(print("1h. ");iSp'::Sidepot(nr'+1, [Pokerplayer (id, h, m)], m, allin, false)::[])
 			end
 				
 		| sh_mkSidepot'(l as iSp'::xs, iSp as Sidepot(nr', pl', pot', allin', full'), id, h, m, allin) =	
@@ -249,29 +252,32 @@ fun sh_mkSidepot ([], _, _, _, _) = []
 				if getMoney > 0 then (*Player is already in the side pot.*)
 					if getMoney < pot' then (*Player's money in sidepot is less than sidepot*)
 						if newMoney > pot' then (*Player's money is bigger than sidepot. Update player's money and try next sidepot.*)
-							Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot'-getMoney, allin)
+							(print("2a. ");Sidepot(nr', updPlayerMoney(pl', id, pot'), pot', allin', full')::sh_mkSidepot'(xs, iSp', id, h, m-pot'-getMoney, allin))
 						else	(*Player's money is smaller than sidepot. Update player's money. *)
-							Sidepot(nr', updPlayerMoney(pl', id, newMoney), pot', allin', full')::l
+							(print("2b. ");Sidepot(nr', updPlayerMoney(pl', id, newMoney), pot', allin', full')::l)
 					else (*Sidepot is full, try next sidepot*)
-						iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin)
+						(print("2c. ");iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin))
 				else (*Player isn't in the side spot*)
 					if m = pot' then (*Money is the same as pot. Add player to sidepot, change allin. Terminate.*)
-						Sidepot(nr', Pokerplayer (id, h, m)::pl', pot', allin, full')::l
+						(print("2d. ");Sidepot(nr', Pokerplayer (id, h, m)::pl', pot', allin, full')::l)
 					else if m > pot' then (*Money is bigger than pot. Add player and try next sidepot*)
-						Sidepot(nr', Pokerplayer (id, h, pot')::pl', pot', allin, full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin)
+						(print("2e. ");Sidepot(nr', Pokerplayer (id, h, pot')::pl', pot', allin, full')::sh_mkSidepot'(xs, iSp', id, h, m-pot', allin))
 					else (*Money is less than pot. Make a split.*)
-						chOldSidepot(iSp, id, h, m, allin)::mkNewSidepot(iSp, m)::updNr(l, nr')
+						(print("2f. ");chOldSidepot(iSp, id, h, m, allin)::mkNewSidepot(iSp, m)::updNr(l, nr'))
 				
 			else	(*Sidepot closed. Cons iSp and try next sidepot. *)
-				iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin)
+				(print("2g. ");iSp::sh_mkSidepot'(xs, iSp', id, h, m, allin))
 		end
 	in
 			sh_mkSidepot'(xs, iSp, id, h, m, allin)
 	end;
 
+val a = sh_mkSidepot([sh_emptySidepot], 0, 1, 100, true);
+val a = sh_mkSidepot(a, 1, 1, 200, false);	
+val a = sh_mkSidepot(a, 2, 1, 300, false);	
+val a = sh_mkSidepot(a, 1, 1, 50, true);	
 	
-	
-(* Test cases for sh_mkSidepot. *)
+(* Test cases for sh_mkSidepot. 
 let
     val x1 = sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot(sh_mkSidepot([sh_emptySidepot], 0, 9999, 1000, true), 1, 9999, 500, false), 2, 9999, 500, true), 3, 9999, 1000, true), 4, 9999, 100, true), 1, 9999, 500, false)
     val x2 = [Sidepot (0, [Pokerplayer (3, 9999, 100), Pokerplayer (2, 9999, 100), Pokerplayer (0, 9999, 100), Pokerplayer (1, 9999, 100),  Pokerplayer (4, 9999, 100)], 100, true, false), Sidepot(1, [Pokerplayer (3, 9999, 400), Pokerplayer (2, 9999, 400), Pokerplayer (0, 9999, 400), Pokerplayer (1, 9999, 400)], 400, true, false), Sidepot (2, [Pokerplayer (1, 9999, 500), Pokerplayer (3, 9999, 500), Pokerplayer (0, 9999, 500)], 500, true, false)]
@@ -281,7 +287,7 @@ let
 in
     (test("sh_mkSidepot test 1: ", assert_equals(x1, x2));
 	test("sh_mkSidepot test 2: ", assert_equals(x1, x2)))
-end;
+end;*)
 
 (*
 	sh_unCalled l
@@ -541,3 +547,11 @@ fun showDown([]) = []
 		sh_mkSidepot::showDown(xs)
 	end; 
 	
+	
+(* Test cases for showDown. 
+let
+ 	val x1 = [Sidepot (0, [Pokerplayer (3, 9999, 100), Pokerplayer (2, 9, 100), Pokerplayer (0, 1, 100), Pokerplayer (1, 9999, 100),  Pokerplayer (4, 9999, 100)], 100, true, false), Sidepot(1, [Pokerplayer (3, 9999, 400), Pokerplayer (2, 9, 400), Pokerplayer (0, 1, 400), Pokerplayer (1, 9999, 400)], 400, true, false), Sidepot (2, [Pokerplayer (1, 9999, 500), Pokerplayer (3, 9999, 500), Pokerplayer (0, 1, 500)], 500, true, false)]
+	val x2 = [Sidepot (0, [Pokerplayer (0, 1, 500)], 500, true, true), Sidepot (1, [Pokerplayer (0, 1, 1600)], 1600, true, true), Sidepot (2, [Pokerplayer (0, 1, 1500)], 1500, true, true)]
+in
+    test("showDown test 1: ", assert_equals(x1, x2))
+end;*)
